@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="da">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skole-Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+    <div class="app-container">
+
+        <!-- LOCK SCREEN OVERLAY -->
+        <div id="lock-screen" class="lock-screen">
+            <div class="lock-content landing-style">
+                <div class="lock-icon">🔒</div>
+                <h1 class="lock-title">Skole Dashboard</h1>
+                <p class="lock-subtitle">Din daglige planlægning, værktøjer og overblik.</p>
+
+                <div class="input-group">
+                    <input type="password" id="lock-input" placeholder="Adgangskode" autocomplete="off">
+                    <button id="lock-btn" class="arrow-btn">➜</button>
+                </div>
+
+                <div id="lock-error" class="hidden">Forkert kode. Prøv igen.</div>
+            </div>
+        </div>
+
+        <!-- EXTRAS OVERLAY (Utility Panel) -->
+        <div id="extras-overlay" class="extras-overlay hidden">
+            <!-- Close Button (Fixed relative to screen/overlay for easy access) -->
+            <button id="close-extras-btn" class="close-btn-floating" title="Luk Menu">✕</button>
+
+            <div class="utility-panel">
+
+                <!-- ZONE 1: CONTEXT (Class + Theme) -->
+                <div class="panel-section context-bar">
+                    <div class="context-group">
+                        <span class="context-label">Klasse</span>
+                        <select id="class-selector" class="minimal-select">
+                            <option value="valhalla">Valhalla</option>
+                            <option value="udgaard">Udgård</option>
+                            <option value="asgaard">Asgård</option>
+                        </select>
+                    </div>
+                    <div class="divider-vertical-small"></div>
+                    <div class="context-group">
+                        <span class="context-label">Tema</span>
+                        <div class="theme-row" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button class="theme-dot" data-theme="theme-midnight" style="background: #38bdf8;"
+                                title="Midnight"></button>
+                            <button class="theme-dot" data-theme="theme-forest" style="background: #66bb6a;"
+                                title="Forest"></button>
+                            <button class="theme-dot" data-theme="theme-sunset" style="background: #f472b6;"
+                                title="Sunset"></button>
+                            <button class="theme-dot" data-theme="theme-crimson" style="background: #ef4444;"
+                                title="Crimson"></button>
+                            <button class="theme-dot" data-theme="theme-coffee" style="background: #d4a373;"
+                                title="Coffee"></button>
+                            <button class="theme-dot" data-theme="theme-oled" style="background: #ffffff;"
+                                title="OLED"></button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ZONE 2: PRIMARY FOCUS (Timer) -->
+                <div class="panel-section focus-section">
+                    <div class="focus-display-large" id="focus-display">25:00</div>
+                    <div class="focus-controls">
+                        <button class="focus-btn" onclick="startFocusTimer()">Start</button>
+                        <button class="focus-btn secondary" onclick="resetFocusTimer()">Reset</button>
+                    </div>
+                    <div class="focus-label">Fokus Tid</div>
+                </div>
+
+                <!-- ZONE 3: RESOURCES (Simple Grid) -->
+                <div class="panel-section resource-grid">
+                    <a href="https://abc.ordbogen.com/" target="_blank" class="resource-btn">
+                        <span class="res-icon">📖</span> Ordbog
+                    </a>
+                    <a href="https://viborgskoler15-my.sharepoint.com/personal/mikk767f_viborgskoler_dk/_layouts/15/Doc.aspx?sourcedoc={430f4aef-960a-4f3f-85ed-12473b3c199b}&action=view&wd=target%28%40Undervisning%2F%40Valhalla%2FDansk.one%7C9bb91ed7-1a94-4739-a5cb-89547a8e604e%2FNovelle%20-%20Den%20blomstrende%20have%7C94f38ed4-d164-4a02-bec2-7a78dc760ad0%2F%29&wdorigin=NavigationUrl"
+                        target="_blank" class="resource-btn">
+                        <span class="res-icon">📓</span> OneNote
+                    </a>
+
+                </div>
+
+                <!-- ZONE 4: SECONDARY TOOLS (Icons) -->
+                <div class="panel-section tools-row">
+                    <button class="tool-icon-btn" onclick="toggleSecondary('calculator')"
+                        title="Lommeregner">🧮</button>
+                    <button class="tool-icon-btn" onclick="toggleSecondary('classmates')"
+                        title="Klassekammerater">👥</button>
+                    <button class="tool-icon-btn" onclick="toggleSecondary('fun')" title="Sjov">🎲</button>
+                    <button class="tool-icon-btn" onclick="showLiveLink()" title="Live Link Drop">🔗</button>
+                </div>
+
+                <!-- ZONE 5: SECONDARY VIEW (Hidden content areas) -->
+                <div id="secondary-view" class="secondary-view hidden">
+
+                    <!-- Calculator -->
+                    <div id="sec-calculator" class="sec-content hidden">
+                        <div class="calc-grid compact">
+                            <div class="calc-display" id="calc-display">0</div>
+                            <button class="calc-btn" onclick="calcAppend('7')">7</button>
+                            <button class="calc-btn" onclick="calcAppend('8')">8</button>
+                            <button class="calc-btn" onclick="calcAppend('9')">9</button>
+                            <button class="calc-btn accent" onclick="calcOperate('/')">/</button>
+                            <button class="calc-btn" onclick="calcAppend('4')">4</button>
+                            <button class="calc-btn" onclick="calcAppend('5')">5</button>
+                            <button class="calc-btn" onclick="calcAppend('6')">6</button>
+                            <button class="calc-btn accent" onclick="calcOperate('*')">*</button>
+                            <button class="calc-btn" onclick="calcAppend('1')">1</button>
+                            <button class="calc-btn" onclick="calcAppend('2')">2</button>
+                            <button class="calc-btn" onclick="calcAppend('3')">3</button>
+                            <button class="calc-btn accent" onclick="calcOperate('-')">-</button>
+                            <button class="calc-btn" onclick="calcClear()">C</button>
+                            <button class="calc-btn" onclick="calcAppend('0')">0</button>
+                            <button class="calc-btn" onclick="calcEqual()">=</button>
+                            <button class="calc-btn accent" onclick="calcOperate('+')">+</button>
+                        </div>
+                    </div>
+
+                    <!-- Classmates -->
+                    <div id="sec-classmates" class="sec-content hidden">
+                        <h4 style="margin-bottom: 10px; color: var(--text-muted);">Klassekammerater</h4>
+                        <input type="text" id="student-search" class="search-input compact" placeholder="Søg...">
+                        <div id="student-list" class="student-list compact"></div>
+                    </div>
+
+                    <!-- Fun Zone -->
+                    <div id="sec-fun" class="sec-content hidden">
+                        <div class="fun-buttons">
+                            <button class="fun-btn" onclick="startRoulette()">🎰 Roulette</button>
+                            <button class="fun-btn" onclick="startLoveMatch()">💘 Love Match</button>
+                            <button class="fun-btn" onclick="openGame()">🐍 Snake</button>
+                        </div>
+                        <div id="fun-display" class="fun-display hidden"></div>
+                        <!-- Quotes moved here -->
+                        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
+                            <p id="quote-text"
+                                style="font-style: italic; color: var(--text-secondary); font-size: 0.9rem;">Tryk for
+                                visdom...</p>
+                            <button class="fun-btn small" onclick="newQuote()" style="margin-top: 5px;">Ny
+                                Visdom</button>
+                        </div>
+                    </div>
+
+                    <!-- Notes -->
+                    <div id="sec-notes" class="sec-content hidden">
+                        <textarea id="scratchpad" class="notes-area" placeholder="Dine noter..."
+                            style="min-height: 200px;"></textarea>
+                    </div>
+
+                    <!-- Live Link Drop (Moved to Menu) -->
+
+
+                </div>
+
+                <!-- Debug Tools (Hidden) -->
+                <!-- Debug Tools (Hidden) -->
+                <div class="debug-hidden">
+                    <p style="font-size: 0.7rem; color: #aaa; margin-bottom: 5px;">TIDSREJSE (Test)</p>
+                    <div style="display: flex; gap: 5px; justify-content: center; flex-wrap: wrap;">
+                        <button onclick="setTimeTravel(8, 15)">08:15</button>
+                        <button onclick="setTimeTravel(9, 30)">09:30</button>
+                        <button onclick="setTimeTravel(10, 30)">10:30</button>
+                        <button onclick="resetTimeTravel()" style="color: #ef4444;">Reset</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- SECRET SNAKE GAME OVERLAY -->
+        <div id="game-overlay" class="game-overlay hidden">
+            <div class="game-container">
+                <canvas id="snake-game" width="400" height="400"></canvas>
+                <div class="game-info">
+                    <span>Score: <span id="game-score">0</span></span>
+                    <span class="close-hint">Klik udenfor for at lukke</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW: DASHBOARD -->
+        <!-- Header (Fixed Outside Dashboard) -->
+        <header id="main-header">
+            <div class="header-right">
+                <button id="menu-btn" class="theme-btn" title="Menu & Værktøjer">
+                    <div class="menu-icon-bento">
+                        <div class="bento-dot"></div>
+                        <div class="bento-dot"></div>
+                        <div class="bento-dot"></div>
+                        <div class="bento-dot"></div>
+                        <div class="bento-dot"></div>
+                        <div class="bento-dot"></div>
+                        <div class="bento-dot"></div>
+                        <div class="bento-dot"></div>
+                        <div class="bento-dot"></div>
+                    </div>
+                </button>
+            </div>
+        </header>
+
+        <!-- Floating Action Button (Fixed Outside Dashboard) -->
+        <button class="fab-btn" onclick="showLiveLink()" title="Live Link Drop">
+            🔗
+        </button>
+
+        <!-- VIEW: DASHBOARD -->
+        <div id="view-dashboard">
+
+
+            <!-- VERTICAL STORYBOARD LAYOUT -->
+            <div class="storyboard-container">
+
+                <!-- SECTION 1: HERO (Current Status) -->
+                <section id="hero" class="story-section hero-section">
+                    <main class="status-card" id="status-card">
+                        <div class="status-label" id="status-label">Lige nu</div>
+                        <div class="timer-content" style="margin-top: 2rem; margin-bottom: 2rem;">
+                            <div class="current-subject" id="current-subject">Loading...</div>
+                            <div class="next-info" id="next-info"></div>
+                            <div class="countdown-timer" id="countdown">00:00</div>
+                        </div>
+
+                        <!-- SMART SUBJECT WIDGET -->
+                        <div id="subject-widget" class="subject-widget hidden">
+                            <div class="topic-control">
+                                <button class="topic-arrow" onclick="changeTopic(-1)">‹</button>
+                                <div class="topic-info">
+                                    <span class="topic-label" id="widget-subject">Dansk</span>
+                                    <span class="topic-title" id="widget-topic">Identitet</span>
+                                </div>
+                                <button class="topic-arrow" onclick="changeTopic(1)">›</button>
+                            </div>
+                            <a href="#" id="widget-btn" target="_blank" class="widget-action-btn">
+                                <span class="btn-icon">📓</span> <span id="widget-btn-text">Åbn OneNote</span>
+                            </a>
+                        </div>
+                    </main>
+                    <div class="scroll-hint">↓ Scroll for at se skema</div>
+                </section>
+
+                <!-- SECTION 2: SCHEDULE -->
+                <section id="schedule" class="story-section">
+                    <div class="content-wrapper">
+                        <h2 class="section-title" style="text-align: center; margin-bottom: 2rem; font-size: 2rem;">
+                            Dagens
+                            Plan</h2>
+                        <div id="schedule-list" class="schedule-list-vertical">
+                            <!-- Schedule items injected here -->
+                        </div>
+                    </div>
+                </section>
+
+
+
+            </div>
+
+
+        </div> <!-- End view-dashboard -->
+
+        <!-- VIEW: LIVE LINK (Standalone) -->
+        <div id="view-livelink" class="hidden livelink-view">
+
+            <!-- Custom Header for Live Link -->
+            <header
+                style="position: absolute; top: 0; left: 0; right: 0; padding: 20px; display: flex; justify-content: space-between;">
+                <button onclick="showDashboard()"
+                    style="background: rgba(255,255,255,0.1); border: none; color: white; padding: 10px 15px; border-radius: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                    <span>‹</span> Tilbage
+                </button>
+
+                <button onclick="document.getElementById('extras-overlay').classList.remove('hidden')" class="theme-btn"
+                    title="Menu">
+                    <div class="menu-icon-bento">
+                        <div class="bento-dot"></div>
+                        <div class="bento-dot"></div>
+                        <div class="bento-dot"></div>
+                        <div class="bento-dot"></div>
+                        <div class="bento-dot"></div>
+                        <div class="bento-dot"></div>
+                        <div class="bento-dot"></div>
+                        <div class="bento-dot"></div>
+                        <div class="bento-dot"></div>
+                    </div>
+                </button>
+            </header>
+
+            <div class="center-card"
+                style="width: 90%; max-width: 450px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; padding: 30px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); animation: slideUp 0.5s ease;">
+                <h2 style="color: var(--accent); text-align: center; margin-bottom: 5px; font-size: 1.8rem;">🔗 Live
+                    Link Drop</h2>
+                <p style="font-size: 0.9rem; color: var(--text-secondary); text-align: center; margin-bottom: 25px;">Del
+                    links lynhurtigt med klassen</p>
+
+                <div class="drop-zone" id="drop-zone-standalone"
+                    style="background: rgba(0,0,0,0.2); padding: 25px; border-radius: 16px; border: 1px dashed rgba(255,255,255,0.1); margin-bottom: 25px;">
+                    <div class="empty-state">
+                        <p style="font-size: 1rem; opacity: 0.7; text-align: center;">Venter på link...</p>
+                    </div>
+                    <div class="link-content hidden" id="link-content-standalone">
+                        <a href="#" target="_blank" id="current-link-standalone" class="gradient-text"
+                            style="display: block; text-align: center; margin-bottom: 10px; word-break: break-all; font-size: 1.2rem; font-weight: 700;"></a>
+                        <div class="meta-info" id="timestamp-standalone"
+                            style="font-size: 0.8rem; color: var(--text-muted); text-align: center;"></div>
+                    </div>
+                </div>
+
+                <div class="actions" id="action-buttons-standalone"
+                    style="display: flex; gap: 10px; margin-bottom: 25px;">
+                    <button id="copy-btn-standalone" class="btn secondary hidden"
+                        style="flex: 1; padding: 12px;">Kopier</button>
+                    <button id="open-btn-standalone" class="btn secondary hidden"
+                        style="flex: 1; padding: 12px;">Åbn</button>
+                </div>
+
+                <form id="send-form-standalone" class="send-area" style="display: flex; gap: 10px;">
+                    <input type="text" id="link-input-standalone" placeholder="Indsæt link..." autocomplete="off"
+                        style="flex: 1; padding: 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: white; font-size: 1rem;">
+                    <button type="submit" class="btn primary" style="padding: 14px 24px; font-size: 1rem;">SEND</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Firebase Scripts -->
+        <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+        <!-- Logic -->
+        <script src="data.js"></script>
+        <script src="app.js"></script>
+</body>
+
+</html>
