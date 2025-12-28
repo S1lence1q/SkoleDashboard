@@ -43,9 +43,9 @@
 
 /* THEMES */
 
-/* THEMES (Dark & Clean) */
+/* PREMIUM THEME ENGINE */
 
-/* Midnight (Deep Blue-Gray) - Default */
+/* 1. Deep Space (Refined Default) */
 body.theme-midnight {
     --bg-app: #0f172a;
     --bg-card: #1e293b;
@@ -54,74 +54,73 @@ body.theme-midnight {
     --text-secondary: #94a3b8;
     --text-muted: #64748b;
     --accent: #38bdf8;
+    --accent-rgb: 56, 189, 248;
     --color-break: #1e293b;
 }
 
-/* Forest (Deep Green) */
-body.theme-forest {
-    --bg-app: #05180b;
-    /* Very Dark Green */
-    --bg-card: #0f291e;
-    --bg-card-highlight: #1a382a;
-    --text-primary: #e8f5e9;
-    --text-secondary: #a5d6a7;
-    --text-muted: #4b6350;
-    --accent: #66bb6a;
-    --color-break: #0f291e;
+/* 2. Royal Gold (Luxury Black) */
+body.theme-royal {
+    --bg-app: #050505;
+    /* True Black */
+    --bg-card: #141414;
+    /* Matte Black */
+    --bg-card-highlight: #222222;
+    --text-primary: #fbfbfb;
+    --text-secondary: #a1a1aa;
+    --text-muted: #52525b;
+    --accent: #fbbf24;
+    /* Amber Gold */
+    --accent-rgb: 251, 191, 36;
+    --color-break: #141414;
 }
 
-/* Sunset (Dark Violet) */
-body.theme-sunset {
-    --bg-app: #120a1f;
-    /* Deep Violet Black */
-    --bg-card: #221436;
-    --bg-card-highlight: #341e52;
-    --text-primary: #f3e8ff;
-    --text-secondary: #d8b4fe;
-    --text-muted: #745494;
-    --accent: #f472b6;
-    /* Soft Rose */
-    --color-break: #221436;
+/* 3. Neon Tokyo (Cyberpunk) */
+body.theme-neon {
+    --bg-app: #090014;
+    /* Deep Violet Void */
+    --bg-card: #18022e;
+    /* Dark Plum */
+    --bg-card-highlight: #2a044d;
+    --text-primary: #fdf4ff;
+    --text-secondary: #e879f9;
+    /* Pinkish Text */
+    --text-muted: #86198f;
+    --accent: #22d3ee;
+    /* Electric Cyan */
+    --accent-rgb: 34, 211, 238;
+    --color-break: #18022e;
 }
 
-/* Crimson (Deep Red) */
-body.theme-crimson {
-    --bg-app: #1a0505;
-    /* Deep Burgundy */
-    --bg-card: #2d0a0a;
-    --bg-card-highlight: #3f1010;
-    --text-primary: #fef2f2;
-    --text-secondary: #fecaca;
-    --text-muted: #991b1b;
-    --accent: #f87171;
-    /* Soft Red */
-    --color-break: #2d0a0a;
+/* 4. Emerald City (Nature/Wealth) */
+body.theme-emerald {
+    --bg-app: #022c22;
+    /* Deepest Jungle */
+    --bg-card: #064e3b;
+    /* Emerald */
+    --bg-card-highlight: #065f46;
+    --text-primary: #ecfdf5;
+    --text-secondary: #6ee7b7;
+    --text-muted: #047857;
+    --accent: #34d399;
+    /* Bright Mint */
+    --accent-rgb: 52, 211, 153;
+    --color-break: #064e3b;
 }
 
-/* Coffee (Dark Mocha) */
-body.theme-coffee {
-    --bg-app: #120c0a;
-    /* Espresso */
-    --bg-card: #1f1612;
-    --bg-card-highlight: #2e231e;
-    --text-primary: #efebe9;
-    --text-secondary: #d7ccc8;
-    --text-muted: #755f56;
-    --accent: #d4a373;
-    /* Latte */
-    --color-break: #1f1612;
-}
-
-/* OLED (True Black) */
-body.theme-oled {
-    --bg-app: #000000;
-    --bg-card: #121212;
-    --bg-card-highlight: #1f1f1f;
-    --text-primary: #ffffff;
-    --text-secondary: #a0a0a0;
-    --text-muted: #555555;
-    --accent: #ffffff;
-    --color-break: #121212;
+/* 5. Nordic Frost (Clean/Minimal) */
+body.theme-frost {
+    --bg-app: #1e293b;
+    /* Slate Blue */
+    --bg-card: #334155;
+    /* Lighter Slate */
+    --bg-card-highlight: #475569;
+    --text-primary: #f8fafc;
+    --text-secondary: #cbd5e1;
+    --text-muted: #94a3b8;
+    --accent: #38bdf8;
+    /* Sky Blue */
+    --accent-rgb: 56, 189, 248;
+    --color-break: #334155;
 }
 
 /* --- BENTO MENU ICON --- */
@@ -149,6 +148,83 @@ body.theme-oled {
     transform: rotate(90deg);
 }
 
+/* Active Theme Dot - SUPER VISIBLE */
+.theme-dot {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    margin: 4px;
+    position: relative;
+    opacity: 0.4;
+    /* Dim unselected items */
+}
+
+.theme-dot:hover {
+    transform: scale(1.1);
+    opacity: 1;
+    /* Bright on hover */
+}
+
+@keyframes pulse-glow {
+    0% {
+        box-shadow: 0 0 10px currentColor;
+    }
+
+    50% {
+        box-shadow: 0 0 25px currentColor, 0 0 10px white;
+    }
+
+    100% {
+        box-shadow: 0 0 10px currentColor;
+    }
+}
+
+.theme-dot.active-theme {
+    transform: scale(1.3);
+    border: 3px solid #ffffff;
+    box-shadow: 0 0 20px currentColor, 0 0 5px white;
+    /* Constant strong glow */
+    opacity: 1 !important;
+    /* Ensure selected is bright */
+    z-index: 10;
+}
+
+/* Checkmark Removed per user request */
+.theme-dot.active-theme::after {
+    content: '';
+}
+
+/* 3. Crimson Command (Red) */
+body.theme-crimson {
+    --bg-app: #180404;
+    --bg-card: #280808;
+    --bg-card-highlight: #450a0a;
+    --text-primary: #fecaca;
+    --text-secondary: #fca5a5;
+    --accent: #ef4444;
+    --accent-rgb: 239, 68, 68;
+    --color-break: #450a0a;
+}
+
+/* 5. Nordic Frost (Refined: Lighter, Icy) */
+body.theme-frost {
+    --bg-app: #1e293b;
+    --bg-card: #334155;
+    --bg-card-highlight: #475569;
+    --text-primary: #e2e8f0;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --accent: #bae6fd;
+    /* Very Pale Ice Blue */
+    --accent-rgb: 186, 230, 253;
+    --color-break: #334155;
+    /* Special override for frost: Make app bg slightly lighter to contrast with Deep Space */
+    --bg-app: #22303f;
+}
+
 .theme-btn:hover .bento-dot {
     background-color: var(--accent);
     border-radius: 1px;
@@ -165,13 +241,19 @@ body {
     background-color: var(--bg-app);
     color: var(--text-primary);
     font-family: var(--font-family);
-    min-height: 100vh;
+    margin: 0;
+    /* padding: 20px; Removed to handle full bleed */
     display: flex;
     justify-content: center;
-    padding: 0;
-    /* REMOVED padding to allow full-bleed views */
+    align-items: flex-start;
+    /* Align to top for scrolling */
+    min-height: 100vh;
     overflow-x: hidden;
-    /* Prevent horizontal scroll */
+    transition: background-color 0.4s ease, color 0.4s ease;
+
+    /* Disciplined Polish: Crisp Text */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 /* Layout */
@@ -533,6 +615,19 @@ h1,
     outline: none;
 }
 
+button {
+    font-family: var(--font-family);
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.1s ease-out, background-color 0.2s ease;
+}
+
+button:active {
+    transform: scale(0.98);
+    /* Tactile Feedback */
+}
+
 .notes-area:focus {
     border-color: var(--accent);
 }
@@ -646,12 +741,12 @@ h1,
 
 /* UTILITY PANEL */
 .utility-panel {
-    background: rgba(20, 20, 25, 0.9);
+    background: var(--bg-card);
     width: 320px;
     max-height: 85vh;
     border-radius: 24px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 40px 80px rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(var(--accent-rgb), 0.3);
+    box-shadow: 0 0 40px rgba(var(--accent-rgb), 0.15);
     padding: 20px;
     position: relative;
     overflow-y: auto;
@@ -824,32 +919,45 @@ h1,
     margin-top: 10px;
 }
 
-/* ZONE 3: RESOURCES */
-.resource-grid {
+/* ZONE/* --- UTILITY PANEL REFINED --- */
+.utility-panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    width: 100%;
+    max-width: 400px;
+}
+
+.tools-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    padding: 10px;
+    gap: var(--spacing-sm);
 }
 
 .resource-btn {
     display: flex;
     align-items: center;
-    gap: 10px;
-    background: rgba(255, 255, 255, 0.05);
-    border: none;
-    padding: 15px;
-    border-radius: 12px;
-    color: var(--text-primary);
+    gap: 12px;
+    background: var(--bg-card-highlight);
+    padding: 16px;
+    border-radius: var(--radius-md);
     text-decoration: none;
-    font-size: 0.95rem;
-    cursor: pointer;
-    transition: background 0.2s;
-    justify-content: center;
+    color: var(--text-primary);
+    font-weight: 600;
+    transition: all 0.2s;
+    border: 1px solid transparent;
 }
 
 .resource-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--bg-card);
+    border-color: rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+}
+
+.resource-btn.mini {
+    padding: 12px;
+    font-size: 0.9rem;
+    justify-content: flex-start;
 }
 
 .res-icon {
@@ -1638,6 +1746,12 @@ canvas#snake-game {
     /* Space for the absolute Layout */
 }
 
+/* EXTRAS OVERLAY (MUST BE TOPMOST) */
+.extras-overlay {
+    z-index: 100001 !important;
+    /* Above LiveLink (99999) */
+}
+
 /* Header Correction: FIXED to Viewport */
 header {
     position: fixed;
@@ -1686,16 +1800,95 @@ header {
 
 
 /* ANIMATIONS FOR VIEWS */
-@keyframes slideDownIn {
+/* Unlock Animation */
+@keyframes slideUpUnlock {
     from {
-        transform: translateY(-100%);
-        opacity: 0;
-    }
-
-    to {
         transform: translateY(0);
         opacity: 1;
     }
+
+    to {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+}
+
+.anim-unlock {
+    animation: slideUpUnlock 0.6s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+
+/* PREMIUM SCHEDULE CARDS */
+.schedule-card {
+    /* FORCE SOLID COLOR - NO TRANSPARENCY */
+    background: var(--bg-card) !important;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    backdrop-filter: none;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 12px;
+    transition: all 0.2s ease;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+    /* Ensure hardware acceleration */
+    transform: translateZ(0);
+}
+
+.schedule-card:hover {
+    /* Hover is just a lighter solid color */
+    background: var(--bg-card-highlight) !important;
+    transform: translateY(-2px);
+}
+
+/* Explicit style for breaks to be lower contrast */
+/* Explicit style for breaks to be lower contrast but SAME brightness */
+.break-item {
+    background: var(--bg-card) !important;
+    opacity: 1;
+    border: 2px dashed rgba(255, 255, 255, 0.4) !important;
+    /* MUCH MORE VISIBLE */
+    color: var(--text-muted);
+}
+
+.schedule-card.current {
+    /* Glowing Border for Active Class */
+    background: var(--bg-card) !important;
+    border: 1px solid var(--accent);
+    box-shadow: 0 0 20px rgba(var(--accent-rgb), 0.2);
+}
+
+
+
+.schedule-card.past {
+    opacity: 0.5;
+    filter: grayscale(0.8);
+}
+
+.card-time {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+    min-width: 50px;
+}
+
+.card-subject {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    flex-grow: 1;
+    padding-left: 15px;
+}
+
+.card-room {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
 }
 
 @keyframes slideDownOut {
@@ -1776,4 +1969,604 @@ header {
 
 .anim-fade-out {
     animation: fadeOut 0.3s ease forwards;
+}
+
+/* --- ARCADE VIEW (Gaming Hub) --- */
+.arcade-view {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--bg-app);
+    /* Subtle Theme Spotlight */
+    background-image: radial-gradient(circle at 50% 30%, rgba(var(--accent-rgb), 0.15), transparent 70%);
+    z-index: 9999;
+    /* Max Z-Index */
+    display: flex;
+    flex-direction: column;
+    animation: fadeIn 0.3s ease;
+}
+
+.arcade-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md) var(--spacing-lg);
+    padding-right: 90px;
+    /* Clear the menu button */
+    padding-right: 90px;
+    /* Clear the menu button */
+    background: transparent;
+    border-bottom: none;
+    position: relative;
+    /* Anchor for absolute title */
+}
+
+#main-header {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10002;
+    /* Above Arcade */
+}
+
+.arcade-title {
+    font-size: 1.8rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, var(--text-primary) 30%, var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    opacity: 0.95;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: max-content;
+}
+
+.back-btn {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 30px;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    cursor: pointer;
+    font-weight: 500;
+    padding: 8px 16px;
+    backdrop-filter: blur(5px);
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    z-index: 10001;
+    /* Force on top */
+    position: relative;
+    pointer-events: auto;
+    /* Ensure clickable */
+}
+
+.back-btn:hover {
+    color: var(--text-primary);
+}
+
+.arcade-content {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    /* Move from center to top */
+    flex-direction: column;
+    align-items: center;
+    overflow-y: auto;
+    padding: var(--spacing-lg);
+}
+
+/* Game Selector */
+.game-selector {
+    display: flex;
+    gap: var(--spacing-lg);
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.game-card {
+    width: 200px;
+    height: 260px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+    overflow: hidden;
+    transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.game-card:hover {
+    transform: translateY(-10px) scale(1.02);
+    border-color: var(--accent);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+}
+
+.game-thumb {
+    flex: 2;
+    background: rgba(0, 0, 0, 0.3);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 4rem;
+}
+
+.snake-thumb {
+    background: linear-gradient(135deg, #064e3b, #10b981);
+}
+
+.game-meta {
+    flex: 1;
+    padding: var(--spacing-sm);
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(5px);
+}
+
+.game-meta h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: white;
+}
+
+.game-meta p {
+    margin: 5px 0 0;
+    font-size: 0.8rem;
+    color: #888;
+}
+
+.game-card.locked {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.game-card.locked:hover {
+    transform: none;
+    box-shadow: none;
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Game Stage (Active Game) */
+.game-stage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 600px;
+    max-width: 600px;
+    animation: zoomIn 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+    margin: 0 auto 15vh auto;
+    /* Lifted up */
+}
+
+.game-viewport {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-lg);
+    background: #111;
+    position: relative;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+canvas {
+    display: block;
+    max-width: 100%;
+}
+
+.game-hud {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    font-family: var(--font-main);
+    font-weight: 500;
+    opacity: 0.9;
+}
+
+.score-board {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.5px;
+}
+
+.settings-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: white;
+    opacity: 0.7;
+}
+
+.settings-btn:hover {
+    opacity: 1;
+    transform: rotate(45deg);
+    transition: 0.3s;
+}
+
+/* Settings Panel */
+/* Settings Panel */
+.settings-panel {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(20, 20, 20, 0.85);
+    /* Darker, cleaner background */
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    padding: 30px;
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    /* Subtle border */
+    width: 320px;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.8);
+    z-index: 100;
+}
+
+.settings-panel h3 {
+    margin-top: 0;
+    margin-bottom: 25px;
+    color: var(--accent);
+}
+
+.setting-group {
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding-bottom: 10px;
+}
+
+.setting-group:last-of-type {
+    border-bottom: none;
+}
+
+.setting-group label {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.setting-group select,
+.setting-group input[type="text"] {
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    border-radius: 8px;
+    font-family: var(--font-main);
+    font-size: 0.9rem;
+    outline: none;
+    transition: 0.2s;
+}
+
+.setting-group select:focus,
+.setting-group input:focus {
+    border-color: var(--accent);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* Custom Checkbox as Toggle */
+.setting-group input[type="checkbox"] {
+    appearance: none;
+    width: 40px;
+    height: 22px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    position: relative;
+    cursor: pointer;
+    transition: 0.3s;
+    border: none;
+}
+
+.setting-group input[type="checkbox"]::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 16px;
+    height: 16px;
+    background: white;
+    border-radius: 50%;
+    transition: 0.3s;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.setting-group input[type="checkbox"]:checked {
+    background: var(--accent);
+}
+
+.setting-group input[type="checkbox"]:checked::after {
+    left: 21px;
+}
+
+/* Game Over Overlay */
+/* Game Over Overlay */
+.game-overlay-msg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    color: var(--text-primary);
+    border-radius: var(--radius-lg);
+}
+
+.game-overlay-msg h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-shadow: none;
+    margin: 0;
+    letter-spacing: -0.5px;
+}
+
+@keyframes zoomIn {
+    from {
+        transform: scale(0.9);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* WORDLE STYLES */
+#wordle-board {
+    display: grid;
+    grid-template-rows: repeat(6, 1fr);
+    grid-gap: 5px;
+    padding: 10px;
+    box-sizing: border-box;
+    width: 300px;
+    height: 360px;
+    margin-bottom: 20px;
+}
+
+.wordle-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-gap: 5px;
+}
+
+.tile {
+    width: 100%;
+    height: 100%;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: white;
+    text-transform: uppercase;
+    background: transparent;
+    transition: transform 0.6s;
+    backface-visibility: hidden;
+    user-select: none;
+}
+
+/* Tile States */
+.tile[data-state='active'] {
+    border-color: rgba(255, 255, 255, 0.5);
+    animation: pop 0.1s;
+}
+
+.tile[data-state='correct'] {
+    background: #538d4e;
+    border-color: #538d4e;
+}
+
+.tile[data-state='present'] {
+    background: #b59f3b;
+    border-color: #b59f3b;
+}
+
+.tile[data-state='absent'] {
+    background: #3a3a3c;
+    border-color: #3a3a3c;
+}
+
+.tile.flip {
+    animation: flip 0.6s ease-in;
+}
+
+/* Keyboard */
+#wordle-keyboard {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    max-width: 500px;
+    padding: 0 10px 20px;
+}
+
+
+/* WORDLE STYLES */
+
+/* Keyboard Container */
+#wordle-keyboard {
+    margin-top: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    max-width: 600px;
+    user-select: none;
+}
+
+.keyboard-row {
+    display: flex;
+    width: 100%;
+    gap: 6px;
+    justify-content: center;
+}
+
+/* Base Key Style */
+.key {
+    background: #818384;
+    color: white;
+    font-weight: bold;
+    border-radius: 4px;
+    cursor: pointer;
+    height: 50px;
+    /* Taller keys for touch */
+    min-width: 30px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 0.9rem;
+    flex: 1;
+    user-select: none;
+    transition: background 0.2s;
+}
+
+.key.big {
+    flex: 1.5;
+    font-size: 0.8rem;
+}
+
+.key:hover {
+    opacity: 0.9;
+}
+
+/* Key States */
+.key[data-state='correct'] {
+    background: #538d4e;
+}
+
+.key[data-state='present'] {
+    background: #b59f3b;
+}
+
+.key[data-state='absent'] {
+    background: #3a3a3c;
+    opacity: 0.5;
+}
+
+/* Animations */
+@keyframes pop {
+    50% {
+        transform: scale(1.1);
+    }
+}
+
+@keyframes flip {
+    0% {
+        transform: rotateX(0);
+    }
+
+    50% {
+        transform: rotateX(90deg);
+    }
+
+    100% {
+        transform: rotateX(0);
+    }
+}
+
+@keyframes shake {
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    10%,
+    30%,
+    50%,
+    70%,
+    90% {
+        transform: translateX(-5px);
+    }
+
+    20%,
+    40%,
+    60%,
+    80% {
+        transform: translateX(5px);
+    }
+}
+
+.wordle-row.shake {
+    animation: shake 0.5s;
+}
+
+/* Thumb */
+.wordle-thumb {
+    background: linear-gradient(135deg, #538d4e, #b59f3b);
+}
+
+/* --- ANIMATIONS --- */
+.fade-target {
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    opacity: 1;
+    transform: scale(1);
+}
+
+.fade-out-state {
+    opacity: 0;
+    transform: scale(0.98);
+    pointer-events: none;
+}
+
+/* Wordle Result Styling */
+#wordle-msg {
+    font-size: 1.2rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 5px;
+    margin-top: 0;
+    text-shadow: none;
+    /* Remove any potential glow */
+    font-family: 'Inter', sans-serif;
+}
+
+/* Wordle Result Styling */
+#wordle-result-word {
+    font-weight: 900 !important;
+    /* Extra Bold */
+    background: linear-gradient(135deg, #fff, var(--accent), #fff);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    animation: gradientText 3s linear infinite;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    filter: drop-shadow(0 0 10px rgba(var(--accent-rgb), 0.5));
+}
+
+@keyframes gradientText {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
 }

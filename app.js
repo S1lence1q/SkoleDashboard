@@ -44,8 +44,8 @@ let currentState = {
     isSimulating: false
 };
 
-// Themes
-const themes = ['default', 'theme-midnight', 'theme-forest', 'theme-sunset', 'theme-crimson', 'theme-coffee', 'theme-oled'];
+// Themes (Updated Premium List)
+const themes = ['theme-midnight', 'theme-royal', 'theme-crimson', 'theme-emerald', 'theme-frost'];
 
 /**
  * Initialize the app
@@ -102,9 +102,10 @@ function init() {
     renderSchedule();
 }
 
-/**
- * Initialize Theme Logic
- */
+// --- FOCUS TIMER LOGIC (REMOVED) ---
+
+// --- CALCULATOR LOGIC (REMOVED) ---
+
 /**
  * Initialize Theme Logic
  */
@@ -114,69 +115,69 @@ function initTheme() {
 
     // Function to set theme
     const setTheme = (themeName) => {
-        // Remove ALL known theme classes
-        themes.forEach(t => {
-            if (t !== 'default') document.body.classList.remove(t);
-        });
+        // 1. Remove ALL theme classes (Robust Regex-like approach)
+        document.body.className = document.body.className
+            .replace(/theme-\w+/g, '') // Remove existing theme-* classes
+            .trim();
 
-        // Determine class name to add
-        // Users might pass "midnight" or "theme-midnight"
+        // 2. Determine new class
         let className = themeName;
-        if (themeName !== 'default' && !themeName.startsWith('theme-')) {
-            className = `theme-${themeName}`;
+        if (!className.startsWith('theme-') && className !== 'default') {
+            className = `theme-${className}`;
         }
 
-        // Add class
-        if (themeName !== 'default') {
-            document.body.classList.add(className);
+        // Fallback or Validate
+        if (!themes.includes(className)) {
+            // If invalid/old theme, default to midnight
+            className = 'theme-midnight';
         }
 
-        currentState.currentTheme = className; // Save the full class name
+        // 3. Add new class
+        document.body.classList.add(className);
+
+        // 4. Update State
+        currentState.currentTheme = className;
         localStorage.setItem('skole_theme', className);
 
-        // Update active state visual
+        // 5. Update UI (Visual Active State)
         themeElements.forEach(el => {
-            // Check loosely matches (dataset might be "theme-midnight" or "midnight")
             const elTheme = el.dataset.theme;
-            const match = elTheme === className || `theme-${elTheme}` === className || elTheme === 'default' && className === 'default';
+            // Match exactly or with prefix
+            const match = elTheme === className || `theme-${elTheme}` === className;
 
             if (match) {
-                el.style.transform = 'scale(1.2)';
-                el.style.borderColor = 'var(--accent)';
-                el.style.opacity = '1';
-                el.style.boxShadow = '0 0 10px var(--accent)';
+                el.classList.add('active-theme');
             } else {
-                el.style.transform = 'scale(1)';
-                el.style.borderColor = 'rgba(255,255,255,0.2)';
-                el.style.opacity = '0.5';
-                el.style.boxShadow = 'none';
+                el.classList.remove('active-theme');
+                // Do NOT wipe style to preserve background color from HTML
+                el.style.transform = '';
+                el.style.border = '';
             }
         });
     };
 
-    // Apply saved theme (handle old saves like "midnight" vs new "theme-midnight")
-    let startTheme = currentState.currentTheme;
-    // Fix legacy saves
-    if (startTheme !== 'default' && !startTheme.startsWith('theme-')) {
-        startTheme = 'theme-' + startTheme;
+    // Initialize Theme from Storage
+    const savedTheme = localStorage.getItem('skole_theme');
+    if (savedTheme) {
+        setTheme(savedTheme);
+    } else {
+        setTheme('theme-midnight'); // Default
     }
-    setTheme(startTheme);
 
-    // Add listeners
-    themeElements.forEach(el => {
-        el.addEventListener('click', () => {
-            const theme = el.dataset.theme;
-            setTheme(theme);
+    // Event Listeners
+    themeElements.forEach(btn => {
+        btn.addEventListener('click', () => {
+            setTheme(btn.dataset.theme);
         });
     });
 }
 
+
 /**
  * Toggle Secondary Tools in Menu
- * @param {string} sectionId - The ID of the section to show (e.g., 'calculator')
+ * @param {string} sectionId - The ID of the section to show
  */
 function toggleSecondary(sectionName) {
-    const overlay = document.getElementById('extras-overlay'); // Main menu
     const parent = document.getElementById('secondary-view');
     const sections = document.querySelectorAll('.sec-content');
     const target = document.getElementById(`sec-${sectionName}`);
@@ -472,23 +473,45 @@ function checkLock() {
 
         if (val === 'julelars') {
             sessionStorage.setItem('skole_unlocked', 'true');
-            lockScreen.classList.add('hidden');
+            // Animate Out
+            lockScreen.classList.add('anim-unlock');
 
-            // FORCE REMOVAL: Wait for transition (600ms) then kill it
+            // Wait for animation, then hide
             setTimeout(() => {
+                lockScreen.classList.add('hidden');
                 lockScreen.style.display = 'none';
             }, 600);
         } else {
-            lockError.classList.remove('hidden');
+            // Show error
+            if (lockError) lockError.classList.remove('hidden');
             lockInput.value = '';
             lockInput.focus();
+
+            // Shake effect
+            lockInput.classList.add('shake');
+            setTimeout(() => lockInput.classList.remove('shake'), 400);
         }
     };
 
     lockBtn.addEventListener('click', unlock);
+
+    // Auto-unlock on input match
+    lockInput.addEventListener('input', (e) => {
+        const val = e.target.value.trim().toLowerCase();
+        if (val === 'julelars') {
+            unlock();
+        } else {
+            // Hide error while typing
+            if (lockError) lockError.classList.add('hidden');
+        }
+    });
+
     lockInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') unlock();
     });
+
+    // Focus on load
+    setTimeout(() => lockInput.focus(), 100);
 }
 
 /**
@@ -501,30 +524,6 @@ function updateTime() {
     // Time Travel Override (Live Simulation)
     if (currentState.isSimulating) {
         now = new Date(now.getTime() + currentState.timeOffset);
-
-        // Visual Warning
-        if (!document.getElementById('sim-badge')) {
-            const badge = document.createElement('div');
-            badge.id = 'sim-badge';
-            badge.innerText = '⚡ LIVE SIMULATION';
-            badge.style.position = 'fixed';
-            badge.style.bottom = '10px';
-            badge.style.left = '50%';
-            badge.style.transform = 'translateX(-50%)';
-            badge.style.background = '#ef4444';
-            badge.style.color = 'white';
-            badge.style.padding = '4px 12px';
-            badge.style.borderRadius = '20px';
-            badge.style.zIndex = '9999';
-            badge.style.fontSize = '0.75rem';
-            badge.style.fontWeight = 'bold';
-            badge.style.boxShadow = '0 0 15px rgba(239, 68, 68, 0.5)';
-            badge.style.pointerEvents = 'none';
-            document.body.appendChild(badge);
-        }
-    } else {
-        const badge = document.getElementById('sim-badge');
-        if (badge) badge.remove();
     }
 
     // Update Header Clock (REMOVED - Cleaner look)
@@ -673,36 +672,49 @@ function updateStatus(now) {
 /**
  * Render the schedule list
  */
+/**
+ * Render the schedule list (Premium Layout)
+ */
 function renderSchedule() {
     scheduleListEl.innerHTML = '';
 
     if (!currentState.scheduleToday) {
-        scheduleListEl.innerHTML = '<div class="schedule-item"><span class="subject-name">Ingen timer i dag</span></div>';
+        scheduleListEl.innerHTML = '<div class="schedule-card"><span class="card-subject" style="text-align:center; padding:0;">Ingen timer i dag 😴</span></div>';
         return;
     }
 
     currentState.scheduleToday.lessons.forEach((lesson, index) => {
         const item = document.createElement('div');
-        item.className = 'schedule-item';
+        // Use new CSS class
+        item.className = 'schedule-card';
+        if (lesson.type === 'break') item.className += ' break-item';
+
         item.dataset.start = lesson.start;
         item.dataset.end = lesson.end;
 
-        // Styling border for lessons
-        if (lesson.type !== 'break') {
-            item.style.borderLeftColor = lesson.color;
-        } else {
-            item.style.borderLeftColor = 'transparent';
-            item.classList.add('break-item');
-        }
+        // Subject Icon Mapping (Simple)
+        let icon = "📚";
+        if (lesson.subject.includes("Idræt")) icon = "⚽";
+        if (lesson.subject.includes("Musik")) icon = "🎵";
+        if (lesson.subject.includes("Matematik")) icon = "📐";
+        if (lesson.subject.includes("Dansk")) icon = "🇩🇰";
+        if (lesson.subject.includes("Engelsk")) icon = "🇬🇧";
+        if (lesson.subject.includes("Tysk")) icon = "🇩🇪";
+        if (lesson.subject.includes("Fysik")) icon = "⚛️";
+        if (lesson.subject.includes("Historie")) icon = "🏛️";
+        if (lesson.subject.includes("Kristendom")) icon = "⛪";
+        if (lesson.subject.includes("Pause")) icon = "🥪";
 
-        const teacherHtml = lesson.teacher ? `<span class="teacher-name">${lesson.teacher}</span>` : '';
+        const teacherHtml = lesson.teacher && lesson.type !== 'break'
+            ? `<div class="card-room">${lesson.teacher}</div>`
+            : '';
 
         item.innerHTML = `
-            <div class="time-slot">${lesson.start} - ${lesson.end}</div>
-            <div class="subject-info">
-                <span class="subject-name">${lesson.subject}</span>
-                ${teacherHtml}
+            <div class="card-time">${lesson.start}<br><span style="opacity:0.6">${lesson.end}</span></div>
+            <div class="card-subject">
+                <span style="margin-right:8px">${icon}</span> ${lesson.subject}
             </div>
+            ${teacherHtml}
         `;
 
         scheduleListEl.appendChild(item);
@@ -710,17 +722,23 @@ function renderSchedule() {
 }
 
 function highlightActiveItem(currentLesson) {
-    const items = scheduleListEl.querySelectorAll('.schedule-item');
+    const items = scheduleListEl.querySelectorAll('.schedule-card');
     items.forEach(item => {
-        item.classList.remove('active', 'past');
+        item.classList.remove('current', 'past');
 
         const start = item.dataset.start;
         const end = item.dataset.end;
 
-        if (!start) return; // Skip if no data
+        if (!start) return;
 
         if (currentLesson && start === currentLesson.start) {
-            item.classList.add('active');
+            item.classList.add('current');
+
+            // Only scroll if we haven't scrolled to this lesson yet
+            if (currentState.lastScrolledTo !== start) {
+                item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                currentState.lastScrolledTo = start; // Mark as scrolled
+            }
         } else {
             // Check if past
             const now = new Date();
@@ -1150,25 +1168,282 @@ window.startLoveMatch = function () {
     }, 100);
 }
 
-function showFinalLoveResult() {
-    const p1 = students[Math.floor(Math.random() * students.length)];
-    let p2 = students[Math.floor(Math.random() * students.length)];
+// --- ARCADE INTEGRATION ---
 
-    while (p1 === p2) {
-        p2 = students[Math.floor(Math.random() * students.length)];
+// Helper: Smooth Transition
+// Refactored to be SEQUENTIAL to prevent layout jumps
+window.transitionTo = function (hideId, showId) {
+    const hideEl = document.getElementById(hideId);
+    const showEl = document.getElementById(showId);
+
+    // Step 1: Fade Out
+    if (hideEl && !hideEl.classList.contains('hidden')) {
+        hideEl.classList.add('fade-target');
+        hideEl.classList.add('fade-out-state');
+
+        // Wait for fade out to finish before showing next
+        setTimeout(() => {
+            hideEl.classList.add('hidden');
+            hideEl.classList.remove('fade-out-state');
+            hideEl.classList.remove('fade-target');
+
+            // Step 2: Fade In Next (only after previous is gone)
+            if (showEl) {
+                showEl.classList.add('hidden'); // Ensure hidden first
+                showEl.classList.remove('fade-out-state'); // Reset state
+                showEl.classList.add('fade-target');
+                showEl.classList.add('fade-out-state'); // Init state
+
+                showEl.classList.remove('hidden'); // Put in DOM
+
+                // Force Reflow
+                void showEl.offsetWidth;
+
+                showEl.classList.remove('fade-out-state'); // Animate Opacity -> 1
+
+                // Clean up classes after anim
+                setTimeout(() => {
+                    showEl.classList.remove('fade-target');
+                }, 300);
+            }
+        }, 250); // Slightly faster than CSS to snap
+    } else {
+        // Instant show if no hide (first load?)
+        if (showEl) showEl.classList.remove('hidden');
+    }
+}
+
+// --- ARCADE NAVIGATION ---
+
+window.handleArcadeBack = function () {
+    const isSnake = !document.getElementById('stage-snake').classList.contains('hidden');
+    const isBreakout = !document.getElementById('stage-breakout').classList.contains('hidden');
+    const isWordle = !document.getElementById('stage-wordle').classList.contains('hidden');
+
+    if (isSnake) window.closeSnake();
+    else if (isBreakout) window.closeBreakout();
+    else if (isWordle) window.closeWordle();
+    else window.closeArcade();
+}
+
+window.openArcade = function () {
+    document.getElementById('extras-overlay').classList.add('hidden');
+    const arcade = document.getElementById('view-arcade');
+
+    // Animate In
+    arcade.classList.add('fade-target');
+    arcade.classList.add('fade-out-state');
+    arcade.classList.remove('hidden');
+
+    void arcade.offsetWidth;
+    arcade.classList.remove('fade-out-state');
+
+    // Init Arcade engine
+    if (window.Arcade) window.Arcade.init();
+}
+
+window.closeArcade = function () {
+    // Animate Out
+    const arcade = document.getElementById('view-arcade');
+    arcade.classList.add('fade-target');
+    arcade.classList.add('fade-out-state');
+
+    setTimeout(() => {
+        arcade.classList.add('hidden');
+        arcade.classList.remove('fade-target');
+        arcade.classList.remove('fade-out-state');
+
+        document.body.style.overflow = '';
+        if (window.Arcade) {
+            if (window.Arcade.Snake) window.Arcade.Snake.stop();
+            if (window.Arcade.Breakout) window.Arcade.Breakout.stop();
+            if (window.Arcade.Wordle) window.Arcade.Wordle.stop();
+        }
+    }, 300);
+}
+
+// Snake Specifics
+window.openSnake = function () {
+    // Transition: Selector -> Snake
+    window.transitionTo('arcade-game-selector', 'stage-snake');
+
+    // Start Game
+    if (window.Arcade) setTimeout(() => window.Arcade.Snake.start(), 300);
+}
+
+window.closeSnake = function () {
+    // Transition: Snake -> Selector
+    window.transitionTo('stage-snake', 'arcade-game-selector');
+    if (window.Arcade) {
+        window.Arcade.Snake.stop();
+        window.Arcade.updateUI();
+    }
+}
+
+window.restartSnake = function () {
+    if (window.Arcade) window.Arcade.Snake.start();
+}
+
+// Breakout Specifics
+window.openBreakout = function () {
+    window.transitionTo('arcade-game-selector', 'stage-breakout');
+    if (window.Arcade) setTimeout(() => window.Arcade.Breakout.start(), 300);
+}
+
+window.closeBreakout = function () {
+    window.transitionTo('stage-breakout', 'arcade-game-selector');
+    if (window.Arcade) {
+        window.Arcade.Breakout.stop();
+        window.Arcade.updateUI();
+    }
+}
+
+window.restartBreakout = function () {
+    if (window.Arcade) window.Arcade.Breakout.start();
+}
+
+// Wordle Specifics
+window.openWordle = function () {
+    window.transitionTo('arcade-game-selector', 'stage-wordle');
+    if (window.Arcade) setTimeout(() => window.Arcade.Wordle.start(), 300);
+}
+
+window.closeWordle = function () {
+    window.transitionTo('stage-wordle', 'arcade-game-selector');
+    if (window.Arcade) {
+        window.Arcade.Wordle.stop();
+        window.Arcade.updateUI();
+    }
+}
+
+window.restartWordle = function () {
+    if (window.Arcade) window.Arcade.Wordle.start();
+}
+
+// --- PONG ---
+window.openPong = function () {
+    window.transitionTo('arcade-game-selector', 'stage-pong');
+    if (window.Arcade) setTimeout(() => window.Arcade.Pong.start(), 300);
+}
+
+window.closePong = function () {
+    window.transitionTo('stage-pong', 'arcade-game-selector');
+    if (window.Arcade) {
+        window.Arcade.Pong.stop();
+        window.Arcade.updateUI();
+    }
+}
+
+window.restartPong = function () {
+    if (window.Arcade) window.Arcade.Pong.start();
+}
+
+window.toggleArcadeSettings = function () {
+    const p = document.getElementById('arcade-settings');
+    const isHidden = p.classList.contains('hidden');
+
+    // Detect Active Game
+    const isSnake = !document.getElementById('stage-snake').classList.contains('hidden');
+    const isBreakout = !document.getElementById('stage-breakout').classList.contains('hidden');
+    const isWordle = !document.getElementById('stage-wordle').classList.contains('hidden');
+    const isPong = !document.getElementById('stage-pong').classList.contains('hidden');
+
+    const snakeControls = document.getElementById('settings-snake-controls');
+    const breakoutControls = document.getElementById('settings-breakout-controls');
+
+    if (isHidden) {
+        // Open Settings
+        p.classList.remove('hidden');
+
+        // Sync UI with Current Settings
+        if (window.Arcade && window.Arcade.settings) {
+            const s = window.Arcade.settings;
+            if (document.getElementById('set-sound-enabled')) document.getElementById('set-sound-enabled').checked = s.soundEnabled;
+
+            // Snake
+            if (document.getElementById('set-snake-speed')) document.getElementById('set-snake-speed').value = s.snakeSpeed || 100;
+            if (document.getElementById('set-snake-walls')) document.getElementById('set-snake-walls').checked = s.snakeWalls;
+            if (document.getElementById('set-snake-theme')) document.getElementById('set-snake-theme').value = s.snakeTheme || 'classic';
+
+            // Breakout
+            if (document.getElementById('set-breakout-chance')) document.getElementById('set-breakout-chance').value = s.breakoutChance || 0.2;
+            if (document.getElementById('set-breakout-multiball')) document.getElementById('set-breakout-multiball').value = s.breakoutMultiball || 'standard';
+            if (document.getElementById('set-breakout-lives')) document.getElementById('set-breakout-lives').value = s.breakoutLives || 3;
+            if (document.getElementById('set-breakout-paddle')) document.getElementById('set-breakout-paddle').value = s.breakoutPaddle || 100;
+        }
+
+        // Show/Hide Controls based on Game
+        snakeControls.classList.add('hidden');
+        if (breakoutControls) breakoutControls.classList.add('hidden');
+
+        if (isSnake) {
+            snakeControls.classList.remove('hidden');
+            if (window.Arcade && window.Arcade.Snake) window.Arcade.Snake.isPaused = true;
+        } else if (isBreakout) {
+            if (breakoutControls) breakoutControls.classList.remove('hidden');
+            if (window.Arcade && window.Arcade.Breakout) window.Arcade.Breakout.isPaused = true;
+        } else if (isPong) {
+            if (window.Arcade && window.Arcade.Pong) window.Arcade.Pong.gameActive = false; // Pause
+        }
+    } else {
+        // Close Settings
+        p.classList.add('hidden');
+
+        // Resume Active Game
+        if (isSnake && window.Arcade) window.Arcade.Snake.start();
+        if (isBreakout && window.Arcade) window.Arcade.Breakout.isPaused = false;
+        if (isPong && window.Arcade) {
+            window.Arcade.Pong.gameActive = true;
+            window.Arcade.Pong.loop();
+        }
+    }
+}
+
+window.updateArcadeSetting = function (key, val) {
+    if (!window.Arcade) return;
+
+    // Convert types
+    if (key === 'speed') val = parseInt(val);
+    if (key === 'walls') val = (val === true || val === 'true');
+    // Breakout conversions
+    if (key === 'breakoutChance') val = parseFloat(val);
+    if (key === 'breakoutLives') val = parseInt(val);
+    if (key === 'breakoutPaddle') val = parseInt(val);
+
+    // Map to internal keys
+    const map = {
+        'sound': 'soundEnabled',
+        'speed': 'snakeSpeed',
+        'walls': 'snakeWalls',
+        'theme': 'snakeTheme',
+        'breakoutChance': 'breakoutChance',
+        'breakoutMultiball': 'breakoutMultiball',
+        'breakoutLives': 'breakoutLives',
+        'breakoutPaddle': 'breakoutPaddle'
+    };
+
+    window.Arcade.settings[map[key]] = val;
+    window.Arcade.saveSettings();
+
+    // LIVE UPDATES
+    if (key === 'breakoutLives' && window.Arcade.Breakout) {
+        // Only update if not currently "playing" (ball attached) or just update anyway?
+        // User wants to see it update.
+        window.Arcade.Breakout.lives = val;
+        if (typeof window.Arcade.Breakout.updateLives === 'function') {
+            window.Arcade.Breakout.updateLives();
+        }
+    }
+    if (key === 'breakoutPaddle' && window.Arcade.Breakout && window.Arcade.Breakout.paddle) {
+        window.Arcade.Breakout.paddle.targetW = val;
     }
 
-    const percent = Math.floor(Math.random() * 101);
-    let comment = "";
-    if (percent > 90) comment = "Power Couple! 🔥";
-    else if (percent > 50) comment = "Måske? 😉";
-    else comment = "Akavet... 😬";
+    // Do NOT auto-restart here. Wait for user to close settings.
+}
 
-    funDisplayEx.innerHTML = `
-        <div style="font-size: 0.9rem;">${p1.name} + ${p2.name}</div>
-        <div style="font-size: 2rem; font-weight: 800; color: var(--accent); margin: 5px 0; animation: popIn 0.5s ease;">${percent}%</div>
-        <div style="font-size: 0.8rem; color: var(--text-secondary);">${comment}</div>
-    `;
+// Redirect old "openGame" to openArcade
+window.openGame = function () {
+    window.openArcade();
 }
 
 // --- TIME TRAVEL FUNCTIONS ---
