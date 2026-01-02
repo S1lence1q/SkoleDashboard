@@ -3,15 +3,61 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Skole-Dashboard</title>
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- FIREBASE SDK (Compat Version for simple integration) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics-compat.js"></script>
 </head>
 
 <body>
+    <!-- LAUNCH OVERLAY (Prevents FOUC) -->
+    <style>
+        #launch-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #000;
+            z-index: 99999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.8s ease-out, visibility 0.8s;
+        }
+
+        #launch-overlay.fade-out {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .loader-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+    <div id="launch-overlay">
+        <div class="loader-spinner"></div>
+    </div>
 
     <div class="app-container">
 
@@ -55,14 +101,7 @@
                             <!-- Premium Themes (Refined Colors) -->
                             <button class="theme-dot" data-theme="theme-midnight" style="background: #0ea5e9;"
                                 title="Deep Space"></button>
-                            <button class="theme-dot" data-theme="theme-royal" style="background: #fbbf24;"
-                                title="Royal Gold"></button>
-                            <button class="theme-dot" data-theme="theme-crimson" style="background: #ef4444;"
-                                title="Crimson Command"></button>
-                            <button class="theme-dot" data-theme="theme-emerald" style="background: #10b981;"
-                                title="Emerald City"></button>
-                            <button class="theme-dot" data-theme="theme-frost" style="background: #f0f9ff;"
-                                title="Nordic Frost"></button>
+                            <!-- Unlocked themes will be injected here by JS -->
                         </div>
                     </div>
                 </div>
@@ -131,7 +170,11 @@
                         <button onclick="setTimeTravel(8, 15)">08:15</button>
                         <button onclick="setTimeTravel(9, 30)">09:30</button>
                         <button onclick="setTimeTravel(10, 30)">10:30</button>
+                        <button onclick="setTimeTravel(10, 30)">10:30</button>
                         <button onclick="resetTimeTravel()" style="color: #ef4444;">Reset</button>
+                        <button
+                            onclick="if(window.Arcade){ window.Arcade.state.coins += 1000; localStorage.setItem('arcade_coins', window.Arcade.state.coins); if(window.updateCoinDisplay) window.updateCoinDisplay(); alert('Kaching! +1000 🪙'); }"
+                            style="color: #fbbf24; border: 1px solid #fbbf24;">💰 +1000</button>
                     </div>
                 </div>
 
@@ -293,21 +336,51 @@
             </div>
         </div>
 
-        <!-- Firebase Scripts -->
-        <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-        <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-
         <!-- Logic -->
         <script src="data.js"></script>
         <script src="wordle_data.js"></script>
-        <script src="games.js"></script>
-        <script src="app.js"></script>
+        <script src="games.js?v=4"></script>
+        <script src="app.js?v=4"></script>
         <!-- VIEW: ARCADE (Full Screen Game Hub) -->
         <div id="view-arcade" class="arcade-view hidden">
             <header class="arcade-header">
-                <button onclick="handleArcadeBack()" class="back-btn">‹ Tilbage</button>
-                <div class="arcade-title">🕹️ THE ARCADE</div>
+                <!-- Left: Navigation -->
+                <div class="header-left">
+                    <button onclick="handleArcadeBack()" class="arcade-nav-btn">‹ Tilbage</button>
+                    <!-- Menu Button (Redirects to main menu/tools if needed or shows overlay) -->
+                    <button onclick="document.getElementById('extras-overlay').classList.remove('hidden')"
+                        class="btn-icon-only" title="Menu">
+                        <div class="menu-icon-bento">
+                            <div class="bento-dot"></div>
+                            <div class="bento-dot"></div>
+                            <div class="bento-dot"></div>
+                            <div class="bento-dot"></div>
+                            <div class="bento-dot"></div>
+                            <div class="bento-dot"></div>
+                            <div class="bento-dot"></div>
+                            <div class="bento-dot"></div>
+                            <div class="bento-dot"></div>
+                        </div>
+                    </button>
+                </div>
+
+                <!-- Center: Title (Absolutely Centered) -->
+                <div class="arcade-title-wrapper">
+                    <div class="arcade-title">🕹️ THE ARCADE</div>
+                </div>
+
+                <!-- Right: Economy & Meta -->
+                <div class="header-right">
+                    <div id="arcade-balance" class="coin-display">
+                        <span class="coin-icon">🪙</span> <span id="coin-count">0</span>
+                    </div>
+                    <button class="arcade-nav-btn" onclick="openShop()">🛒 Shop</button>
+                    <button class="arcade-nav-btn" onclick="openLeaderboard()">🏆 Topliste</button>
+                    <input type="text" id="player-name-input" placeholder="Navn" maxlength="12">
+                </div>
             </header>
+
+            <!-- DUEL STATUS HEADER REMOVED (Replaced by HUD) -->
 
             <div class="arcade-content">
                 <!-- Game Selector -->
@@ -334,12 +407,17 @@
                         </div>
                     </div>
                     <div class="game-card" onclick="openPong()">
-                        <div class="game-thumb pong-thumb"
-                            style="background: #111; color: white; display: flex; align-items: center; justify-content: center; font-size: 2rem;">
-                            🏓</div>
+                        <div class="game-thumb pong-thumb">🏓</div>
                         <div class="game-meta">
                             <h3>Pong</h3>
                             <p id="pong-highscore-display">Score: 0</p>
+                        </div>
+                    </div>
+                    <div class="game-card" onclick="openSpace()">
+                        <div class="game-thumb space-thumb">👾</div>
+                        <div class="game-meta">
+                            <h3>Space Invaders</h3>
+                            <p id="space-highscore-display">Rekord: 0</p>
                         </div>
                     </div>
                 </div>
@@ -371,10 +449,12 @@
                 <div id="stage-breakout" class="game-stage hidden">
                     <div class="game-hud" style="align-items: flex-end;">
                         <div style="display: flex; flex-direction: column; gap: 2px; align-items: flex-start;">
-                            <div class="lives-board" style="font-size: 1.8rem; font-weight: 700; color: #ef4444;">
+                            <div class="lives-board"
+                                style="display: flex; align-items: center; height: 50px; font-size: 1.8rem; font-weight: 700; color: #ef4444; overflow: visible;">
                                 <span
-                                    style="color: #888; font-size: 1rem; margin-right: 5px; letter-spacing: 1px;">LIV</span><span
-                                    id="breakout-lives">❤️❤️❤️</span>
+                                    style="color: #888; font-size: 1rem; margin-right: 8px; letter-spacing: 1px; line-height: 1;">LIV</span>
+                                <span id="breakout-lives"
+                                    style="display: inline-block; line-height: 1; padding-bottom: 4px;">❤️❤️❤️</span>
                             </div>
                             <div class="score-board" style="font-size: 1.4rem;">Point: <span
                                     id="breakout-current-score">0</span></div>
@@ -409,9 +489,84 @@
 
                 <!-- Settings Panel -->
                 <div id="stage-wordle" class="game-stage hidden">
-                    <div class="game-hud">
-                        <div class="score-board">Streak: <span id="wordle-current-streak">0</span></div>
-                        <button class="settings-btn" onclick="toggleArcadeSettings()">⚙️</button>
+
+                    <!-- WORDLE MENU OVERLAY (Solo vs Duel) -->
+                    <div id="wordle-menu-overlay" class="game-overlay-msg">
+                        <div class="duel-card" style="align-items: center; text-align: center;">
+                            <h1 class="duel-title">WORDLE</h1>
+                            <div style="display: flex; gap: 15px; width: 100%;">
+                                <button onclick="startWordleSolo()" class="btn secondary"
+                                    style="flex: 1; padding: 15px;">
+                                    👤 Single Player
+                                </button>
+                                <button onclick="showDuelLobby()" class="btn primary" style="flex: 1; padding: 15px;">
+                                    ⚔️ Duel Ven
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- DUEL LOBBY (Settings Style) -->
+                    <div id="wordle-duel-lobby" class="settings-panel hidden">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <h3 style="margin:0;">Wordle Duel</h3>
+                            <button onclick="closeDuelLobby()"
+                                style="background:none; border:none; color:#888; font-size:1.2rem; cursor:pointer;">✕</button>
+                        </div>
+
+                        <div style="margin-top: 20px;">
+                            <label style="font-size: 0.8rem; color: #888; display: block; margin-bottom: 5px;">Opret Nyt
+                                Spil</label>
+                            <button onclick="createDuelRoom()" class="btn primary" style="width: 100%;">
+                                + Start Nyt Rum
+                            </button>
+                        </div>
+
+                        <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
+
+                        <div class="setting-group">
+                            <label>Eller indtast rum kode:</label>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="text" id="duel-code-input"
+                                    style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 10px; color: white; border-radius: 8px; width: 80px; text-align: center; font-family: monospace; font-size: 1.2rem;"
+                                    placeholder="00" maxlength="2" inputmode="numeric">
+                                <button onclick="joinDuelRoom()" class="btn secondary" style="flex:1;">
+                                    Tilslut
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+
+
+                    <div class="game-hud" style="justify-content: center;">
+                        <!-- SOLO HUD (Streak) -->
+                        <div id="solo-hud-display" class="hud-glass-panel">
+                            <div class="hud-room-label">
+                                <span style="opacity:0.7">🔥</span> STREAK
+                            </div>
+                            <div class="hud-room-code" id="wordle-current-streak">0</div>
+                        </div>
+
+                        <!-- PREMIUM HUD (Duel) -->
+                        <div id="duel-hud-display" class="hud-glass-panel hidden">
+                            <div class="hud-room-label">
+                                <span style="opacity:0.7">🔑</span> RUM
+                            </div>
+                            <div class="hud-room-code" id="duel-room-code-hud">--</div>
+
+                            <div style="width: 1px; height: 20px; background: rgba(255,255,255,0.1); margin: 0 5px;">
+                            </div>
+
+                            <div class="hud-vs-badge">
+                                <span id="duel-opp-status">Venter...</span>
+                            </div>
+                            <!-- Hidden helper to avoid crash -->
+                            <span id="duel-my-status" style="display:none;"></span>
+                        </div>
+
+                        <button class="settings-btn" onclick="toggleArcadeSettings()"
+                            style="position: absolute; right: 20px;">⚙️</button>
                     </div>
 
                     <div class="game-viewport" style="background: transparent; border: none; box-shadow: none;">
@@ -432,123 +587,250 @@
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Active Game Stage (Pong) -->
-            <div id="stage-pong" class="game-stage hidden">
-                <div class="game-hud" style="max-width: 600px; margin: 0 auto; width: 100%;">
-                    <div class="score-board"
-                        style="width: 100%; display: flex; justify-content: space-between; padding: 0 10px;">
-                        <span>DIG: <span id="pong-score-player">0</span></span>
-                        <span>CPU: <span id="pong-score-cpu">0</span></span>
+                <!-- Active Game Stage (Pong) -->
+                <div id="stage-pong" class="game-stage hidden">
+                    <div class="game-hud" style="max-width: 600px; margin: 0 auto; width: 100%;">
+                        <div class="score-board"
+                            style="width: 100%; display: flex; justify-content: space-between; padding: 0 10px;">
+                            <span>DIG: <span id="pong-score-player">0</span></span>
+                            <span>CPU: <span id="pong-score-cpu">0</span></span>
+                        </div>
+                        <button class="settings-btn" onclick="toggleArcadeSettings()">⚙️</button>
                     </div>
-                    <button class="settings-btn" onclick="toggleArcadeSettings()">⚙️</button>
+
+                    <div class="game-viewport">
+                        <canvas id="pong-canvas" width="600" height="400"></canvas>
+
+                        <!-- Game Over Overlay -->
+                        <div id="pong-game-over" class="game-overlay-msg hidden">
+                            <h2 id="pong-msg">SEJR!</h2>
+                            <div style="display: flex; gap: 15px; margin-top: 10px;">
+                                <button onclick="restartPong()" class="btn primary" style="min-width: 120px;">Spil
+                                    Igen</button>
+                                <button onclick="closePong()" class="btn secondary"
+                                    style="min-width: 120px;">Afslut</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="game-viewport">
-                    <canvas id="pong-canvas" width="600" height="400"></canvas>
+                <!-- Active Game Stage (Space Defence) -->
+                <div id="stage-space" class="game-stage hidden">
+                    <div class="game-hud" style="justify-content: space-between; padding: 0 10px;">
+                        <div class="score-board" style="display: flex; gap: 20px;">
+                            <span>SCORE: <span id="space-score">0</span></span>
+                            <span>LIV: <span id="space-lives" style="color: #ef4444;">❤️❤️❤️</span></span>
+                        </div>
+                        <button class="settings-btn" onclick="toggleArcadeSettings()">⚙️</button>
+                    </div>
 
-                    <!-- Game Over Overlay -->
-                    <div id="pong-game-over" class="game-overlay-msg hidden">
-                        <h2 id="pong-msg">SEJR!</h2>
-                        <div style="display: flex; gap: 15px; margin-top: 10px;">
-                            <button onclick="restartPong()" class="btn primary" style="min-width: 120px;">Spil
-                                Igen</button>
-                            <button onclick="closePong()" class="btn secondary"
-                                style="min-width: 120px;">Afslut</button>
+                    <div class="game-viewport">
+                        <canvas id="space-canvas" width="500" height="600"></canvas>
+
+                        <!-- Game Over Overlay -->
+                        <div id="space-game-over" class="game-overlay-msg hidden">
+                            <h2>GAME OVER</h2>
+                            <div style="display: flex; gap: 15px; margin-top: 10px;">
+                                <button onclick="restartSpace()" class="btn primary" style="min-width: 120px;">Prøv
+                                    Igen</button>
+                                <button onclick="closeSpace()" class="btn secondary"
+                                    style="min-width: 120px;">Afslut</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mobile Controls (Optional, usually onscreen but can be below) -->
+                    <div id="space-mobile-controls" class="mobile-controls hidden">
+                        <button id="btn-space-left" class="control-btn">⬅️</button>
+                        <button id="btn-space-fire" class="control-btn fire-btn">🔥</button>
+                        <button id="btn-space-right" class="control-btn">➡️</button>
+                    </div>
+                </div>
+
+                <div id="arcade-settings" class="settings-panel hidden">
+                    <h3>Indstillinger</h3>
+
+                    <!-- GLOBAL SETTINGS -->
+                    <div class="setting-group">
+                        <label>Lydeffekter</label>
+                        <input type="checkbox" id="set-sound-enabled" checked
+                            onchange="updateArcadeSetting('sound', this.checked)">
+                    </div>
+
+                    <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 15px 0;">
+
+                    <!-- SNAKE SETTINGS -->
+                    <div id="settings-snake-controls">
+                        <div class="setting-group">
+                            <label>Hurtighed</label>
+                            <select id="set-snake-speed" onchange="updateArcadeSetting('speed', this.value)">
+                                <option value="150">Hygge (Langsom)</option>
+                                <option value="100" selected>Normal</option>
+                                <option value="50">Insane (Hurtig)</option>
+                            </select>
+                        </div>
+                        <div class="setting-group">
+                            <label>Vægge dræber?</label>
+                            <input type="checkbox" id="set-snake-walls" checked
+                                onchange="updateArcadeSetting('walls', this.checked)">
+                        </div>
+                        <div class="setting-group">
+                            <label>Theme</label>
+                            <select id="set-snake-theme" onchange="updateArcadeSetting('theme', this.value)">
+                                <option value="classic">Classic (Green)</option>
+                                <option value="neon">Neon (Pink/Cyan)</option>
+                                <option value="retro">Retro (B&W)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- BREAKOUT SETTINGS -->
+                    <div id="settings-breakout-controls" class="hidden">
+                        <div class="setting-group">
+                            <label>Power-up Chance</label>
+                            <select id="set-breakout-chance"
+                                onchange="updateArcadeSetting('breakoutChance', this.value)">
+                                <option value="0.05">Lidt (5%)</option>
+                                <option value="0.2" selected>Normal (20%)</option>
+                                <option value="0.5">Kaos (50%)</option>
+                                <option value="1">TOTALT Kaos (100%)</option>
+                            </select>
+                        </div>
+                        <div class="setting-group">
+                            <label>Multi-ball Mode</label>
+                            <select id="set-breakout-multiball"
+                                onchange="updateArcadeSetting('breakoutMultiball', this.value)">
+                                <option value="standard" selected>Standard (+2 Bolde)</option>
+                                <option value="kaos">KAOS (Eksponentiel!)</option>
+                            </select>
+                        </div>
+                        <div class="setting-group">
+                            <label>Start Liv</label>
+                            <select id="set-breakout-lives" onchange="updateArcadeSetting('breakoutLives', this.value)">
+                                <option value="3" selected>3</option>
+                                <option value="5">5</option>
+                                <option value="10">10</option>
+                                <option value="99">Uendelig (99)</option>
+                            </select>
+                        </div>
+                        <div class="setting-group">
+                            <label>Bat Størrelse</label>
+                            <select id="set-breakout-paddle"
+                                onchange="updateArcadeSetting('breakoutPaddle', this.value)">
+                                <option value="60">Lille (Hard)</option>
+                                <option value="100" selected>Normal</option>
+                                <option value="150">Bred (Easy)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- PONG SETTINGS -->
+                    <div id="settings-pong-controls" class="hidden">
+                        <div class="setting-group">
+                            <label>Sværhedsgrad</label>
+                            <select id="set-pong-difficulty"
+                                onchange="updateArcadeSetting('pongDifficulty', this.value)">
+                                <option value="easy">Let</option>
+                                <option value="normal" selected>Normal</option>
+                                <option value="hard">Svær</option>
+                                <option value="impossible">Umulig</option>
+                            </select>
+                        </div>
+                        <div class="setting-group">
+                            <label>Vinder Score</label>
+                            <select id="set-pong-score" onchange="updateArcadeSetting('pongWinScore', this.value)">
+                                <option value="3">3</option>
+                                <option value="5" selected>5</option>
+                                <option value="10">10</option>
+                            </select>
+                        </div>
+                        <div class="setting-group">
+                            <label>Dit Bat</label>
+                            <select id="set-pong-player-paddle"
+                                onchange="updateArcadeSetting('pongPlayerPaddle', this.value)">
+                                <option value="60">Lille</option>
+                                <option value="100" selected>Normal</option>
+                                <option value="150">Stor</option>
+                            </select>
+                        </div>
+                        <div class="setting-group">
+                            <label>CPU Bat</label>
+                            <select id="set-pong-cpu-paddle"
+                                onchange="updateArcadeSetting('pongCpuPaddle', this.value)">
+                                <option value="60">Lille</option>
+                                <option value="100" selected>Normal</option>
+                                <option value="150">Stor</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- SPACE DEFENCE SETTINGS -->
+                    <div id="settings-space-controls" class="hidden">
+                        <div class="setting-group">
+                            <label>Sværhedsgrad</label>
+                            <select id="set-space-difficulty"
+                                onchange="updateArcadeSetting('spaceDifficulty', this.value)">
+                                <option value="easy">Let</option>
+                                <option value="normal" selected>Normal</option>
+                                <option value="hard">Hård</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- WORDLE SETTINGS -->
+                    <div id="settings-wordle-controls" class="hidden">
+                        <div
+                            style="background: rgba(var(--accent-rgb), 0.1); border-radius: 12px; padding: 15px; text-align: center; border: 1px solid var(--accent);">
+                            <p style="margin-bottom: 10px; font-weight: bold; color: white;">Wordle Duel</p>
+                            <p style="font-size: 0.85rem; color: #ccc; margin-bottom: 15px;">Udfordr en ven til at gætte
+                                det
+                                samme ord.</p>
+                            <button onclick="toggleArcadeSettings(); showDuelLobby();" class="btn primary"
+                                style="width: 100%;">
+                                ⚔️ Start Duel
+                            </button>
+                        </div>
+                    </div>
+                    <div
+                        style="margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px; display: flex; justify-content: center;">
+                        <button onclick="toggleArcadeSettings()" class="btn"
+                            style="background: #333; color: white; width: 100%; max-width: 200px;">Luk
+                            Indstillinger</button>
+                    </div>
+                </div>
+                <!-- MODALS -->
+                <!-- SHOP MODAL -->
+                <div id="arcade-shop" class="modal-overlay hidden">
+                    <div class="modal-content glass-panel" style="max-width: 600px;">
+                        <div class="modal-header">
+                            <h2>Arcade Shop 🛒</h2>
+                            <button class="close-btn" onclick="closeShop()">×</button>
+                        </div>
+                        <div class="shop-balance">
+                            Dine Mønter: <span id="shop-coin-count" style="color: #fbbf24; font-weight: bold;">0</span>
+                            🪙
+                        </div>
+                        <div id="shop-items" class="shop-grid">
+                            <!-- JS renders items here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LEADERBOARD MODAL -->
+                <div id="arcade-leaderboard" class="modal-overlay hidden">
+                    <div class="modal-content glass-panel" style="max-width: 500px;">
+                        <div class="modal-header">
+                            <h2>🏆 Hall of Fame</h2>
+                            <button class="close-btn" onclick="closeLeaderboard()">×</button>
+                        </div>
+                        <div id="leaderboard-content" class="leaderboard-list">
+                            <!-- JS renders scores here -->
                         </div>
                     </div>
                 </div>
             </div>
-
-            <div id="arcade-settings" class="settings-panel hidden">
-                <h3>Indstillinger</h3>
-
-                <!-- GLOBAL SETTINGS -->
-                <div class="setting-group">
-                    <label>Lydeffekter</label>
-                    <input type="checkbox" id="set-sound-enabled" checked
-                        onchange="updateArcadeSetting('sound', this.checked)">
-                </div>
-
-                <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 15px 0;">
-
-                <!-- SNAKE SETTINGS -->
-                <div id="settings-snake-controls">
-                    <div class="setting-group">
-                        <label>Hurtighed</label>
-                        <select id="set-snake-speed" onchange="updateArcadeSetting('speed', this.value)">
-                            <option value="150">Hygge (Langsom)</option>
-                            <option value="100" selected>Normal</option>
-                            <option value="50">Insane (Hurtig)</option>
-                        </select>
-                    </div>
-                    <div class="setting-group">
-                        <label>Vægge dræber?</label>
-                        <input type="checkbox" id="set-snake-walls" checked
-                            onchange="updateArcadeSetting('walls', this.checked)">
-                    </div>
-                    <div class="setting-group">
-                        <label>Theme</label>
-                        <select id="set-snake-theme" onchange="updateArcadeSetting('theme', this.value)">
-                            <option value="classic">Classic (Green)</option>
-                            <option value="neon">Neon (Pink/Cyan)</option>
-                            <option value="retro">Retro (B&W)</option>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- BREAKOUT SETTINGS -->
-                <div id="settings-breakout-controls" class="hidden">
-                    <div class="setting-group">
-                        <label>Power-up Chance</label>
-                        <select id="set-breakout-chance" onchange="updateArcadeSetting('breakoutChance', this.value)">
-                            <option value="0.05">Lidt (5%)</option>
-                            <option value="0.2" selected>Normal (20%)</option>
-                            <option value="0.5">Kaos (50%)</option>
-                            <option value="1">TOTALT Kaos (100%)</option>
-                        </select>
-                    </div>
-                    <div class="setting-group">
-                        <label>Multi-ball Mode</label>
-                        <select id="set-breakout-multiball"
-                            onchange="updateArcadeSetting('breakoutMultiball', this.value)">
-                            <option value="standard" selected>Standard (+2 Bolde)</option>
-                            <option value="kaos">KAOS (Eksponentiel!)</option>
-                        </select>
-                    </div>
-                    <div class="setting-group">
-                        <label>Start Liv</label>
-                        <select id="set-breakout-lives" onchange="updateArcadeSetting('breakoutLives', this.value)">
-                            <option value="3" selected>3</option>
-                            <option value="5">5</option>
-                            <option value="10">10</option>
-                            <option value="99">Uendelig (99)</option>
-                        </select>
-                    </div>
-                    <div class="setting-group">
-                        <label>Bat Størrelse</label>
-                        <select id="set-breakout-paddle" onchange="updateArcadeSetting('breakoutPaddle', this.value)">
-                            <option value="60">Lille (Hard)</option>
-                            <option value="100" selected>Normal</option>
-                            <option value="150">Bred (Easy)</option>
-                        </select>
-                    </div>
-                </div>
-                <div
-                    style="margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px; display: flex; justify-content: center;">
-                    <button onclick="toggleArcadeSettings()" class="btn"
-                        style="background: #333; color: white; width: 100%; max-width: 200px;">Luk
-                        Indstillinger</button>
-                </div>
-            </div>
         </div>
-    </div>
-    </div>
-    </div>
-    </div>
-    </div>
-    </div>
 </body>
 
 </html>

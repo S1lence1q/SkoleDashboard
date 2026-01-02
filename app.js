@@ -6,14 +6,14 @@ let teachers = null;
 
 // Firebase & Live Link State
 var firebaseConfig = {
-    apiKey: "AIzaSyD8zbwNjLmzTNRWM-f0ujP258mzB_deAiQ",
-    authDomain: "live-link-drop.firebaseapp.com",
-    databaseURL: "https://live-link-drop-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "live-link-drop",
-    storageBucket: "live-link-drop.firebasestorage.app",
-    messagingSenderId: "335736846822",
-    appId: "1:335736846822:web:6ed6aea2b739933f66fe27",
-    measurementId: "G-ZDFT90QC42"
+    apiKey: "AIzaSyC0sd12LFqemdm2jgNJ_TpbdEZb4azmHso",
+    authDomain: "skoledashboard.firebaseapp.com",
+    databaseURL: "https://skoledashboard-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "skoledashboard",
+    storageBucket: "skoledashboard.firebasestorage.app",
+    messagingSenderId: "341655088654",
+    appId: "1:341655088654:web:4c96588cc435eb052d965f",
+    measurementId: "G-0MK7VCVDJK"
 };
 
 var liveLinkState = {
@@ -95,7 +95,7 @@ function init() {
     initLiveLink();
 
     // Apple-Level Polish
-    initScrollObserver();
+    // initScrollObserver(); // Moved to delayed launch sequence
 
     updateTime();
     setInterval(updateTime, 1000); // Update every second
@@ -110,66 +110,88 @@ function init() {
  * Initialize Theme Logic
  */
 function initTheme() {
-    // Support both old chips and new dots
-    const themeElements = document.querySelectorAll('.theme-chip, .theme-dot');
-
-    // Function to set theme
-    const setTheme = (themeName) => {
-        // 1. Remove ALL theme classes (Robust Regex-like approach)
-        document.body.className = document.body.className
-            .replace(/theme-\w+/g, '') // Remove existing theme-* classes
-            .trim();
-
-        // 2. Determine new class
-        let className = themeName;
-        if (!className.startsWith('theme-') && className !== 'default') {
-            className = `theme-${className}`;
-        }
-
-        // Fallback or Validate
-        if (!themes.includes(className)) {
-            // If invalid/old theme, default to midnight
-            className = 'theme-midnight';
-        }
-
-        // 3. Add new class
-        document.body.classList.add(className);
-
-        // 4. Update State
-        currentState.currentTheme = className;
-        localStorage.setItem('skole_theme', className);
-
-        // 5. Update UI (Visual Active State)
-        themeElements.forEach(el => {
-            const elTheme = el.dataset.theme;
-            // Match exactly or with prefix
-            const match = elTheme === className || `theme-${elTheme}` === className;
-
-            if (match) {
-                el.classList.add('active-theme');
-            } else {
-                el.classList.remove('active-theme');
-                // Do NOT wipe style to preserve background color from HTML
-                el.style.transform = '';
-                el.style.border = '';
-            }
-        });
+    // --- NEW DYNAMIC THEME ENGINE ---
+    const themeConfig = {
+        'theme-midnight': '#0ea5e9',
+        'theme-royal': '#fbbf24',
+        'theme-neon': '#e879f9',
+        'theme-emerald': '#10b981',
+        'theme-frost': '#f0f9ff',
+        'theme-crimson': '#ef4444',
+        'theme-matrix': '#00ff00',
+        'theme-sunset': '#ff00ff',
+        'theme-ocean': '#00bcd4'
     };
 
-    // Initialize Theme from Storage
-    const savedTheme = localStorage.getItem('skole_theme');
-    if (savedTheme) {
-        setTheme(savedTheme);
-    } else {
-        setTheme('theme-midnight'); // Default
+    window.setTheme = function (themeName) {
+        // Validation
+        if (!themeName.startsWith('theme-')) themeName = 'theme-' + themeName;
+
+        // Apply Class
+        // Clear all known themes first
+        Object.keys(themeConfig).forEach(t => document.body.classList.remove(t));
+        document.body.classList.add(themeName);
+
+        localStorage.setItem('skole_theme', themeName);
+
+        // Visual Update
+        const dots = document.querySelectorAll('.theme-dot');
+        dots.forEach(el => {
+            if (el.dataset.theme === themeName) {
+                el.classList.add('active-theme');
+                el.style.transform = 'scale(1.2)';
+                el.style.border = '2px solid white';
+                el.style.boxShadow = '0 0 10px rgba(255,255,255,0.5)';
+            } else {
+                el.classList.remove('active-theme');
+                el.style.transform = '';
+                el.style.border = '';
+                el.style.boxShadow = '';
+            }
+        });
     }
 
-    // Event Listeners
-    themeElements.forEach(btn => {
-        btn.addEventListener('click', () => {
-            setTheme(btn.dataset.theme);
+    window.renderOwnedThemes = function () {
+        const container = document.querySelector('.theme-row');
+        if (!container || !window.Arcade) return;
+
+        // Inventory check
+        const inventory = window.Arcade.state.inventory || [];
+        const ownedThemes = ['theme-midnight', ...inventory.filter(id => id.startsWith('theme-') && id !== 'theme-midnight')];
+
+        container.innerHTML = ''; // Clear static
+
+        ownedThemes.forEach(themeId => {
+            // Check if valid theme in config (prevent unknown ID errors)
+            if (!themeConfig[themeId]) return;
+
+            const btn = document.createElement('button');
+            btn.className = 'theme-dot';
+            btn.dataset.theme = themeId;
+            btn.title = themeId.replace('theme-', '').toUpperCase();
+            btn.style.background = themeConfig[themeId];
+
+            btn.onclick = () => window.setTheme(themeId);
+            container.appendChild(btn);
         });
-    });
+
+        // Restore active selection
+        const saved = localStorage.getItem('skole_theme') || 'theme-midnight';
+        window.setTheme(saved);
+    }
+
+    // Init
+    setTimeout(() => {
+        if (window.renderOwnedThemes) window.renderOwnedThemes();
+
+        // Smooth Launch Reveal
+        const overlay = document.getElementById('launch-overlay');
+        if (overlay) overlay.classList.add('fade-out');
+
+        // Trigger Animations
+        document.body.classList.add('animations-active');
+        initScrollObserver();
+    }, 600); // Wait for Arcade State & Init
 }
 
 
@@ -235,23 +257,26 @@ function initLiveLink() {
         return;
     }
 
-    // Config Check
-    if (firebaseConfig.apiKey === "API_KEY_HER") {
-        setupDemoMode();
-    } else {
-        try {
+    // Initialize Real Backend
+    try {
+        if (!firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
-            liveLinkState.db = firebase.database();
-            liveLinkState.mode = 'firebase';
-            setupFirebaseListener();
-        } catch (e) {
-            console.error("Firebase init error:", e);
-            setupDemoMode();
         }
-    }
+        liveLinkState.db = firebase.database();
+        liveLinkState.mode = 'firebase';
+        setupFirebaseListener();
 
-    setupLiveLinkUI();
+        // Connect Leaderboard if Arcade exists
+        if (window.Arcade && window.Arcade.connectLeaderboard) {
+            window.Arcade.connectLeaderboard();
+        }
+    } catch (e) {
+        console.error("Firebase init error:", e);
+        setupDemoMode();
+    }
 }
+
+setupLiveLinkUI();
 
 function setupFirebaseListener() {
     var roomRef = liveLinkState.db.ref('rooms/' + liveLinkState.currentRoom);
@@ -455,35 +480,49 @@ function checkLock() {
     const lockInput = document.getElementById('lock-input');
     const lockBtn = document.getElementById('lock-btn');
     const lockError = document.getElementById('lock-error');
+    const mainHeader = document.getElementById('main-header'); // Menu Button Container
 
     if (!lockScreen || !lockInput || !lockBtn) {
+        console.error("Lock screen elements missing");
         return;
     }
+
+    // Default: Hide header when locked
+    if (mainHeader) mainHeader.classList.add('hidden');
 
     // Check if already unlocked in this session
     if (sessionStorage.getItem('skole_unlocked') === 'true') {
         lockScreen.classList.add('hidden');
-        setTimeout(() => lockScreen.style.display = 'none', 0); // Immediate
+        lockScreen.style.display = 'none'; // Force hide
+        if (mainHeader) mainHeader.classList.remove('hidden'); // Show header
         return;
     }
 
     // Unlock function
     const unlock = () => {
         const val = lockInput.value.trim().toLowerCase();
+        console.log("Attempting unlock with:", val); // Debug
 
         if (val === 'julelars') {
             sessionStorage.setItem('skole_unlocked', 'true');
+
             // Animate Out
             lockScreen.classList.add('anim-unlock');
+
+            // Show Header immediately
+            if (mainHeader) mainHeader.classList.remove('hidden');
 
             // Wait for animation, then hide
             setTimeout(() => {
                 lockScreen.classList.add('hidden');
                 lockScreen.style.display = 'none';
-            }, 600);
+            }, 500);
         } else {
             // Show error
-            if (lockError) lockError.classList.remove('hidden');
+            if (lockError) {
+                lockError.classList.remove('hidden');
+                lockError.textContent = "Forkert kode. Prøv igen.";
+            }
             lockInput.value = '';
             lockInput.focus();
 
@@ -493,21 +532,23 @@ function checkLock() {
         }
     };
 
-    lockBtn.addEventListener('click', unlock);
+    // Remove old listeners to prevent duplicates (if any)
+    const newBtn = lockBtn.cloneNode(true);
+    lockBtn.parentNode.replaceChild(newBtn, lockBtn);
+    newBtn.addEventListener('click', unlock);
 
-    // Auto-unlock on input match
+    // Input listeners
+    lockInput.onkeypress = (e) => {
+        if (e.key === 'Enter') unlock();
+    };
+
     lockInput.addEventListener('input', (e) => {
         const val = e.target.value.trim().toLowerCase();
         if (val === 'julelars') {
             unlock();
         } else {
-            // Hide error while typing
             if (lockError) lockError.classList.add('hidden');
         }
-    });
-
-    lockInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') unlock();
     });
 
     // Focus on load
@@ -1216,18 +1257,32 @@ window.transitionTo = function (hideId, showId) {
 // --- ARCADE NAVIGATION ---
 
 window.handleArcadeBack = function () {
+    // Check Live Link first
+    const liveLink = document.getElementById('view-livelink');
+    if (liveLink && !liveLink.classList.contains('hidden')) {
+        window.showDashboard();
+        return;
+    }
+
     const isSnake = !document.getElementById('stage-snake').classList.contains('hidden');
     const isBreakout = !document.getElementById('stage-breakout').classList.contains('hidden');
     const isWordle = !document.getElementById('stage-wordle').classList.contains('hidden');
+    const isPong = !document.getElementById('stage-pong').classList.contains('hidden');
 
     if (isSnake) window.closeSnake();
     else if (isBreakout) window.closeBreakout();
     else if (isWordle) window.closeWordle();
-    else window.closeArcade();
+    else if (isPong) window.closePong();
+    else {
+        // Exiting Arcade completely
+        window.closeArcade();
+        document.getElementById('main-header').classList.remove('hidden');
+    }
 }
 
 window.openArcade = function () {
     document.getElementById('extras-overlay').classList.add('hidden');
+    document.getElementById('main-header').classList.add('hidden'); // Hide Main Header to prevent overlap
     const arcade = document.getElementById('view-arcade');
 
     // Animate In
@@ -1303,9 +1358,240 @@ window.restartBreakout = function () {
 }
 
 // Wordle Specifics
+// Wordle Specifics
 window.openWordle = function () {
     window.transitionTo('arcade-game-selector', 'stage-wordle');
-    if (window.Arcade) setTimeout(() => window.Arcade.Wordle.start(), 300);
+
+    // Skip Menu, Go Direct to Solo
+    startWordleSolo();
+
+    // Ensure overlays are hidden
+    document.getElementById('wordle-menu-overlay').classList.add('hidden');
+    document.getElementById('wordle-duel-lobby').classList.add('hidden');
+    document.getElementById('wordle-duel-header').classList.add('hidden');
+}
+
+window.startWordleSolo = function () {
+    document.getElementById('wordle-board').classList.remove('hidden');
+    document.getElementById('wordle-keyboard').classList.remove('hidden');
+    document.getElementById('stage-wordle').classList.remove('duel-active');
+
+    // Toggle HUDs
+    const hudDuel = document.getElementById('duel-hud-display');
+    const hudSolo = document.getElementById('solo-hud-display');
+    if (hudDuel) hudDuel.classList.add('hidden');
+    if (hudSolo) hudSolo.classList.remove('hidden');
+
+    document.getElementById('wordle-duel-header')?.classList.add('hidden'); // Legacy cleanup
+    const failSafe = document.getElementById('debug-code-overlay');
+    if (failSafe) failSafe.style.display = 'none';
+
+    if (window.Arcade) {
+        window.Arcade.Wordle.onFinish = (won, row) => {
+            if (won) {
+                window.fireConfetti();
+                document.getElementById('wordle-msg').textContent = "SEJR! FLOT KLARET!";
+            } else {
+                document.getElementById('wordle-msg').textContent = "GAME OVER";
+            }
+            document.getElementById('wordle-game-over').classList.remove('hidden');
+        };
+        window.Arcade.Wordle.start(null, false);
+    }
+}
+
+window.showDuelLobby = function () {
+    // Called from Settings
+    document.getElementById('wordle-duel-lobby').classList.remove('hidden');
+
+    // Stop Solo Game if running?
+    if (window.Arcade && window.Arcade.Wordle) window.Arcade.Wordle.stop();
+}
+
+window.closeDuelLobby = function () {
+    document.getElementById('wordle-duel-lobby').classList.add('hidden');
+    startWordleSolo();
+}
+
+// Duel State
+let currentDuelCode = null;
+let currentDuelRole = null;
+
+window.createDuelRoom = function () {
+    // Simpler 2-digit code (10-99)
+    const code = Math.floor(10 + Math.random() * 89).toString();
+    currentDuelCode = code;
+    currentDuelRole = 'host';
+
+    // Pick Word
+    const list = window.WordleData.solutions;
+    const word = list[Math.floor(Math.random() * list.length)].toUpperCase();
+
+    // Save to Firebase
+    if (liveLinkState && liveLinkState.db) {
+        liveLinkState.db.ref('wordle_duels/' + code).set({
+            word: word,
+            timestamp: Date.now(),
+            host: { row: 0, status: 'playing' },
+            guest: { row: 0, status: 'waiting' }
+        });
+
+        startDuelGame(word, code, 'host');
+    } else {
+        alert("Fejl: Ingen forbindelse til Firebase.");
+    }
+}
+
+window.joinDuelRoom = function () {
+    const code = document.getElementById('duel-code-input').value;
+    if (!code || code.length !== 2) return alert("Indtast 2-cifret kode");
+
+    if (liveLinkState && liveLinkState.db) {
+        liveLinkState.db.ref('wordle_duels/' + code).once('value', snapshot => {
+            const data = snapshot.val();
+            if (data) {
+                currentDuelCode = code;
+                currentDuelRole = 'guest';
+                liveLinkState.db.ref('wordle_duels/' + code + '/guest').update({
+                    status: 'playing'
+                });
+                startDuelGame(data.word, code, 'guest');
+            } else {
+                alert("Rum ikke fundet (Prøv igen?)");
+            }
+        });
+    } else {
+        alert("Fejl: Ingen forbindelse til Firebase.");
+    }
+}
+
+function startDuelGame(word, code, role) {
+    try {
+        document.getElementById('wordle-duel-lobby').classList.add('hidden');
+        document.getElementById('wordle-board').classList.remove('hidden');
+        document.getElementById('wordle-keyboard').classList.remove('hidden');
+
+        // HUD Display
+        document.getElementById('duel-hud-display').classList.remove('hidden');
+        document.getElementById('solo-hud-display')?.classList.add('hidden');
+        document.getElementById('duel-room-code-hud').textContent = code;
+
+        // Status Elements (Now Exist)
+        const myStatus = document.getElementById('duel-my-status');
+        if (myStatus) myStatus.textContent = "Række 1";
+
+        // Improved waiting message
+        if (role === 'host') {
+            // Optional status updates
+        }
+        if (role === 'host') {
+            document.getElementById('duel-opp-status').textContent = "(Venter...)";
+        } else {
+            document.getElementById('duel-opp-status').textContent = "Spiller...";
+        }
+
+        if (window.Arcade && window.Arcade.Wordle) {
+            window.Arcade.Wordle.onProgress = (row) => {
+                document.getElementById('duel-my-status').textContent = "Række " + (row);
+                if (liveLinkState.db) {
+                    liveLinkState.db.ref(`wordle_duels/${code}/${role}`).update({ row: row });
+                }
+            };
+
+            window.Arcade.Wordle.onFinish = (won, row) => {
+                if (liveLinkState.db) {
+                    liveLinkState.db.ref(`wordle_duels/${code}/${role}`).update({
+                        status: won ? 'won' : 'lost',
+                        row: row
+                    });
+                }
+                const msgEl = document.getElementById('wordle-msg');
+                if (msgEl) {
+                    if (won) {
+                        msgEl.textContent = "DU VANDT DUELLEN! 🏆";
+                        window.fireConfetti();
+                    }
+                    else msgEl.textContent = "DU TABTE... 💀";
+                }
+            };
+
+            // EXPLICIT START
+            window.Arcade.Wordle.start(word, true);
+            window.Arcade.Wordle.gameActive = true; // Force flag
+            window.Arcade.Wordle.gameActive = true;
+
+            // --- SHARED BOARD LOGIC (CO-OP: GUESS SYNC) ---
+            const guessesRef = liveLinkState.db.ref(`wordle_duels/${code}/guesses`);
+            const inputsRef = liveLinkState.db.ref(`wordle_duels/${code}/inputs`); // Keep inputsRef for cleanup
+            inputsRef.off(); // Cleanup old input listeners just in case
+            guessesRef.off(); // Cleanup old guess listeners
+
+            // 1. Send Local Guess
+            window.Arcade.Wordle.onGuess = (word) => {
+                guessesRef.push({
+                    word: word,
+                    sender: role,
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                });
+            };
+
+            // 2. Receive Remote Guess
+            guessesRef.limitToLast(1).on('child_added', snapshot => {
+                const data = snapshot.val();
+                // Only play if it's new (timestamp check?) or just if it's from opponent
+                // limitToLast(1) might catch old ones on restart?
+                // Better: check if it's NOT ME.
+                if (data && data.sender !== role) {
+                    console.log("Remote Guess:", data.word);
+                    window.Arcade.Wordle.playRemoteGuess(data.word);
+                }
+            });
+            // ----------------------------------
+
+            const opponentRole = role === 'host' ? 'guest' : 'host';
+            liveLinkState.db.ref(`wordle_duels/${code}/${opponentRole}`).on('value', snapshot => {
+                const data = snapshot.val();
+                if (!data) return;
+
+                const oppStatusEl = document.getElementById('duel-opp-status');
+
+                if (data.status === 'playing') {
+                    oppStatusEl.textContent = `Række ${data.row + 1}`;
+                    oppStatusEl.style.color = '#fb7185';
+                } else if (data.status === 'won') {
+                    oppStatusEl.textContent = "HAR VUNDET! 🏆";
+                    oppStatusEl.style.color = '#4ade80';
+                } else if (data.status === 'lost') {
+                    oppStatusEl.textContent = "Er død (Tabt)";
+                } else if (data.status === 'waiting') {
+                    // Keep the 'Waiting' message for host
+                    if (role !== 'host') oppStatusEl.textContent = "Venter...";
+                    if (role !== 'host') oppStatusEl.textContent = "Venter...";
+                }
+            });
+
+            // 3. LISTEN FOR RESTART (New Word)
+            liveLinkState.db.ref(`wordle_duels/${code}/word`).on('value', snapshot => {
+                const newWord = snapshot.val();
+                if (newWord && newWord !== word) {
+                    // Detect New Game
+                    console.log("Host restarted game. New word:", newWord);
+                    word = newWord; // Update local scope
+                    window.Arcade.Wordle.start(newWord, true);
+
+                    // Reset UI Text
+                    document.getElementById('wordle-msg').textContent = "GODT GÅET!";
+                    document.getElementById('wordle-game-over').classList.add('hidden');
+                    document.getElementById('duel-opp-status').textContent = "Spiller...";
+                    document.getElementById('duel-opp-status').style.color = 'rgba(255,255,255,0.7)';
+                }
+            });
+
+        }
+    } catch (e) {
+        alert("CRASH REPORT: " + e.message);
+        console.error(e);
+    }
 }
 
 window.closeWordle = function () {
@@ -1313,10 +1599,40 @@ window.closeWordle = function () {
     if (window.Arcade) {
         window.Arcade.Wordle.stop();
         window.Arcade.updateUI();
+        if (currentDuelCode && liveLinkState.db) {
+            liveLinkState.db.ref(`wordle_duels/${currentDuelCode}`).off();
+            liveLinkState.db.ref(`wordle_duels/${currentDuelCode}/inputs`).off(); // Cleanup Inputs
+            currentDuelCode = null;
+        }
     }
 }
 
 window.restartWordle = function () {
+    if (currentDuelCode) {
+        if (currentDuelRole === 'host') {
+            // Host triggers restart
+            const list = window.WordleData.solutions;
+            const newWord = list[Math.floor(Math.random() * list.length)].toUpperCase();
+
+            // 1. Reset Board Data
+            liveLinkState.db.ref(`wordle_duels/${currentDuelCode}`).update({
+                word: newWord,
+                // Reset inputs? Maybe just clear them
+            });
+            liveLinkState.db.ref(`wordle_duels/${currentDuelCode}/inputs`).remove(); // Clear old history
+            liveLinkState.db.ref(`wordle_duels/${currentDuelCode}/guesses`).remove(); // Clear guess history
+
+            // 2. Reset Statuses
+            liveLinkState.db.ref(`wordle_duels/${currentDuelCode}/host`).update({ row: 0, status: 'playing' });
+            liveLinkState.db.ref(`wordle_duels/${currentDuelCode}/guest`).update({ row: 0, status: 'playing' });
+
+            // 3. Local Restart (triggered via listener below usually, but we can force it)
+            // Ideally we listen for 'word' change
+        } else {
+            alert("Kun værten kan starte et nyt spil.");
+        }
+        return;
+    }
     if (window.Arcade) window.Arcade.Wordle.start();
 }
 
@@ -1338,6 +1654,25 @@ window.restartPong = function () {
     if (window.Arcade) window.Arcade.Pong.start();
 }
 
+// --- SPACE DEFENCE ---
+window.openSpace = function () {
+    window.transitionTo('arcade-game-selector', 'stage-space');
+    // Initialize if needed
+    if (window.Arcade) setTimeout(() => window.Arcade.Space.start(), 300);
+}
+
+window.closeSpace = function () {
+    window.transitionTo('stage-space', 'arcade-game-selector');
+    if (window.Arcade) {
+        window.Arcade.Space.stop();
+        window.Arcade.updateUI();
+    }
+}
+
+window.restartSpace = function () {
+    if (window.Arcade) window.Arcade.Space.start();
+}
+
 window.toggleArcadeSettings = function () {
     const p = document.getElementById('arcade-settings');
     const isHidden = p.classList.contains('hidden');
@@ -1345,11 +1680,15 @@ window.toggleArcadeSettings = function () {
     // Detect Active Game
     const isSnake = !document.getElementById('stage-snake').classList.contains('hidden');
     const isBreakout = !document.getElementById('stage-breakout').classList.contains('hidden');
-    const isWordle = !document.getElementById('stage-wordle').classList.contains('hidden');
     const isPong = !document.getElementById('stage-pong').classList.contains('hidden');
+    const isWordle = !document.getElementById('stage-wordle').classList.contains('hidden');
+    const isSpace = !document.getElementById('stage-space').classList.contains('hidden');
 
     const snakeControls = document.getElementById('settings-snake-controls');
     const breakoutControls = document.getElementById('settings-breakout-controls');
+    const pongControls = document.getElementById('settings-pong-controls');
+    const wordleControls = document.getElementById('settings-wordle-controls');
+    const spaceControls = document.getElementById('settings-space-controls');
 
     if (isHidden) {
         // Open Settings
@@ -1370,11 +1709,24 @@ window.toggleArcadeSettings = function () {
             if (document.getElementById('set-breakout-multiball')) document.getElementById('set-breakout-multiball').value = s.breakoutMultiball || 'standard';
             if (document.getElementById('set-breakout-lives')) document.getElementById('set-breakout-lives').value = s.breakoutLives || 3;
             if (document.getElementById('set-breakout-paddle')) document.getElementById('set-breakout-paddle').value = s.breakoutPaddle || 100;
+
+            // Pong
+            if (document.getElementById('set-pong-difficulty')) document.getElementById('set-pong-difficulty').value = s.pongDifficulty || 'normal';
+            if (document.getElementById('set-pong-score')) document.getElementById('set-pong-score').value = s.pongWinScore || 5;
+            if (document.getElementById('set-pong-player-paddle')) document.getElementById('set-pong-player-paddle').value = s.pongPlayerPaddle || 100;
+            if (document.getElementById('set-pong-player-paddle')) document.getElementById('set-pong-player-paddle').value = s.pongPlayerPaddle || 100;
+            if (document.getElementById('set-pong-cpu-paddle')) document.getElementById('set-pong-cpu-paddle').value = s.pongCpuPaddle || 80;
+
+            // Space
+            if (document.getElementById('set-space-difficulty')) document.getElementById('set-space-difficulty').value = s.spaceDifficulty || 'normal';
         }
 
         // Show/Hide Controls based on Game
         snakeControls.classList.add('hidden');
         if (breakoutControls) breakoutControls.classList.add('hidden');
+        if (pongControls) pongControls.classList.add('hidden');
+        if (wordleControls) wordleControls.classList.add('hidden');
+        if (spaceControls) spaceControls.classList.add('hidden');
 
         if (isSnake) {
             snakeControls.classList.remove('hidden');
@@ -1383,7 +1735,13 @@ window.toggleArcadeSettings = function () {
             if (breakoutControls) breakoutControls.classList.remove('hidden');
             if (window.Arcade && window.Arcade.Breakout) window.Arcade.Breakout.isPaused = true;
         } else if (isPong) {
-            if (window.Arcade && window.Arcade.Pong) window.Arcade.Pong.gameActive = false; // Pause
+            if (pongControls) pongControls.classList.remove('hidden');
+            if (window.Arcade && window.Arcade.Pong) window.Arcade.Pong.isPaused = true;
+        } else if (isSpace) {
+            if (spaceControls) spaceControls.classList.remove('hidden');
+            if (window.Arcade && window.Arcade.Space) window.Arcade.Space.isPaused = true;
+        } else if (isWordle) {
+            if (wordleControls) wordleControls.classList.remove('hidden');
         }
     } else {
         // Close Settings
@@ -1409,6 +1767,10 @@ window.updateArcadeSetting = function (key, val) {
     if (key === 'breakoutChance') val = parseFloat(val);
     if (key === 'breakoutLives') val = parseInt(val);
     if (key === 'breakoutPaddle') val = parseInt(val);
+    // Pong conversions
+    if (key === 'pongWinScore') val = parseInt(val);
+    if (key === 'pongPlayerPaddle') val = parseInt(val);
+    if (key === 'pongCpuPaddle') val = parseInt(val);
 
     // Map to internal keys
     const map = {
@@ -1419,16 +1781,20 @@ window.updateArcadeSetting = function (key, val) {
         'breakoutChance': 'breakoutChance',
         'breakoutMultiball': 'breakoutMultiball',
         'breakoutLives': 'breakoutLives',
-        'breakoutPaddle': 'breakoutPaddle'
+        'breakoutPaddle': 'breakoutPaddle',
+        'pongDifficulty': 'pongDifficulty',
+        'pongWinScore': 'pongWinScore',
+        'pongPlayerPaddle': 'pongPlayerPaddle',
+        'pongCpuPaddle': 'pongCpuPaddle'
     };
 
-    window.Arcade.settings[map[key]] = val;
-    window.Arcade.saveSettings();
+    if (map[key]) {
+        window.Arcade.settings[map[key]] = val;
+        window.Arcade.saveSettings();
+    }
 
     // LIVE UPDATES
     if (key === 'breakoutLives' && window.Arcade.Breakout) {
-        // Only update if not currently "playing" (ball attached) or just update anyway?
-        // User wants to see it update.
         window.Arcade.Breakout.lives = val;
         if (typeof window.Arcade.Breakout.updateLives === 'function') {
             window.Arcade.Breakout.updateLives();
@@ -1438,6 +1804,17 @@ window.updateArcadeSetting = function (key, val) {
         window.Arcade.Breakout.paddle.targetW = val;
     }
 
+    // Pong Live Updates
+    if (key === 'pongPlayerPaddle' && window.Arcade.Pong) {
+        window.Arcade.Pong.player.targetH = val; // Trigger smooth animation
+    }
+    if (key === 'pongCpuPaddle' && window.Arcade.Pong) {
+        window.Arcade.Pong.cpu.targetH = val; // Trigger smooth animation
+    }
+    if (key === 'pongDifficulty' && window.Arcade.Pong) {
+        window.Arcade.Pong.applySettings(); // Re-apply speed immediately
+    }
+
     // Do NOT auto-restart here. Wait for user to close settings.
 }
 
@@ -1445,6 +1822,183 @@ window.updateArcadeSetting = function (key, val) {
 window.openGame = function () {
     window.openArcade();
 }
+
+// ECONOMY UI HANDLERS
+
+window.updateCoinDisplay = function () {
+    if (!window.Arcade) return;
+    const coins = window.Arcade.state.coins;
+    const els = document.querySelectorAll('#coin-count, #shop-coin-count');
+    els.forEach(el => el.textContent = coins);
+}
+
+window.openShop = function () {
+    console.log('openShop: Triggered');
+    const el = document.getElementById('arcade-shop');
+    if (!el) {
+        console.error('openShop: #arcade-shop not found!');
+        return;
+    }
+    el.classList.remove('hidden');
+    console.log('openShop: Class removed');
+    renderShopItems();
+}
+
+window.closeShop = function () {
+    document.getElementById('arcade-shop').classList.add('hidden');
+}
+
+window.renderShopItems = function () {
+    const list = document.getElementById('shop-items');
+    list.innerHTML = '';
+
+    // Add grid class if missing
+    list.className = 'shop-grid';
+
+    if (!window.Arcade) return;
+
+    window.Arcade.shop.forEach(item => {
+        const owned = window.Arcade.state.inventory.includes(item.id);
+        const canAfford = window.Arcade.state.coins >= item.cost;
+        const isActive = document.body.classList.contains(item.id);
+
+        const card = document.createElement('div');
+        card.className = 'shop-card ' + (owned ? 'owned' : '') + (isActive ? ' active-theme' : '');
+
+        // Determine Icon
+        let icon = "📦";
+        if (item.id.includes('matrix')) icon = "💻";
+        else if (item.id.includes('sunset')) icon = "🌅";
+        else if (item.id.includes('ocean')) icon = "🌊";
+        else if (item.id.includes('golden')) icon = "🏏";
+        else if (item.id.includes('life')) icon = "❤️";
+        else if (item.id.includes('slow')) icon = "🐌";
+        else if (item.id.includes('neon')) icon = "🌟";
+
+        let btnAction = '';
+        let btnText = '';
+        let btnClass = '';
+
+        if (owned) {
+            if (item.type === 'theme') {
+                if (isActive) {
+                    btnText = "Valgt";
+                    btnClass = "btn small disabled active-btn";
+                    btnAction = "";
+                } else {
+                    btnText = "Vælg";
+                    btnClass = "btn secondary small";
+                    btnAction = `window.Arcade.equipTheme('${item.id}'); renderShopItems();`;
+                }
+            } else if (item.type === 'mod') {
+                btnText = "Aktiv";
+                btnClass = "btn small disabled mod-active";
+            } else {
+                btnText = "Ejet";
+                btnClass = "btn small disabled";
+            }
+        } else {
+            if (canAfford) {
+                btnText = `${item.cost} 🪙`;
+                btnClass = "btn primary small buy-btn";
+                btnAction = `if(window.Arcade.buyItem('${item.id}')) renderShopItems();`;
+            } else {
+                btnText = `${item.cost} 🪙`;
+                btnClass = "btn small disabled";
+                btnAction = "";
+            }
+        }
+
+        card.innerHTML = `
+            <div class="shop-icon">${icon}</div>
+            <div class="shop-info">
+                <h3>${item.name}</h3>
+                <p>${item.desc}</p>
+            </div>
+            <div class="shop-actions">
+                <button class="${btnClass}" onclick="${btnAction}">${btnText}</button>
+            </div>
+        `;
+        list.appendChild(card);
+    });
+}
+
+window.openLeaderboard = function () {
+    document.getElementById('arcade-leaderboard').classList.remove('hidden');
+    renderLeaderboard();
+}
+
+window.closeLeaderboard = function () {
+    document.getElementById('arcade-leaderboard').classList.add('hidden');
+}
+
+window.renderLeaderboard = function () {
+    const list = document.getElementById('leaderboard-content');
+    list.innerHTML = '';
+
+    if (!window.Arcade) return;
+    const scores = window.Arcade.state.highScores;
+
+    // Config for display
+    const games = [
+        { key: 'snake', icon: '🐍', name: 'Snake' },
+        { key: 'breakout', icon: '🧱', name: 'Breakout' },
+        { key: 'pong', icon: '🏓', name: 'Pong' },
+        { key: 'wordle', icon: '🔤', name: 'Wordle (Streak)' }
+    ];
+
+    games.forEach(game => {
+        // Get simulated global leaderboard
+        const board = window.Arcade.getLeaderboard(game.key).slice(0, 5); // Top 5
+
+        const section = document.createElement('div');
+        section.className = 'leader-section';
+        section.innerHTML = `<h3>${game.icon} ${game.name}</h3>`;
+
+        board.forEach((entry, index) => {
+            const row = document.createElement('div');
+            // Highlight user
+            const isMe = entry.isUser ? 'highlight-me' : '';
+
+            row.className = `leader-row ${isMe}`;
+
+            // Layout handled by CSS now
+            row.innerHTML = `
+                <span class="rank-num">${index + 1}</span>
+                <span class="game-name">${entry.name}</span>
+                <span class="game-score">${entry.score}</span>
+            `;
+            section.appendChild(row);
+        });
+
+        list.appendChild(section);
+    });
+}
+
+// Player Name Input Logic
+document.addEventListener('DOMContentLoaded', () => {
+    // Other init
+    setTimeout(() => { if (window.updateCoinDisplay) window.updateCoinDisplay(); }, 1000);
+
+    // Name Input
+    const nameInput = document.getElementById('player-name-input');
+    if (nameInput) {
+        // Init from storage
+        const saved = localStorage.getItem('arcade_player_name');
+        if (saved) nameInput.value = saved;
+
+        // Save on change
+        nameInput.addEventListener('input', (e) => {
+            const val = e.target.value;
+            localStorage.setItem('arcade_player_name', val);
+            if (window.Arcade) window.Arcade.state.playerName = val;
+        });
+    }
+});
+// Init Coin Display on Load
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => { if (window.updateCoinDisplay) window.updateCoinDisplay(); }, 1000);
+});
 
 // --- TIME TRAVEL FUNCTIONS ---
 window.setTimeTravel = function (hours, minutes) {
@@ -1734,4 +2288,69 @@ window.toggleLiveLink = function () {
     } else {
         overlay.classList.add('hidden');
     }
+}
+
+// --- CONFETTI SYSTEM ---
+window.fireConfetti = function () {
+    const canvas = document.createElement('canvas');
+    canvas.style.position = 'fixed';
+    canvas.style.top = '0';
+    canvas.style.left = '0';
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+    canvas.style.pointerEvents = 'none';
+    canvas.style.zIndex = '9999';
+    document.body.appendChild(canvas);
+
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const pieces = [];
+    const colors = ['#f43f5e', '#ec4899', '#d946ef', '#a855f7', '#8b5cf6', '#6366f1', '#3b82f6'];
+
+    for (let i = 0; i < 200; i++) {
+        pieces.push({
+            x: canvas.width / 2,
+            y: canvas.height / 3, // Start a bit higher
+            w: Math.random() * 8 + 4,
+            h: Math.random() * 8 + 4,
+            vx: (Math.random() - 0.5) * 15, // Explosive X
+            vy: (Math.random() - 0.5) * 15 - 5, // Explosive Y with upward tendency
+            color: colors[Math.floor(Math.random() * colors.length)],
+            rotation: Math.random() * 360,
+            gravity: 0.2
+        });
+    }
+
+    function update() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        let active = 0;
+
+        pieces.forEach(p => {
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vy += p.gravity;
+            p.vx *= 0.96; // Air resistance
+            p.rotation += 5;
+
+            if (p.y < canvas.height + 20) {
+                active++;
+                ctx.save();
+                ctx.translate(p.x, p.y);
+                ctx.rotate(p.rotation * Math.PI / 180);
+                ctx.fillStyle = p.color;
+                ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+                ctx.restore();
+            }
+        });
+
+        if (active > 0) {
+            requestAnimationFrame(update);
+        } else {
+            document.body.removeChild(canvas);
+        }
+    }
+
+    update();
 }

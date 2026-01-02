@@ -1,18 +1,90 @@
+
 /**
  * SKOLE DASHBOARD - ARCADE ENGINE 🕹️
  * Handles all game logic, settings, and high scores.
  */
 
-window.Arcade = {
+window.Arcade = {    // Global Settings
     settings: {
         soundEnabled: true, // NEW
+        // Snake
         snakeSpeed: 100, // ms
         snakeWalls: true, // Die on wall hit
-        snakeTheme: 'classic' // classic, neon, retro
+        snakeTheme: 'classic', // classic, neon, retro
+        // Breakout
+        breakoutChance: 0.2,
+        breakoutMultiball: 'standard',
+        breakoutLives: 3,
+        breakoutPaddle: 100,
+        // Pong
+        pongDifficulty: 'normal',
+        pongWinScore: 5,
+        pongPlayerPaddle: 100,
+        pongCpuPaddle: 80
     },
     state: {
         activeGame: null,
-        highScores: JSON.parse(localStorage.getItem('arcade_scores')) || {}
+        highScores: JSON.parse(localStorage.getItem('arcade_scores')) || {},
+        coins: parseInt(localStorage.getItem('arcade_coins')) || 0,
+        inventory: JSON.parse(localStorage.getItem('arcade_inventory')) || ['theme-midnight', 'theme-royal', 'theme-crimson', 'theme-emerald', 'theme-frost', 'snake-skin-classic'],
+        playerName: localStorage.getItem('arcade_player_name') || '',
+        globalScores: {}
+    },
+
+    // Shop Configuration
+    shop: [
+        // Modifiers
+        { id: 'paddle-golden', name: 'Golden Paddle', type: 'mod', cost: 1500, desc: '50% Større bat i Pong & Breakout.' },
+        { id: 'life-extra', name: 'Extra Life', type: 'mod', cost: 2000, desc: '+1 Liv i Breakout (Permanent).' },
+        { id: 'snake-slow', name: 'Chill Snake', type: 'mod', cost: 1200, desc: '20% Langsommere slange.' },
+
+        // Themes
+        { id: 'theme-matrix', name: 'The Matrix', type: 'theme', cost: 1000, desc: 'Digital grøn kode-regn.' },
+        { id: 'theme-sunset', name: 'Vapor Sunset', type: 'theme', cost: 850, desc: 'Retro 80er gradients.' },
+        { id: 'theme-ocean', name: 'Deep Ocean', type: 'theme', cost: 500, desc: 'Rolig dybhavs blå.' },
+        { id: 'snake-skin-neon', name: 'Neon Snake', type: 'skin', cost: 300, desc: 'Selvlysende slange.' }
+    ],
+
+    // Real Firebase Leaderboard Logic
+    connectLeaderboard() {
+        if (typeof firebase === 'undefined' || !firebase.database) return;
+
+        try {
+            const db = firebase.database();
+            const ref = db.ref('leaderboards');
+
+            // Listen for all changes
+            ref.on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    if (!this.state.globalScores) this.state.globalScores = {};
+                    this.state.globalScores = data;
+                    // Update UI if open
+                    if (window.renderLeaderboard) window.renderLeaderboard();
+                }
+            });
+        } catch (e) { console.error("Leaderboard connect error", e); }
+    },
+
+    getLeaderboard(game) {
+        // 1. Try Real Global Data
+        if (this.state.globalScores && this.state.globalScores[game]) {
+            const rawData = this.state.globalScores[game];
+            // Convert Object to Array
+            const allScores = Object.values(rawData).map(entry => ({
+                name: entry.name,
+                score: entry.score,
+                isUser: entry.name === (this.state.playerName || 'Mig')
+            }));
+
+            // Sort
+            return allScores.sort((a, b) => b.score - a.score);
+        }
+
+        // 2. Fallback
+        const userScore = this.state.highScores[game] || 0;
+        const userName = this.state.playerName || 'Mig';
+        return [{ name: userName, score: userScore, isUser: true }];
     },
 
     Audio: {
@@ -91,28 +163,89 @@ window.Arcade = {
     },
 
     saveScore(game, score) {
-        const currentHigh = this.state.highScores[game] || 0;
-        if (score > currentHigh) {
+        // 1. Local High Score
+        let isHigh = false;
+        if (!this.state.highScores[game] || score > this.state.highScores[game]) {
             this.state.highScores[game] = score;
             localStorage.setItem('arcade_scores', JSON.stringify(this.state.highScores));
-            return true; // New High Score!
+            isHigh = true;
+        }
+
+        // 2. Global Firebase Score
+        try {
+            if (window.liveLinkState && window.liveLinkState.db) {
+                const name = this.state.playerName || 'Anonym';
+                // Push to DB
+                const scoreRef = window.liveLinkState.db.ref('leaderboards/' + game);
+                scoreRef.push({
+                    name: name,
+                    score: score,
+                    timestamp: Date.now()
+                });
+            }
+        } catch (e) { console.error("Firebase save error", e); }
+
+        // 3. Economy (Coins)
+        let earned = 0;
+        if (game === 'snake') earned = Math.floor(score / 5);
+        else if (game === 'breakout') earned = Math.floor(score / 50);
+        else if (game === 'wordle') earned = 25 + (score * 5);
+        else if (game === 'pong') earned = 15;
+
+        if (earned > 0) {
+            this.state.coins += earned;
+            localStorage.setItem('arcade_coins', this.state.coins);
+            if (window.updateCoinDisplay) window.updateCoinDisplay();
+        }
+
+        return isHigh;
+    },
+
+
+    buyItem(itemId) {
+        const item = this.shop.find(i => i.id === itemId);
+        if (!item) return false;
+        if (this.state.inventory.includes(itemId)) return true; // Already owned
+
+        if (this.state.coins >= item.cost) {
+            this.state.coins -= item.cost;
+            this.state.inventory.push(itemId);
+
+            localStorage.setItem('arcade_coins', this.state.coins);
+            localStorage.setItem('arcade_inventory', JSON.stringify(this.state.inventory));
+
+            if (window.updateCoinDisplay) window.updateCoinDisplay();
+            return true;
         }
         return false;
+    },
+
+    equipTheme(themeId) {
+        if (!this.state.inventory.includes(themeId)) return false;
+
+        // EXCLUSIVE: Remove ALL old themes first
+        const allThemes = this.shop.filter(i => i.type === 'theme').map(i => i.id);
+        document.body.classList.remove(...allThemes);
+
+        // Add new
+        document.body.classList.add(themeId);
+        localStorage.setItem('active_theme', themeId);
+        return true;
     },
 
     updateUI() {
         // Update High Score displays
         const snakeHigh = this.state.highScores['snake'] || 0;
         const shEl = document.getElementById('snake-highscore-display');
-        if (shEl) shEl.textContent = `Rekord: ${snakeHigh}`;
+        if (shEl) shEl.textContent = `Rekord: ${snakeHigh} `;
 
         const breakoutHigh = this.state.highScores['breakout'] || 0;
         const bhEl = document.getElementById('breakout-highscore-display');
-        if (bhEl) bhEl.textContent = `Rekord: ${breakoutHigh}`;
+        if (bhEl) bhEl.textContent = `Rekord: ${breakoutHigh} `;
 
         const wordleHigh = this.state.highScores['wordle'] || 0;
         const whEl = document.getElementById('wordle-highscore-display');
-        if (whEl) whEl.textContent = `Rekord: ${wordleHigh}`;
+        if (whEl) whEl.textContent = `Rekord: ${wordleHigh} `;
     },
 
     // --- GAMES ---
@@ -187,7 +320,11 @@ window.Arcade = {
             if (this.waitingForStart) {
                 if ([37, 38, 39, 40].includes(e.which)) {
                     this.waitingForStart = false;
-                    this.gameInterval = setInterval(this.loop.bind(this), Arcade.settings.snakeSpeed);
+                    // Modifier: Snake Slow
+                    let speed = Arcade.settings.snakeSpeed;
+                    if (Arcade.state.inventory.includes('snake-slow')) speed = speed * 1.2; // 20% slower
+
+                    this.gameInterval = setInterval(this.loop.bind(this), speed);
                 } else {
                     return; // Ignore non-arrow keys
                 }
@@ -341,6 +478,21 @@ window.Arcade = {
             if (!this.canvas) return;
             this.ctx = this.canvas.getContext('2d');
 
+            // HiDPI Scaling (Retina Fix)
+            const dpr = window.devicePixelRatio || 1;
+            const rect = this.canvas.getBoundingClientRect();
+
+            // Set REAL resolution
+            this.canvas.width = rect.width * dpr;
+            this.canvas.height = rect.height * dpr;
+
+            // Scale Context to match logical coordinates
+            this.ctx.scale(dpr, dpr);
+
+            // Store Logical Dimensions for Game Logic
+            this.width = rect.width;
+            this.height = rect.height;
+
             // Reset Game & Timers
             if (this.wideTimer) clearTimeout(this.wideTimer);
             if (this.superTimer) clearTimeout(this.superTimer);
@@ -349,9 +501,14 @@ window.Arcade = {
 
             this.score = 0;
             // Read Setting or Default to 3
-            this.lives = (window.Arcade && window.Arcade.settings && window.Arcade.settings.breakoutLives)
-                ? window.Arcade.settings.breakoutLives
+            let baseLives = (window.Arcade && window.Arcade.settings && window.Arcade.settings.breakoutLives)
+                ? parseInt(window.Arcade.settings.breakoutLives, 10)
                 : 3;
+
+            // Modifier: Extra Life
+            if (window.Arcade.state.inventory.includes('life-extra')) baseLives += 1;
+
+            this.lives = baseLives;
             this.level = 1;
             this.isPaused = false;
             this.rightPressed = false;
@@ -389,6 +546,10 @@ window.Arcade = {
             if (window.Arcade && window.Arcade.settings && window.Arcade.settings.breakoutPaddle) {
                 startW = window.Arcade.settings.breakoutPaddle;
             }
+
+            // Modifier: Golden Paddle
+            if (window.Arcade.state.inventory.includes('paddle-golden')) startW = startW * 1.5;
+
             this.paddle.w = startW;
             this.paddle.targetW = startW;
 
@@ -543,7 +704,7 @@ window.Arcade = {
 
             this.paddle.x += this.paddle.dx;
             if (this.paddle.x < 0) this.paddle.x = 0;
-            if (this.paddle.x + this.paddle.w > this.canvas.width) this.paddle.x = this.canvas.width - this.paddle.w;
+            if (this.paddle.x + this.paddle.w > this.width) this.paddle.x = this.width - this.paddle.w;
 
             // UPDATE BALLS
             if (this.ballAttached) {
@@ -583,14 +744,14 @@ window.Arcade = {
                     }
 
                     // Wall Collision
-                    if (b.x + b.dx > this.canvas.width - b.r || b.x + b.dx < b.r) {
+                    if (b.x + b.dx > this.width - b.r || b.x + b.dx < b.r) {
                         b.dx = -b.dx;
                         if (Arcade.Audio) Arcade.Audio.boop();
                     }
                     if (b.y + b.dy < b.r) {
                         b.dy = -b.dy;
                         if (Arcade.Audio) Arcade.Audio.boop();
-                    } else if (b.y + b.dy > this.canvas.height - b.r) {
+                    } else if (b.y + b.dy > this.height - b.r) {
                         // Remove Ball
                         this.balls.splice(i, 1);
                     }
@@ -743,10 +904,10 @@ window.Arcade = {
             if (!this.brickConfig) {
                 this.brickConfig = {
                     r: 5,
-                    c: 8,
+                    c: 10,  // Increased density
                     w: 0,
                     h: 20,
-                    padding: 10,
+                    padding: 4, // Tighter spacing
                     offsetLeft: 30,
                     offsetTop: 50
                 };
@@ -755,8 +916,8 @@ window.Arcade = {
             const { c, padding, offsetTop } = this.brickConfig;
 
             // DYNAMIC DIFFICULTY: INCREASE ROWS WITH LEVEL
-            let targetRows = Math.min(3 + Math.floor(this.level / 2), 8);
-            // Level 1: 3 rows, Level 3: 4 rows, Level 5: 5 rows... Max 8.
+            let targetRows = Math.min(4 + Math.floor(this.level / 2), 9);
+            // Level 1: 4 rows, Level 3: 5 rows... Max 9.
             this.brickConfig.r = targetRows;
             const r = targetRows;
 
@@ -764,7 +925,7 @@ window.Arcade = {
             // We want a fixed width for the "game board" area or just maximize space?
             // Let's maximize space but keep it centered.
             // Available width = Canvas Width - (Margins). Let's say 20px margin each side minimum.
-            const availableWidth = this.canvas.width - 40;
+            const availableWidth = this.width - 40;
 
             // Calculate brick width based on available space
             // totalW = c * w + (c - 1) * padding
@@ -775,7 +936,7 @@ window.Arcade = {
 
             // Calculate exact offsetLeft to center strictly
             const totalContentWidth = (c * newW) + ((c - 1) * padding);
-            const centeringOffset = (this.canvas.width - totalContentWidth) / 2;
+            const centeringOffset = (this.width - totalContentWidth) / 2;
             this.brickConfig.offsetLeft = centeringOffset;
             this.brickConfig.offsetTop = 60; // Fixed top offset
 
@@ -890,54 +1051,78 @@ window.Arcade = {
                         b.x = brickX;
                         b.y = brickY;
 
-                        this.ctx.beginPath();
-                        this.ctx.roundRect(brickX, brickY, w, h, 4);
+                        // MATERIAL DESIGN: VIBRANT CERAMIC (Apple Pop)
+                        // A curated, "happy" but premium palette (iMac tones).
+                        // MATERIAL DESIGN: VIBRANT CERAMIC (Apple Pop)
+                        // A curated, "happy" but premium palette (iMac tones).
+                        const colors = [
+                            '#a78bfa', // Soft Violet (Start with Purple)
+                            '#22d3ee', // Cyan
+                            '#fbbf24', // Warm Amber
+                            '#fb7185', // Soft Rose
+                            '#60a5fa', // Vivid Blue
+                            '#34d399', // Smooth Emerald
+                            '#f472b6'  // Candy Pink
+                        ];
+                        const baseColor = colors[j % colors.length] || "#fff";
 
-                        // Base Color
-                        const colors = ['#f472b6', '#a78bfa', '#60a5fa', '#34d399', '#fde047'];
-                        this.ctx.fillStyle = colors[j] || "#fff";
+                        this.ctx.save();
+
+                        // 1. Soft Ambient Shadow (Floating)
+                        this.ctx.shadowBlur = 12;
+                        this.ctx.shadowOffsetX = 0;
+                        this.ctx.shadowOffsetY = 4;
+                        this.ctx.shadowColor = "rgba(0,0,0,0.2)"; // Slightly stronger text shadow for contrast
+
+                        // 2. Shape Path
+                        this.ctx.beginPath();
+                        this.ctx.roundRect(brickX, brickY, w, h, 6);
+
+                        // 3. Volumetric Gradient (Body)
+                        // Lighter Top -> Darker Bottom to suggest curvature
+                        const bodyGrad = this.ctx.createLinearGradient(brickX, brickY, brickX, brickY + h);
+                        bodyGrad.addColorStop(0, baseColor);
+                        bodyGrad.addColorStop(1, this.adjustColor(baseColor, -25)); // Stronger gradient for volume
+
+                        this.ctx.globalAlpha = 0.9; // Semi-transparent glass/plastic
+                        this.ctx.fillStyle = bodyGrad;
                         this.ctx.fill();
 
-                        // Visuals for Hard Bricks (Reinforced Look)
-                        // Visuals for Hard Bricks (Striped Texture)
+                        // 4. Soft Top Highlight (The "Sheen")
+                        // Simulates overhead light hitting a curved matte surface
+                        const sheenGrad = this.ctx.createLinearGradient(brickX, brickY, brickX, brickY + h * 0.6);
+                        sheenGrad.addColorStop(0, "rgba(255, 255, 255, 0.25)"); // High sheen
+                        sheenGrad.addColorStop(1, "rgba(255, 255, 255, 0)"); // Fade out
+
+                        this.ctx.fillStyle = sheenGrad;
+                        this.ctx.fill();
+
+                        // 5. No Outline (Pure Shape)
+                        // Removed stroke to avoid "button" look.
+
+                        this.ctx.restore();
+
+                        // Visuals for Hard Bricks (Clean / No Stripes)
                         if (b.maxHealth > 1) {
                             this.ctx.save();
                             this.ctx.beginPath();
-                            this.ctx.roundRect(brickX, brickY, w, h, 4);
-                            this.ctx.clip(); // Clip drawing to brick shape
-
-                            this.ctx.strokeStyle = "rgba(0,0,0,0.15)";
-                            this.ctx.lineWidth = 2;
-
-                            // Draw diagonal lines
-                            const spacing = 6;
-                            for (let x = -h; x < w; x += spacing) {
-                                this.ctx.beginPath();
-                                this.ctx.moveTo(brickX + x, brickY + h);
-                                this.ctx.lineTo(brickX + x + h, brickY);
-                                this.ctx.stroke();
-                            }
-
-                            // Darker Overlay for Max Level
-                            if (b.maxHealth > 2) {
-                                this.ctx.fillStyle = "rgba(0,0,0,0.2)";
-                                this.ctx.fill();
-                            }
-
+                            this.ctx.roundRect(brickX, brickY, w, h, 6);
+                            this.ctx.fillStyle = "rgba(0,0,0,0.1)"; // Slight darkening for hard blocks
+                            this.ctx.fill();
                             this.ctx.restore();
                         }
 
                         // Cracks (If damaged)
                         if (b.status < b.maxHealth) {
-                            this.ctx.strokeStyle = "rgba(0,0,0,0.6)";
-                            this.ctx.lineWidth = 1.5;
+                            this.ctx.strokeStyle = "rgba(255,255,255,0.3)"; // White cracks for glass look
+                            this.ctx.lineWidth = 1.0;
                             this.ctx.beginPath();
                             // Simple Zigzag Crack
                             this.ctx.moveTo(brickX + w * 0.2, brickY + h * 0.2);
                             this.ctx.lineTo(brickX + w * 0.5, brickY + h * 0.5);
                             this.ctx.lineTo(brickX + w * 0.3, brickY + h * 0.8);
                             this.ctx.lineTo(brickX + w * 0.7, brickY + h * 0.6);
-                            // Second Crack if very damaged (1 health left on a 3 health brick)
+                            // Second Crack
                             if (b.status === 1 && b.maxHealth === 3) {
                                 this.ctx.moveTo(brickX + w * 0.8, brickY + h * 0.2);
                                 this.ctx.lineTo(brickX + w * 0.5, brickY + h * 0.5);
@@ -949,6 +1134,11 @@ window.Arcade = {
                     }
                 }
             }
+        },
+
+        // Helper for darkening hex colors
+        adjustColor(color, amount) {
+            return '#' + color.replace(/^#/, '').replace(/../g, color => ('0' + Math.min(255, Math.max(0, parseInt(color, 16) + amount)).toString(16)).substr(-2));
         },
 
         collisionDetection() {
@@ -1085,27 +1275,39 @@ window.Arcade = {
         gameActive: false,
         streak: 0,
 
-        boundHandleKey: null,
+        // DUEL STATE
+        duelMode: false,
+        onProgress: null, // Callback for UI updates
+        onFinish: null,   // Callback for Win/Loss logging
 
-        start() {
+        start(forcedWord = null, duelMode = false) {
             this.gameActive = true;
+            this.duelMode = duelMode;
             this.currentRow = 0;
             this.currentCol = 0;
             this.guess = [];
             this.gridState = Array(6).fill().map(() => Array(5).fill('')); // Empty Grid
 
             // Pick Word
-            const list = window.WordleData.solutions;
-            this.solution = list[Math.floor(Math.random() * list.length)].toUpperCase();
-            console.log("Solution:", this.solution); // Debug
+            if (forcedWord) {
+                this.solution = forcedWord.toUpperCase();
+                console.log("Duel Word Set:", this.solution);
+            } else {
+                const list = window.WordleData.solutions;
+                this.solution = list[Math.floor(Math.random() * list.length)].toUpperCase();
+                console.log("Solution:", this.solution); // Debug
+            }
 
             // UI
             this.renderBoard();
             this.renderKeyboard();
+            // Reset Duel UI if present
+            const duelHeader = document.getElementById('wordle-duel-header');
+            if (duelHeader) duelHeader.classList.add('hidden');
+
             document.getElementById('wordle-game-over').classList.add('hidden');
 
             // Listeners
-            // Fix: Store reference to remove exact listener later
             if (this.boundHandleKey) {
                 document.removeEventListener('keydown', this.boundHandleKey);
             }
@@ -1115,19 +1317,42 @@ window.Arcade = {
 
         stop() {
             this.gameActive = false;
+            this.duelMode = false;
             if (this.boundHandleKey) {
                 document.removeEventListener('keydown', this.boundHandleKey);
                 this.boundHandleKey = null;
             }
         },
 
+        onGuess: null, // Callback for FULL word submission
+
         handleKey(e) {
             if (!this.gameActive) return;
-            const key = e.key.toUpperCase();
+            const key = e.key ? e.key.toUpperCase() : e.toUpperCase();
+
+            // Prevent shortcuts
+            if (e.ctrlKey || e.metaKey || e.altKey) return;
 
             if (key === 'ENTER') this.submitGuess();
             else if (key === 'BACKSPACE') this.deleteLetter();
             else if (/^[A-Z]$/.test(key)) this.addLetter(key);
+        },
+
+        // New Helper for Remote Play
+        playRemoteGuess(word) {
+            if (!this.gameActive) return;
+            // Clear current row first to avoid conflicts
+            this.guess = [];
+            for (let i = 0; i < 5; i++) {
+                this.updateTile(this.currentRow, i, '');
+            }
+
+            // Type the word safely
+            const letters = word.split('');
+            letters.forEach(l => this.addLetter(l));
+
+            // Force Submit (bypass validation if needed, or just call submit)
+            this.submitGuess(true); // true = isRemote
         },
 
         addLetter(letter) {
@@ -1146,24 +1371,31 @@ window.Arcade = {
             }
         },
 
-        submitGuess() {
+        submitGuess(isRemote = false) {
             if (this.guess.length !== 5) {
-                this.shakeRow();
-                if (Arcade.Audio) Arcade.Audio.invalid();
+                if (!isRemote) { // Only shake for local errors
+                    this.shakeRow();
+                    if (Arcade.Audio) Arcade.Audio.invalid();
+                }
                 return;
             }
 
             const word = this.guess.join('');
 
-            // Dictionary Check
+            // Dictionary Check (skip if remote, assume valid?)
+            // actually keep it for safety, but maybe remote is always valid
             const validList = window.WordleDictionary || window.WordleData.valid;
             const solList = window.WordleData.solutions;
 
             if (!validList.includes(word) && !solList.includes(word)) {
                 this.shakeRow();
-                // Show "Not in word list" toast? For now just shake/sound
                 if (Arcade.Audio) Arcade.Audio.invalid();
                 return;
+            }
+
+            // Valid Guess - Broadcast if Local
+            if (!isRemote && this.onGuess) {
+                this.onGuess(word);
             }
 
             // Check
@@ -1225,17 +1457,40 @@ window.Arcade = {
             });
 
             setTimeout(() => {
+                // REPORT PROGRESS (DUEL MODE)
+                if (this.duelMode && this.onProgress) {
+                    this.onProgress(this.currentRow + 1);
+                }
+
+                // Win/Loss Check
                 // Win/Loss Check
                 if (guessWord === this.solution) {
-                    this.streak++;
-                    document.getElementById('wordle-current-streak').textContent = this.streak;
-                    Arcade.saveScore('wordle', this.streak); // Save Best Streak
-                    Arcade.updateUI(); // Force UI update
+
+                    // Win Logic
+                    if (!this.duelMode) {
+                        this.streak++;
+                        const streakEl = document.getElementById('wordle-current-streak');
+                        if (streakEl) streakEl.textContent = this.streak;
+                        Arcade.saveScore('wordle', this.streak);
+                    }
+
+                    // Trigger External Hook (Confetti, etc.)
+                    if (this.onFinish) this.onFinish(true, this.currentRow + 1);
+
                     if (Arcade.Audio) Arcade.Audio.wordleWin();
                     this.gameOver(true);
+
                 } else if (this.currentRow === 5) {
-                    this.streak = 0; // Reset Streak on loss
-                    document.getElementById('wordle-current-streak').textContent = this.streak;
+                    // Loss Logic
+                    if (!this.duelMode) {
+                        this.streak = 0;
+                        const streakEl = document.getElementById('wordle-current-streak');
+                        if (streakEl) streakEl.textContent = this.streak;
+                    } else {
+                        // Duel Loss
+                        if (this.onFinish) this.onFinish(false, 6);
+                    }
+
                     if (Arcade.Audio) Arcade.Audio.wordleLose();
                     this.gameOver(false);
                 } else {
@@ -1321,6 +1576,9 @@ window.Arcade = {
             res.textContent = this.solution;
 
             overlay.classList.remove('hidden');
+
+            // Direct Trigger for Juice
+            if (won && window.fireConfetti) window.fireConfetti();
         }
     },
 
@@ -1329,16 +1587,17 @@ window.Arcade = {
         canvas: null,
         ctx: null,
         animationId: null,
-        animationId: null,
         gameActive: false,
         waitingToServe: true, // NEW
         width: 600,
         height: 400,
+        lastTime: 0, // For delta time
 
         // State
-        player: { y: 150, h: 80, w: 12, score: 0, dy: 0, speed: 6 },
-        cpu: { y: 150, h: 80, w: 12, score: 0, speed: 3.2 }, // Tuned speed
-        ball: { x: 300, y: 200, r: 8, dx: 4, dy: 4, speed: 5 },
+        player: { y: 150, h: 100, targetH: 100, w: 12, score: 0, dy: 0, speed: 6 }, // Added targetH
+        cpu: { y: 150, h: 80, targetH: 80, w: 12, score: 0, speed: 2.85 }, // Added targetH
+        ball: { x: 300, y: 200, r: 8, dx: 4, dy: 4, speed: 3.5 }, // Slower ball start
+        winScore: 5, // Default win score
 
         init() {
             this.canvas = document.getElementById('pong-canvas');
@@ -1352,15 +1611,42 @@ window.Arcade = {
         },
 
         start() {
-            if (!this.canvas) this.init();
-            this.gameActive = true;
+            this.init();
             this.resetGame();
+            this.applySettings(); // NEW
+            this.gameActive = true;
+            this.lastTime = 0;
+            this.loop(0);
+        },
 
-            // Apply Settings
+        applySettings() {
+            if (!Arcade.settings) return;
             const s = Arcade.settings;
-            // Maybe difficulty setting later?
 
-            this.loop();
+            // Difficulty (CPU Speed)
+            if (s.pongDifficulty === 'easy') this.cpu.speed = 2.0;
+            else if (s.pongDifficulty === 'normal') this.cpu.speed = 2.85;
+            else if (s.pongDifficulty === 'hard') this.cpu.speed = 4.5;
+            else if (s.pongDifficulty === 'impossible') this.cpu.speed = 6.5;
+
+            // Score
+            this.winScore = s.pongWinScore || 5;
+
+            // Modifier: Golden Paddle (Pong)
+            if (window.Arcade.state.inventory.includes('paddle-golden')) {
+                this.player.h = 150; // 50% bigger (default 100)
+            } else {
+                this.player.h = 100;
+            }
+
+            // Paddles
+            this.player.targetH = s.pongPlayerPaddle || 100; // Use targetH for anim
+            this.cpu.targetH = s.pongCpuPaddle || 80;
+            // Snapping on start to avoid weirdness if not animating live
+            if (!this.gameActive) {
+                this.player.h = this.player.targetH;
+                this.cpu.h = this.cpu.targetH;
+            }
         },
 
         stop() {
@@ -1388,8 +1674,9 @@ window.Arcade = {
 
         serveBall() {
             this.waitingToServe = false;
-            this.ball.speed = 5;
-            this.ball.dx = (Math.random() > 0.5 ? 1 : -1) * this.ball.speed;
+            this.ball.speed = 3.5; // Slow start
+            // Always serve towards CPU (Right) so player isn't surprised
+            this.ball.dx = this.ball.speed;
             this.ball.dy = (Math.random() * 2 - 1) * this.ball.speed;
         },
 
@@ -1422,8 +1709,25 @@ window.Arcade = {
                 this.ball.y += this.ball.dy;
             }
 
+            // Paddle Resize Animation (Lerp) - Grows from center
+            if (this.player.targetH !== undefined && Math.abs(this.player.h - this.player.targetH) > 0.5) {
+                const oldH = this.player.h;
+                this.player.h += (this.player.targetH - this.player.h) * 0.1;
+                this.player.y -= (this.player.h - oldH) / 2; // Center fix
+            }
+            if (this.cpu.targetH !== undefined && Math.abs(this.cpu.h - this.cpu.targetH) > 0.5) {
+                const oldH = this.cpu.h;
+                this.cpu.h += (this.cpu.targetH - this.cpu.h) * 0.1;
+                this.cpu.y -= (this.cpu.h - oldH) / 2; // Center fix
+            }
+
             // Wall Collision (Top/Bottom)
-            if (this.ball.y - this.ball.r < 0 || this.ball.y + this.ball.r > this.height) {
+            if (this.ball.y - this.ball.r < 0) {
+                this.ball.y = this.ball.r; // Clamp to top
+                this.ball.dy *= -1;
+                if (Arcade.Audio) Arcade.Audio.boop();
+            } else if (this.ball.y + this.ball.r > this.height) {
+                this.ball.y = this.height - this.ball.r; // Clamp to bottom
                 this.ball.dy *= -1;
                 if (Arcade.Audio) Arcade.Audio.boop();
             }
@@ -1497,7 +1801,7 @@ window.Arcade = {
 
         draw() {
             // Access theme color
-            const root = document.documentElement;
+            const root = document.body; // Fix: Theme class is on body, not html
             const accent = getComputedStyle(root).getPropertyValue('--accent').trim();
             const accentRGB = this.hexToRgb(accent);
             // We use standard colors for "Apple Style"
@@ -1531,14 +1835,20 @@ window.Arcade = {
             this.ctx.roundRect(this.width - 20 - this.cpu.w, this.cpu.y, this.cpu.w, this.cpu.h, 6);
             this.ctx.fill();
 
-            // Ball - White
-            this.ctx.fillStyle = '#ffffff';
+            // Ball - Theme Color (No Glow)
+            this.ctx.fillStyle = accent;
+            this.ctx.shadowBlur = 0; // Ensure no glow
             this.ctx.beginPath();
             this.ctx.arc(this.ball.x, this.ball.y, this.ball.r, 0, Math.PI * 2);
             this.ctx.fill();
 
             // Instructions
             if (this.waitingToServe) {
+                // Fix: Clear ALL shadows before drawing text
+                this.ctx.shadowColor = 'transparent';
+                this.ctx.shadowBlur = 0;
+                this.ctx.shadowOffsetY = 0;
+
                 this.ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
                 this.ctx.font = '700 16px Inter, sans-serif';
                 this.ctx.textAlign = 'center';
@@ -1585,17 +1895,408 @@ window.Arcade = {
             // ... simplistic hex parser if needed, but canvas takes hex strings fine
             return hex;
         }
+    },
+
+    Space: {
+        canvas: null,
+        ctx: null,
+        animationId: null,
+        width: 0,
+        height: 0,
+        isPaused: false,
+        gameActive: false,
+        lastTime: 0,
+
+        // Game State
+        score: 0,
+        lives: 3,
+        level: 1,
+
+        // Entities
+        player: { x: 0, y: 0, w: 40, h: 40, speed: 5, movingLeft: false, movingRight: false, cooldown: 0, invulnerable: 0 },
+        bullets: [], // {x, y, vy, type: 'player'|'enemy'}
+        enemies: [], // {x, y, w, h, type, row, col}
+        particles: [],
+
+        // Enemy Config
+        enemyRows: 4,
+        enemyCols: 8,
+        enemyDir: 1, // 1 = right, -1 = left
+        enemySpeed: 1, // Increases not level
+        enemyDropAmount: 20,
+        enemyFireRate: 0.0005,
+
+        init() {
+            this.canvas = document.getElementById('space-canvas');
+            if (this.canvas) {
+                this.ctx = this.canvas.getContext('2d');
+                this.width = this.canvas.width;
+                this.height = this.canvas.height;
+            }
+
+            // Keyboard Listeners
+            window.addEventListener('keydown', e => {
+                if (!this.gameActive || this.isPaused) return;
+                if (e.key === 'ArrowLeft') this.player.movingLeft = true;
+                if (e.key === 'ArrowRight') this.player.movingRight = true;
+                if (e.key === ' ' || e.key === 'ArrowUp') this.fireBullet();
+            });
+
+            window.addEventListener('keyup', e => {
+                if (e.key === 'ArrowLeft') this.player.movingLeft = false;
+                if (e.key === 'ArrowRight') this.player.movingRight = false;
+            });
+
+            // Mobile Controls
+            const btnLeft = document.getElementById('btn-space-left');
+            const btnRight = document.getElementById('btn-space-right');
+            const btnFire = document.getElementById('btn-space-fire');
+
+            if (btnLeft) {
+                btnLeft.ontouchstart = (e) => { e.preventDefault(); this.player.movingLeft = true; };
+                btnLeft.ontouchend = (e) => { e.preventDefault(); this.player.movingLeft = false; };
+                // Mouse fallback
+                btnLeft.onmousedown = (e) => { this.player.movingLeft = true; };
+                btnLeft.onmouseup = (e) => { this.player.movingLeft = false; };
+            }
+            if (btnRight) {
+                btnRight.ontouchstart = (e) => { e.preventDefault(); this.player.movingRight = true; };
+                btnRight.ontouchend = (e) => { e.preventDefault(); this.player.movingRight = false; };
+                btnRight.onmousedown = (e) => { this.player.movingRight = true; };
+                btnRight.onmouseup = (e) => { this.player.movingRight = false; };
+            }
+            if (btnFire) {
+                btnFire.ontouchstart = (e) => { e.preventDefault(); this.fireBullet(); btnFire.classList.add('active'); };
+                btnFire.ontouchend = (e) => { e.preventDefault(); btnFire.classList.remove('active'); };
+                btnFire.onmousedown = (e) => { this.fireBullet(); };
+            }
+        },
+
+        start() {
+            if (!this.canvas) this.init();
+            this.resetGame();
+            this.gameActive = true;
+            this.isPaused = false;
+            this.lastTime = performance.now();
+            this.hideGameOver();
+            this.loop(this.lastTime);
+            // Focus canvas for keyboard
+            this.canvas.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        },
+
+        stop() {
+            this.gameActive = false;
+            cancelAnimationFrame(this.animationId);
+        },
+
+        resetGame() {
+            this.score = 0;
+            this.lives = 3;
+            this.level = 1;
+            this.resetLevel();
+            this.updateHUD();
+        },
+
+        resetLevel() {
+            this.bullets = [];
+            this.particles = [];
+
+            // Player Pos
+            this.player.x = this.width / 2 - this.player.w / 2;
+            this.player.y = this.height - 60;
+            this.player.movingLeft = false;
+            this.player.movingRight = false;
+
+            // Spawn Enemies
+            this.enemies = [];
+            const startX = 50;
+            const startY = 50;
+            const gap = 15;
+            const w = 30;
+            const h = 20;
+
+            // Difficulty config from settings
+            let difficulty = 'normal';
+            if (window.Arcade && window.Arcade.settings) difficulty = window.Arcade.settings.spaceDifficulty || 'normal';
+
+            this.enemySpeed = (difficulty === 'easy' ? 0.3 : difficulty === 'hard' ? 1.0 : 0.6) + (this.level * 0.1);
+            this.enemyFireRate = (difficulty === 'easy' ? 0.0001 : difficulty === 'hard' ? 0.001 : 0.0003) + (this.level * 0.0001);
+
+            for (let r = 0; r < this.enemyRows; r++) {
+                for (let c = 0; c < this.enemyCols; c++) {
+                    this.enemies.push({
+                        x: startX + c * (w + gap),
+                        y: startY + r * (h + gap),
+                        w: w,
+                        h: h,
+                        row: r,
+                        col: c,
+                        active: true
+                    });
+                }
+            }
+        },
+
+        fireBullet() {
+            if (!this.gameActive || this.player.cooldown > 0) return;
+
+            this.bullets.push({
+                x: this.player.x + this.player.w / 2,
+                y: this.player.y,
+                vy: -8,
+                type: 'player'
+            });
+
+            // Sound
+            if (window.Arcade.Audio) window.Arcade.Audio.pop(); // Reuse pop sound
+            this.player.cooldown = 15;
+        },
+
+        update(dt) {
+            if (this.isPaused) return;
+
+            // Player Cooldown
+            if (this.player.cooldown > 0) this.player.cooldown--;
+            if (this.player.invulnerable > 0) this.player.invulnerable--;
+
+            // Player Move
+            if (this.player.movingLeft && this.player.x > 0) this.player.x -= this.player.speed;
+            if (this.player.movingRight && this.player.x + this.player.w < this.width) this.player.x += this.player.speed;
+
+            // Bullets
+            for (let i = this.bullets.length - 1; i >= 0; i--) {
+                const b = this.bullets[i];
+                b.y += b.vy;
+
+                // Off screen
+                if (b.y < 0 || b.y > this.height) {
+                    this.bullets.splice(i, 1);
+                    continue;
+                }
+
+                // Collisions
+                if (b.type === 'player') {
+                    // Check Enemies
+                    let hit = false;
+                    for (let e of this.enemies) {
+                        if (e.active && b.x >= e.x && b.x <= e.x + e.w && b.y >= e.y && b.y <= e.y + e.h) {
+                            e.active = false;
+                            this.bullets.splice(i, 1);
+                            this.createExplosion(e.x + e.w / 2, e.y + e.h / 2, '#c084fc');
+                            this.score += 10 * this.level;
+                            this.updateHUD();
+                            hit = true;
+
+                            // Check Win Level
+                            if (this.enemies.every(en => !en.active)) {
+                                this.level++;
+                                setTimeout(() => this.resetLevel(), 1000);
+                            }
+                            break;
+                        }
+                    }
+                    if (hit) continue;
+                } else if (b.type === 'enemy') {
+                    // Check Player
+                    if (this.player.invulnerable <= 0 &&
+                        b.x >= this.player.x && b.x <= this.player.x + this.player.w &&
+                        b.y >= this.player.y && b.y <= this.player.y + this.player.h) {
+                        this.bullets.splice(i, 1);
+                        this.lives--;
+                        this.player.invulnerable = 120; // 2 seconds i-frames
+                        this.createExplosion(this.player.x + this.player.w / 2, this.player.y + this.player.h / 2, '#ef4444');
+                        this.updateHUD();
+                        if (this.lives <= 0) this.gameOver();
+                        continue;
+                    }
+                }
+            }
+
+            // Enemy Logic (March)
+            let hitEdge = false;
+            let activeCount = 0;
+            // Find rightmost and leftmost active
+            for (let e of this.enemies) {
+                if (!e.active) continue;
+                activeCount++;
+                if (this.enemyDir === 1 && e.x + e.w > this.width - 10) hitEdge = true;
+                if (this.enemyDir === -1 && e.x < 10) hitEdge = true;
+
+                // Random Fire
+                if (Math.random() < this.enemyFireRate) {
+                    this.bullets.push({
+                        x: e.x + e.w / 2,
+                        y: e.y + e.h,
+                        vy: 4 + (this.level * 0.5),
+                        type: 'enemy'
+                    });
+                }
+
+                // Lose condition: Touch bottom
+                if (e.y + e.h >= this.player.y) {
+                    this.gameOver();
+                }
+            }
+
+            if (hitEdge) {
+                this.enemyDir *= -1;
+                this.enemies.forEach(e => e.y += this.enemyDropAmount);
+            } else {
+                this.enemies.forEach(e => {
+                    if (e.active) e.x += this.enemySpeed * this.enemyDir;
+                });
+            }
+
+            // Particles
+            for (let i = this.particles.length - 1; i >= 0; i--) {
+                const p = this.particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life--;
+                if (p.life <= 0) this.particles.splice(i, 1);
+            }
+        },
+
+        draw() {
+            // Bg
+            this.ctx.clearRect(0, 0, this.width, this.height);
+
+            // Access theme
+            const root = document.body;
+            const accent = getComputedStyle(root).getPropertyValue('--accent').trim();
+
+            // Player (Triangle)
+            if (this.player.invulnerable > 0 && Math.floor(Date.now() / 100) % 2 === 0) {
+                this.ctx.globalAlpha = 0.5;
+            } else {
+                this.ctx.globalAlpha = 1.0;
+            }
+
+            this.ctx.fillStyle = accent;
+            this.ctx.beginPath();
+            this.ctx.moveTo(this.player.x + this.player.w / 2, this.player.y);
+            this.ctx.lineTo(this.player.x + this.player.w, this.player.y + this.player.h);
+            this.ctx.lineTo(this.player.x, this.player.y + this.player.h);
+            this.ctx.closePath();
+            this.ctx.fill();
+
+            // Engines
+            if (this.gameActive) {
+                this.ctx.fillStyle = '#fbbf24';
+                this.ctx.beginPath();
+                this.ctx.moveTo(this.player.x + 10, this.player.y + this.player.h);
+                this.ctx.lineTo(this.player.x + 20, this.player.y + this.player.h + (Math.random() * 10 + 5));
+                this.ctx.lineTo(this.player.x + 30, this.player.y + this.player.h);
+                this.ctx.fill();
+            }
+
+            this.ctx.globalAlpha = 1.0; // Reset
+
+            // Enemies
+            this.enemies.forEach(e => {
+                if (!e.active) return;
+                // Color based on row
+                this.ctx.fillStyle = e.row % 2 === 0 ? '#ff79c6' : '#bd93f9'; // Pink/Purple
+                this.ctx.fillRect(e.x, e.y, e.w, e.h);
+
+                // Eyes
+                this.ctx.fillStyle = '#282a36';
+                this.ctx.fillRect(e.x + 5, e.y + 5, 5, 5);
+                this.ctx.fillRect(e.x + e.w - 10, e.y + 5, 5, 5);
+            });
+
+            // Bullets
+            this.bullets.forEach(b => {
+                this.ctx.fillStyle = b.type === 'player' ? '#f8f8f2' : '#ff5555';
+                this.ctx.fillRect(b.x - 2, b.y, 4, 10);
+            });
+
+            // Particles
+            this.particles.forEach(p => {
+                this.ctx.fillStyle = p.color;
+                this.ctx.globalAlpha = p.life / 20;
+                this.ctx.fillRect(p.x, p.y, 3, 3);
+                this.ctx.globalAlpha = 1;
+            });
+        },
+
+        createExplosion(x, y, color) {
+            for (let i = 0; i < 10; i++) {
+                this.particles.push({
+                    x: x, y: y,
+                    vx: (Math.random() - 0.5) * 4,
+                    vy: (Math.random() - 0.5) * 4,
+                    life: 20,
+                    color: color
+                });
+            }
+        },
+
+        updateHUD() {
+            document.getElementById('space-score').textContent = this.score;
+            document.getElementById('space-lives').textContent = "❤️".repeat(Math.max(0, this.lives));
+        },
+
+        gameOver() {
+            this.gameActive = false;
+            document.getElementById('space-game-over').classList.remove('hidden');
+
+            // Save Score
+            const oldHigh = window.Arcade.state.highScores['space'] || 0;
+            if (this.score > oldHigh) {
+                window.Arcade.saveScore('space', this.score);
+                window.Arcade.updateUI(); // Updates menu display via monkey patch
+            }
+        },
+
+        hideGameOver() {
+            document.getElementById('space-game-over').classList.add('hidden');
+        },
+
+        loop(timestamp) {
+            if (!this.gameActive) return;
+            const dt = timestamp - this.lastTime;
+            this.lastTime = timestamp;
+
+            this.update(dt);
+            this.draw();
+            this.animationId = requestAnimationFrame((t) => this.loop(t));
+        }
     }
 };
 
-// Update UI helper to handle Pong
-const originalUpdateUI = Arcade.updateUI;
+// Update UI helper to handle Pong AND Space
+const originalUpdateUI2 = Arcade.updateUI;
 Arcade.updateUI = function () {
-    // Call original logic (Snake, Breakout, Wordle)
-    originalUpdateUI.call(Arcade);
+    // Call original (which calls Snake/Breakout/Wordle + Pong patch if chain worked, 
+    // but the previous monkey patch might be overwritten depending on exec order. 
+    // Safest is to just manually re-implement the full check if possible, or chain carefully.)
 
-    // Pong logic
-    const pongWins = this.state.highScores['pong_wins'] || 0;
-    const el = document.getElementById('pong-highscore-display');
-    if (el) el.textContent = `Sejre: ${pongWins}`;
+    // Actually, `games.js` is loaded once. The previous monkey patch for Pong is seemingly "originalUpdateUI" in THIS scope if I define it below.
+    // BUT, I'm editing the file, so I need to be careful not to create a loop or lose Pong.
+
+    // We can just inspect the state object directly.
+
+    // 1. Run Base Update (Snake/Breakout/Wordle) from original definition if accessible, 
+    // but `Arcade` object was just defined above.
+    // The previous Pong patch was at the bottom of the file.
+
+    // Let's just write a clean updateUI that covers ALL games.
+    if (this.updateUI_Base) this.updateUI_Base(); // If we saved it
+
+    // Update Pong
+    if (document.getElementById('pong-highscore-display')) {
+        const pw = this.state.highScores['pong_wins'] || 0;
+        document.getElementById('pong-highscore-display').textContent = `Sejre: ${pw}`;
+    }
+
+    // Update Space
+    if (document.getElementById('space-highscore-display')) {
+        const sh = this.state.highScores['space'] || 0;
+        document.getElementById('space-highscore-display').textContent = `Rekord: ${sh}`;
+    }
 };
+
+// Store original base UpdateUI inside Arcade to allow chaining if needed
+Arcade.updateUI_Base = originalUpdateUI;
+

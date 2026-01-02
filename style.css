@@ -1,4 +1,10 @@
 /* Modern Minimalist Design */
+html {
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+}
+
 :root {
     /* Colors */
     --bg-app: #0f1115;
@@ -123,7 +129,65 @@ body.theme-frost {
     --color-break: #334155;
 }
 
-/* --- BENTO MENU ICON --- */
+/* 6. Crimson Command (Restored) */
+body.theme-crimson {
+    --bg-app: #450a0a;
+    --bg-card: #7f1d1d;
+    --bg-card-highlight: #991b1b;
+    --text-primary: #fef2f2;
+    --text-secondary: #fca5a5;
+    --text-muted: #b91c1c;
+    --accent: #f87171;
+    --accent-rgb: 248, 113, 113;
+    --color-break: #7f1d1d;
+}
+
+/* 7. The Matrix (Shop) */
+body.theme-matrix {
+    --bg-app: #000000;
+    --bg-card: #001a00;
+    --bg-card-highlight: #003300;
+    --text-primary: #00ff00;
+    --text-secondary: #00cc00;
+    --text-muted: #006600;
+    --accent: #00ff00;
+    --accent-rgb: 0, 255, 0;
+    --color-break: #001a00;
+    font-family: 'Courier New', monospace;
+    /* Hacker feel */
+}
+
+/* 8. Vapor Sunset (Shop) */
+body.theme-sunset {
+    --bg-app: #2d004d;
+    /* Deep Purple */
+    --bg-card: #560a5c;
+    --bg-card-highlight: #851e6d;
+    --text-primary: #ffd700;
+    /* Gold */
+    --text-secondary: #ff9e00;
+    /* Orange */
+    --text-muted: #c71585;
+    /* Medium Violet */
+    --accent: #ff00ff;
+    /* Magenta */
+    --accent-rgb: 255, 0, 255;
+    --color-break: #560a5c;
+}
+
+/* 9. Deep Ocean (Shop) */
+body.theme-ocean {
+    --bg-app: #001f3f;
+    --bg-card: #003366;
+    --bg-card-highlight: #004080;
+    --text-primary: #e0f7fa;
+    --text-secondary: #4fc3f7;
+    --text-muted: #0277bd;
+    --accent: #00bcd4;
+    --accent-rgb: 0, 188, 212;
+    --color-break: #003366;
+}
+
 .menu-icon-bento {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -242,13 +306,21 @@ body {
     color: var(--text-primary);
     font-family: var(--font-family);
     margin: 0;
-    /* padding: 20px; Removed to handle full bleed */
+    padding: 0;
+
+    /* GLOBAL LOCKDOWN */
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    overscroll-behavior: none;
+
     display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    /* Align to top for scrolling */
-    min-height: 100vh;
-    overflow-x: hidden;
+    flex-direction: column;
+    justify-content: flex-start;
+    /* Ensure top-alignment */
+    align-items: center;
+    /* Horizontally center the app container */
+
     transition: background-color 0.4s ease, color 0.4s ease;
 
     /* Disciplined Polish: Crisp Text */
@@ -260,18 +332,51 @@ body {
 .app-container {
     width: 100%;
     max-width: 1000px;
-    /* Increased for desktop grid */
+    height: 100%;
+    /* Fill the fixed body */
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-md);
+    justify-content: flex-start;
+    /* Start from top */
+    gap: var(--spacing-sm);
+    padding: 10px;
+    /* Small safety padding */
+    box-sizing: border-box;
+    overflow: hidden;
+    /* Lock container */
 }
 
+/* Sidebar Navigation */
 /* Sidebar Navigation */
 .sidebar-nav {
     display: flex;
     gap: 10px;
     margin-bottom: var(--spacing-sm);
     padding: 0 5px;
+    flex-shrink: 0;
+    /* Keep nav fixed size */
+}
+
+/* Dashboard Scroll Container */
+#view-dashboard {
+    flex: 1;
+    /* Take remaining space */
+    width: 100%;
+    min-height: 0;
+    /* CRITICAL: Allows flex child to scroll */
+    overflow-y: auto;
+    /* Allow internal scrolling */
+    padding-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    /* Hide scrollbar for premium look */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+#view-dashboard::-webkit-scrollbar {
+    display: none;
 }
 
 .nav-btn {
@@ -302,7 +407,11 @@ body {
 }
 
 .sidebar-section {
-    animation: fadeIn 0.3s ease;
+    opacity: 0;
+}
+
+body.animations-active .sidebar-section {
+    animation: fadeIn 0.3s ease forwards;
 }
 
 @keyframes fadeIn {
@@ -1152,11 +1261,16 @@ button:active {
     width: 100%;
     max-width: 350px;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    animation: slideUp 0.5s ease;
+    opacity: 0;
     margin-left: auto;
     /* Centering fix */
     margin-right: auto;
+    margin-right: auto;
     /* Centering fix */
+}
+
+body.animations-active .subject-widget {
+    animation: slideUp 0.5s ease forwards;
 }
 
 .topic-control {
@@ -1947,6 +2061,30 @@ header {
     }
 }
 
+@keyframes slideDownIn {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideDownOut {
+    from {
+        transform: translateY(0);
+        opacity: 1;
+    }
+
+    to {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+}
+
 .anim-slide-up-in {
     animation: slideUpIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
@@ -1972,6 +2110,7 @@ header {
 }
 
 /* --- ARCADE VIEW (Gaming Hub) --- */
+/* --- ARCADE VIEW (Gaming Hub) --- */
 .arcade-view {
     position: fixed;
     top: 0;
@@ -1981,8 +2120,8 @@ header {
     background: var(--bg-app);
     /* Subtle Theme Spotlight */
     background-image: radial-gradient(circle at 50% 30%, rgba(var(--accent-rgb), 0.15), transparent 70%);
-    z-index: 9999;
-    /* Max Z-Index */
+    z-index: 10005;
+    /* Max Z-Index (Above Header) */
     display: flex;
     flex-direction: column;
     animation: fadeIn 0.3s ease;
@@ -1992,40 +2131,96 @@ header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--spacing-md) var(--spacing-lg);
-    padding-right: 90px;
-    /* Clear the menu button */
-    padding-right: 90px;
-    /* Clear the menu button */
+    padding: 20px 40px;
     background: transparent;
-    border-bottom: none;
     position: relative;
     /* Anchor for absolute title */
+    height: 80px;
+    box-sizing: border-box;
 }
 
-#main-header {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 10002;
-    /* Above Arcade */
+.header-left,
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    z-index: 2;
+    /* Clickable above title */
+}
+
+.arcade-title-wrapper {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1;
+    /* Behind items if overlap (unlikely) */
+    text-align: center;
+    width: 100%;
+    /* Ensures centering works relative to header */
+    pointer-events: none;
+    /* Let clicks pass through to background */
+}
+
+/* Ensure title doesn't stretch */
+.arcade-title-wrapper .arcade-title {
+    display: inline-block;
 }
 
 .arcade-title {
-    font-size: 1.8rem;
+    font-size: 2.5rem;
     font-weight: 800;
-    letter-spacing: -0.5px;
+    letter-spacing: -1px;
     background: linear-gradient(135deg, var(--text-primary) 30%, var(--accent));
     -webkit-background-clip: text;
+    background-clip: text;
+    /* Standard property */
     -webkit-text-fill-color: transparent;
     opacity: 0.95;
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    width: max-content;
+    margin: 0;
+    white-space: nowrap;
 }
 
-.back-btn {
+/* Input Styling (Player Name) */
+#player-name-input {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 20px;
+    outline: none;
+    width: 100px;
+    text-align: center;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    transition: all 0.2s;
+}
+
+#player-name-input:focus {
+    border-color: var(--accent);
+    background: rgba(255, 255, 255, 0.15);
+}
+
+/* Icon Button (Menu) */
+.btn-icon-only {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 12px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-icon-only:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Unified Arcade Button Style */
+.arcade-nav-btn {
     background: rgba(255, 255, 255, 0.08);
     border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: 30px;
@@ -2035,19 +2230,31 @@ header {
     font-weight: 500;
     padding: 8px 16px;
     backdrop-filter: blur(5px);
-    transition: all 0.2s ease;
+    transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     display: flex;
     align-items: center;
     gap: 6px;
-    z-index: 10001;
-    /* Force on top */
+    z-index: 20000;
     position: relative;
-    pointer-events: auto;
-    /* Ensure clickable */
+    pointer-events: auto !important;
+    user-select: none;
 }
 
-.back-btn:hover {
-    color: var(--text-primary);
+.arcade-nav-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
+    color: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.arcade-nav-btn:active {
+    transform: translateY(0) scale(0.95);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* Deprecated back-btn, keeping helper just in case */
+.back-btn {
+    display: none;
 }
 
 .arcade-content {
@@ -2081,6 +2288,27 @@ header {
     position: relative;
     display: flex;
     flex-direction: column;
+    animation: fadeInUp 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+.game-card:nth-child(1) {
+    animation-delay: 0.05s;
+}
+
+.game-card:nth-child(2) {
+    animation-delay: 0.1s;
+}
+
+.game-card:nth-child(3) {
+    animation-delay: 0.15s;
+}
+
+.game-card:nth-child(4) {
+    animation-delay: 0.2s;
+}
+
+.game-card:nth-child(5) {
+    animation-delay: 0.25s;
 }
 
 .game-card:hover {
@@ -2100,6 +2328,18 @@ header {
 
 .snake-thumb {
     background: linear-gradient(135deg, #064e3b, #10b981);
+}
+
+.breakout-thumb {
+    background: linear-gradient(135deg, #7f1d1d, #f87171);
+}
+
+.pong-thumb {
+    background: linear-gradient(135deg, #1e3a8a, #60a5fa);
+}
+
+.space-thumb {
+    background: linear-gradient(135deg, #4c1d95, #c026d3);
 }
 
 .game-meta {
@@ -2133,28 +2373,80 @@ header {
 }
 
 /* Game Stage (Active Game) */
+/* Game Stage (Active Game) */
 .game-stage {
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 600px;
+    width: 100%;
     max-width: 600px;
-    animation: zoomIn 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
-    margin: 0 auto 15vh auto;
-    /* Lifted up */
+    height: 100%;
+    justify-content: center;
+    /* Center vertically */
+    /* Remove fixed margins that cause offset */
+    margin: 0 auto;
+}
+
+/* Mobile Controls for Space Defence */
+.mobile-controls {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 20px;
+    width: 100%;
+}
+
+.control-btn {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 1.5rem;
+    backdrop-filter: blur(10px);
+    cursor: pointer;
+    touch-action: manipulation;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.control-btn:active {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(0.95);
+}
+
+.fire-btn {
+    background: rgba(239, 68, 68, 0.3);
+    border-color: rgba(239, 68, 68, 0.5);
+    width: 70px;
+    height: 70px;
+}
+
+.fire-btn:active {
+    background: rgba(239, 68, 68, 0.6);
 }
 
 .game-viewport {
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: var(--radius-lg);
-    background: #111;
     position: relative;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 canvas {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: var(--radius-md);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     display: block;
+    /* RESPONSIVE SCALING FIX */
     max-width: 100%;
+    max-height: 70vh;
+    /* Force it to fit! */
+    object-fit: contain;
 }
 
 .game-hud {
@@ -2197,16 +2489,15 @@ canvas {
     left: 50%;
     transform: translate(-50%, -50%);
     background: rgba(20, 20, 20, 0.85);
-    /* Darker, cleaner background */
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     padding: 30px;
     border-radius: var(--radius-lg);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    /* Subtle border */
     width: 320px;
     box-shadow: 0 30px 80px rgba(0, 0, 0, 0.8);
     z-index: 100;
+    animation: scaleIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .settings-panel h3 {
@@ -2289,22 +2580,117 @@ canvas {
 
 /* Game Over Overlay */
 /* Game Over Overlay */
+/* Game Over Overlay */
 .game-overlay-msg {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    background: rgba(0, 0, 0, 0.75);
+    /* Darker */
+    backdrop-filter: blur(8px);
+    /* Less blur, more contrast */
+    -webkit-backdrop-filter: blur(8px);
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     gap: 20px;
     color: var(--text-primary);
+    z-index: 2200;
+    /* SUPER HIGH */
+    padding: 20px;
+    text-align: center;
     border-radius: var(--radius-lg);
+}
+
+.game-stage {
+    position: relative;
+    /* Ensure overlay covers THIS container */
+}
+
+/* DUEL UI STYLES */
+.duel-card {
+    background: var(--bg-card);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    padding: 30px;
+    width: 100%;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+.duel-title {
+    font-size: 3.5rem;
+    font-weight: 900;
+    margin-bottom: 20px;
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 10px 20px rgba(255, 215, 0, 0.3);
+}
+
+.duel-section {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    padding: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.2s;
+}
+
+.duel-section:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-2px);
+}
+
+.duel-input {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.3);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 15px;
+    color: white;
+    font-size: 1.5rem;
+    font-family: monospace;
+    text-align: center;
+    letter-spacing: 5px;
+    transition: all 0.2s;
+}
+
+.duel-input:focus {
+    border-color: var(--accent);
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.2);
+}
+
+.duel-header-status {
+    position: fixed;
+    /* Fixed to screen, ignores flow */
+    top: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 600px;
+
+    background: rgba(20, 20, 30, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    border: 2px solid var(--accent);
+    /* Extra visibility */
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+    box-sizing: border-box;
+    z-index: 20002;
+    /* Higher than Force Visible */
+    color: white;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
 .game-overlay-msg h2 {
@@ -2569,4 +2955,491 @@ canvas {
     100% {
         background-position: 0% 50%;
     }
+}
+
+/* ECONOMY & SHOP CSS */
+.coin-display {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    color: #fbbf24;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+/* SHOP REVAMP - GRID & GLASS */
+.shop-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-top: 15px;
+    padding-bottom: 20px;
+    max-height: 450px;
+    overflow-y: auto;
+}
+
+.shop-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    /* Subtle border */
+    border-radius: 16px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.shop-card:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.3);
+}
+
+.shop-card.owned {
+    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.shop-card.active-theme {
+    border-color: var(--accent);
+    background: rgba(var(--accent-rgb), 0.1);
+    box-shadow: 0 0 0 1px var(--accent);
+}
+
+.shop-icon {
+    font-size: 2rem;
+    margin-bottom: 5px;
+}
+
+.shop-card h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0;
+    color: white;
+}
+
+.shop-card p {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin: 0;
+    line-height: 1.4;
+    flex-grow: 1;
+}
+
+.shop-actions {
+    margin-top: 10px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* Mod Active Badge */
+.btn.mod-active {
+    background: transparent;
+    border: 1px solid var(--success);
+    color: var(--success);
+    padding: 4px 10px;
+    cursor: default;
+}
+
+/* THEMES */
+body.theme-matrix {
+    --bg-app: #0d0d0d;
+    --bg-card: #111111;
+    --text-primary: #00ff41;
+    --accent: #00ff41;
+    --accent-rgb: 0, 255, 65;
+    font-family: 'Courier New', monospace;
+}
+
+body.theme-matrix .app-container {
+    background-image: linear-gradient(rgba(0, 20, 0, 0.9), rgba(0, 20, 0, 0.9)), url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Ctext x='10' y='30' fill='%23003300' font-family='monospace' font-size='20'%3E10%3C/text%3E%3C/svg%3E");
+}
+
+body.theme-sunset {
+    --bg-app: #2a1b3d;
+    --bg-card: rgba(68, 49, 141, 0.3);
+    --text-primary: #fce7f3;
+    --accent: #f472b6;
+    /* Pink */
+    --accent-rgb: 244, 114, 182;
+    background: linear-gradient(135deg, #4338ca, #be185d);
+}
+
+body.theme-ocean {
+    --bg-app: #0f172a;
+    --bg-card: rgba(30, 41, 59, 0.6);
+    --text-primary: #e2e8f0;
+    --accent: #38bdf8;
+    /* Sky Blue */
+    --accent-rgb: 56, 189, 248;
+    background: linear-gradient(to bottom, #0f172a, #0c4a6e);
+}
+
+/* Leaderboard Styles */
+.leader-section {
+    margin-bottom: 20px;
+}
+
+.leader-section h3 {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 5px;
+    margin-bottom: 10px;
+}
+
+.leader-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 6px;
+    margin-bottom: 4px;
+    font-family: monospace;
+    font-size: 0.95rem;
+}
+
+.leader-row.highlight-me {
+    background: rgba(var(--accent-rgb), 0.2) !important;
+    border: 1px solid rgba(var(--accent-rgb), 0.4);
+    box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.1);
+    font-weight: bold;
+    color: white;
+}
+
+.game-score {
+    color: var(--accent);
+    font-weight: bold;
+}
+
+/* LEADERBOARD CSS */
+/* Leaderboard - Apple Style Clean */
+.leaderboard-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    /* Tighter gap */
+    margin-top: 15px;
+}
+
+.leader-row {
+    display: grid;
+    grid-template-columns: 32px 1fr auto;
+    /* Rank, Name, Score */
+    align-items: center;
+    background: rgba(255, 255, 255, 0.03);
+    /* Very subtle */
+    border-radius: 12px;
+    /* Smooth corners */
+    padding: 12px 16px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.leader-row:hover {
+    background: rgba(255, 255, 255, 0.08);
+    /* Highlight */
+    transform: scale(1.01);
+}
+
+.leader-row .rank-num {
+    font-weight: 700;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.9rem;
+}
+
+.leader-row .game-name {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-right: 10px;
+}
+
+.leader-row .game-score {
+    font-family: 'SF Mono', 'Menlo', monospace;
+    /* Tech feel */
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+}
+
+/* User Highlight */
+.leader-row.highlight-me {
+    background: rgba(14, 165, 233, 0.15);
+    /* Accent tint */
+    border-color: var(--accent);
+    box-shadow: 0 0 15px rgba(14, 165, 233, 0.1);
+}
+
+/* Top 3 Highlighting */
+.leaderboard-list .leader-row:nth-child(1) .rank-num {
+    color: #fbbf24;
+}
+
+/* Gold */
+.leaderboard-list .leader-row:nth-child(2) .rank-num {
+    color: #94a3b8;
+}
+
+/* Silver */
+.leaderboard-list .leader-row:nth-child(3) .rank-num {
+    color: #b45309;
+}
+
+/* Bronze */
+
+/* --- MODALS (Shop/Leaderboard) --- */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+    z-index: 20005;
+    /* Above Arcade View */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.modal-content {
+    background: #1a1b20;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    width: 90%;
+    max-width: 500px;
+    max-height: 85vh;
+    overflow-y: auto;
+    position: relative;
+    max-height: 85vh;
+    overflow-y: auto;
+    position: relative;
+    animation: scaleIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-md);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: var(--spacing-sm);
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: white;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 1.5rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 5px;
+}
+
+.close-btn:hover {
+    color: white;
+}
+
+/* Duel Room Code Pill (HUD) */
+.duel-code-pill {
+    background: rgba(79, 209, 197, 0.2);
+    /* Low opacity accent */
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    margin-left: 10px;
+    font-weight: 700;
+    transition: all 0.3s ease;
+    text-shadow: 0 0 10px rgba(79, 209, 197, 0.3);
+}
+
+.duel-code-pill span {
+    color: white;
+    margin-left: 5px;
+}
+
+.duel-status-text {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.7);
+    margin-left: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+/* --- DASHBOARD NATIVE DUEL UI --- */
+
+/* 1. LOBBY OVERLAY & CARD */
+#wordle-duel-lobby {
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+    z-index: 2000;
+}
+
+.duel-lobby-card {
+    background: var(--bg-card);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+    border-radius: var(--radius-lg);
+    padding: 30px;
+    width: 100%;
+    max-width: 380px;
+    text-align: center;
+    position: relative;
+    color: var(--text-primary);
+}
+
+.duel-lobby-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 20px;
+    color: var(--text-primary);
+    letter-spacing: 0.5px;
+}
+
+.duel-lobby-divider {
+    display: flex;
+    align-items: center;
+    margin: 20px 0;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.duel-lobby-divider::before,
+.duel-lobby-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.duel-lobby-divider span {
+    margin: 0 15px;
+}
+
+/* 2. INPUT FIELDS */
+.duel-input-large {
+    background: var(--bg-app);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 1.8rem;
+    letter-spacing: 6px;
+    text-align: center;
+    padding: 12px;
+    width: 100%;
+    outline: none;
+    transition: all 0.2s;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+.duel-input-large:focus {
+    border-color: var(--accent);
+}
+
+/* 3. BUTTONS */
+.btn-duel-action {
+    width: 100%;
+    padding: 12px;
+    border-radius: var(--radius-sm);
+    border: none;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-primary);
+}
+
+.btn-duel-action:active {
+    transform: scale(0.98);
+}
+
+.btn-create {
+    background: var(--bg-card-highlight);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.btn-create:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.btn-join {
+    background: var(--accent);
+    color: #1a1a1a;
+    /* Dark text for contrast on accent */
+}
+
+.btn-join:hover {
+    opacity: 0.9;
+}
+
+/* 4. DASHBOARD HUD */
+.hud-glass-panel {
+    background: var(--bg-card-highlight);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    padding: 6px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.hud-room-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    z-index: 20000;
+    position: relative;
+    pointer-events: auto !important;
+}
+
+.hud-room-code {
+    font-size: 1rem;
+    color: var(--text-primary);
+    font-weight: 700;
+    font-family: 'Inter', sans-serif;
+}
+
+.hud-vs-badge {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-secondary);
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 4px;
 }
