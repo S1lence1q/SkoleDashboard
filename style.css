@@ -321,8 +321,12 @@ body {
     align-items: center;
     /* Horizontally center the app container */
 
-    transition: background-color 0.4s ease, color 0.4s ease;
+    transition: background-color 0.4s ease, color 0.4s ease, background-image 0.1s;
 
+    /* Dynamic Theme Spotlight (Parallax) - Global */
+    background-image: radial-gradient(circle at calc(50% + var(--mouse-x, 0) * 100px) calc(30% + var(--mouse-y, 0) * 80px),
+            rgba(var(--accent-rgb), 0.15),
+            transparent 70%);
     /* Disciplined Polish: Crisp Text */
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -489,6 +493,25 @@ h1,
 }
 
 .theme-btn:hover {
+    transform: scale(1.1);
+    border-color: var(--accent);
+    background-color: var(--bg-card-highlight);
+}
+
+/* SETTINGS BUTTON (Matches Theme Button) */
+.settings-btn {
+    background-color: var(--bg-card);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-sm);
+    padding: 8px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: transform 0.2s, background 0.2s, border-color 0.2s;
+    color: white;
+    /* Ensure visible icon */
+}
+
+.settings-btn:hover {
     transform: scale(1.1);
     border-color: var(--accent);
     background-color: var(--bg-card-highlight);
@@ -850,22 +873,31 @@ button:active {
 
 /* UTILITY PANEL */
 .utility-panel {
-    background: var(--bg-card);
+    /* Premium Glass Material (Dynamic Theme Tint) */
+    background: linear-gradient(165deg,
+            rgba(var(--accent-rgb), 0.15) 0%,
+            rgba(0, 0, 0, 0.95) 100%);
     width: 320px;
     max-height: 85vh;
-    border-radius: 24px;
-    border: 1px solid rgba(var(--accent-rgb), 0.3);
-    box-shadow: 0 0 40px rgba(var(--accent-rgb), 0.15);
-    padding: 20px;
+    border-radius: 28px;
+    /* Dynamic Border Glow */
+    border: 1px solid rgba(var(--accent-rgb), 0.2);
+    /* Dual Shadow: Deep Depth + Theme Glow */
+    box-shadow:
+        0 25px 50px -12px rgba(0, 0, 0, 0.5),
+        0 0 0 1px rgba(var(--accent-rgb), 0.1),
+        0 0 40px rgba(var(--accent-rgb), 0.1);
+    padding: 24px;
     position: relative;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: 15px;
-    backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px) saturate(180%);
     /* In case of small screens, limit width */
     max-width: 90vw;
     margin: 0 auto;
+    transition: background 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
 }
 
 /* Close Button - Floating Bubble */
@@ -905,15 +937,20 @@ button:active {
 /* ZONE 1: CONTEXT (Class + Theme) */
 .context-bar {
     display: flex;
+    flex-direction: column;
+    /* Stack vertically */
     align-items: center;
-    justify-content: space-between;
-    padding: 12px 15px;
+    gap: 15px;
+    padding: 20px 15px;
+    background: rgba(255, 255, 255, 0.02);
 }
 
 .context-group {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    align-items: center;
+    width: 100%;
+    gap: 8px;
 }
 
 .context-label {
@@ -939,24 +976,28 @@ button:active {
 }
 
 .divider-vertical-small {
-    width: 1px;
-    height: 30px;
-    background: rgba(255, 255, 255, 0.1);
+    display: none;
+    /* Remove divider in vertical layout */
 }
 
 .theme-row {
     display: flex;
-    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
 }
 
 .theme-dot {
-    width: 18px;
-    height: 18px;
+    width: 24px;
+    /* Larger hit targets */
+    height: 24px;
     border-radius: 50%;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    /* Subtle border */
     cursor: pointer;
-    opacity: 0.5;
-    transition: opacity 0.2s, transform 0.2s;
+    opacity: 0.6;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .theme-dot:hover {
@@ -1032,45 +1073,82 @@ button:active {
 .utility-panel {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-md);
+    gap: 20px;
     width: 100%;
-    max-width: 400px;
+    max-width: 420px;
+    /* Slightly wider for the 3-col grid */
 }
 
 .tools-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--spacing-sm);
+    grid-template-columns: repeat(3, 1fr);
+    /* 3 Columns */
+    gap: 10px;
 }
 
 .resource-btn {
     display: flex;
+    flex-direction: column;
+    /* Stack Icon + Text for space */
     align-items: center;
-    gap: 12px;
-    background: var(--bg-card-highlight);
-    padding: 16px;
-    border-radius: var(--radius-md);
+    justify-content: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 12px 5px;
+    border-radius: 16px;
     text-decoration: none;
-    color: var(--text-primary);
-    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-weight: 500;
     transition: all 0.2s;
     border: 1px solid transparent;
+    text-align: center;
 }
 
 .resource-btn:hover {
-    background: var(--bg-card);
-    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
     transform: translateY(-2px);
 }
 
-.resource-btn.mini {
-    padding: 12px;
-    font-size: 0.9rem;
-    justify-content: flex-start;
+/* HERO BUTTON (Spillehal - Premium Widget Style) */
+.resource-btn.hero-btn {
+    grid-column: span 3;
+    /* Full width (3 cols) */
+    flex-direction: row;
+    /* Keep icon/text side-by-side */
+    gap: 12px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 1rem;
+    padding: 20px;
+    box-shadow:
+        0 4px 6px -1px rgba(0, 0, 0, 0.1),
+        0 2px 4px -1px rgba(0, 0, 0, 0.06),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.resource-btn.hero-btn:hover {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.08));
+    transform: translateY(-2px);
+    box-shadow:
+        0 10px 15px -3px rgba(0, 0, 0, 0.1),
+        0 4px 6px -2px rgba(0, 0, 0, 0.05),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.2);
 }
 
 .res-icon {
     font-size: 1.2rem;
+}
+
+.hero-btn .res-icon {
+    font-size: 1.4rem;
+    margin: 0;
 }
 
 /* ZONE 4: SECONDARY TOOLS (Icons) */
@@ -1159,6 +1237,126 @@ button:active {
     display: none !important;
 }
 
+/* MODAL SYSTEM (Generic) */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.85);
+    /* Darker overlay */
+    backdrop-filter: blur(10px);
+    /* Stronger blur */
+    z-index: 1050;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 1;
+    transition: opacity 0.3s;
+}
+
+.modal-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* MODAL ANIMATION */
+@keyframes popIn {
+    0% {
+        transform: scale(0.95);
+        opacity: 0;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.glass-panel {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    color: white;
+    /* Pop In Animation (Default) */
+    animation: popIn 0.25s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+/* OVERRIDE ANIMATION (To match Leaderboard exact feel) */
+@keyframes popInOverride {
+    0% {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.pop-in-animation {
+    /* Exact same timing as default popIn (0.25s) */
+    animation: popInOverride 0.25s cubic-bezier(0.2, 0.8, 0.2, 1) forwards !important;
+}
+
+/* EXIT ANIMATION (Smoother, Standard Ease-In) */
+@keyframes popOutOverride {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    100% {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+}
+
+.pop-out-animation {
+    /* Fast, snappy exit using standard ease-in */
+    animation: popOutOverride 0.15s ease-in forwards !important;
+}
+
+/* Forced Centering for Overlays */
+.modal-overlay:not(.hidden) {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+}
+
+.glass-panel.centered-panel {
+    background: rgba(20, 20, 20, 0.95);
+    /* Nearly solid dark */
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    width: 90%;
+    max-width: 360px;
+    padding: 30px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    box-shadow: 0 40px 80px -12px rgba(0, 0, 0, 0.8);
+    border-radius: 24px;
+}
+
+.glass-input {
+    width: 100%;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.5);
+    /* Darker input */
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    color: white;
+    font-size: 1.1rem;
+    text-align: center;
+    box-sizing: border-box;
+}
+
 /* Live Link Widget Styles */
 .live-link-widget {
     /* Kept clean to match other cards */
@@ -1190,6 +1388,92 @@ button:active {
     font-weight: 700;
     font-size: 1.1rem;
     word-break: break-all;
+}
+
+/* PROFILE HUB */
+.hub-identity {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.hub-avatar {
+    font-size: 3rem;
+    background: rgba(255, 255, 255, 0.1);
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.hub-name-input {
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    font-weight: 700;
+    text-align: center;
+    width: 100%;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.3);
+    padding-bottom: 5px;
+}
+
+.hub-name-input:focus {
+    outline: none;
+    border-bottom: 1px solid var(--accent);
+}
+
+.hub-stats {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+.stat-pill {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 6px 12px;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.hub-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+.hub-btn {
+    background: rgba(255, 255, 255, 0.08);
+    /* Slightly more visible */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: white;
+}
+
+.hub-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    /* Brighter hover */
+    transform: translateY(-2px);
+    border-color: var(--accent);
+}
+
+.hub-icon {
+    font-size: 2rem;
 }
 
 .send-area {
@@ -1423,6 +1707,10 @@ body.animations-active .subject-widget {
 
 /* Utilities */
 .hidden {
+    display: none;
+}
+
+.hidden-input {
     display: none;
 }
 
@@ -2118,13 +2406,17 @@ header {
     width: 100%;
     height: 100%;
     background: var(--bg-app);
-    /* Subtle Theme Spotlight */
-    background-image: radial-gradient(circle at 50% 30%, rgba(var(--accent-rgb), 0.15), transparent 70%);
+    /* Dynamic Theme Spotlight (Parallax) */
+    background-image: radial-gradient(circle at calc(50% + var(--mouse-x, 0) * 100px) calc(30% + var(--mouse-y, 0) * 80px),
+            rgba(var(--accent-rgb), 0.15),
+            transparent 70%);
     z-index: 10005;
     /* Max Z-Index (Above Header) */
     display: flex;
     flex-direction: column;
     animation: fadeIn 0.3s ease;
+    transition: background-image 0.1s;
+    /* Smooth out jagged mouse moves */
 }
 
 .arcade-header {
@@ -2139,13 +2431,116 @@ header {
     box-sizing: border-box;
 }
 
+/* IDENTITY PILL (Start) */
+.identity-pill {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    /* Increased internal gap */
+    padding: 8px 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    width: auto;
+    height: auto;
+    flex-shrink: 0;
+    /* Prevent crushing */
+    white-space: nowrap;
+    /* Prevent wrapping */
+}
+
+.identity-pill:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-1px);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.coin-section,
+.name-section {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+}
+
+.pill-divider {
+    width: 1px;
+    height: 16px;
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.name-section {
+    color: var(--accent);
+    /* Highlight name */
+}
+
+/* IDENTITY PILL (End) */
+
 .header-left,
 .header-right {
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 20px;
+    /* Increased spacing between Pill and Shop */
     z-index: 2;
-    /* Clickable above title */
+    flex: 1;
+    /* Balance both sides so title remains true center */
+}
+
+.header-right {
+    justify-content: flex-end;
+    /* Push right items to edge */
+}
+
+/* New Clean Glass Button for Header */
+.glass-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 1.1rem;
+    padding: 0;
+}
+
+.glass-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: scale(1.05);
+}
+
+/* Text-based Glass Button (e.g. Back Button) */
+.glass-btn-text {
+    width: auto;
+    height: 40px;
+    padding: 0 20px;
+    border-radius: 20px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.glass-btn-text:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateX(-3px);
+    /* Subtle back motion */
 }
 
 .arcade-title-wrapper {
@@ -2494,7 +2889,11 @@ canvas {
     padding: 30px;
     border-radius: var(--radius-lg);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    width: 320px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    width: 90%;
+    max-width: 450px;
+    max-height: 85vh;
+    overflow-y: auto;
     box-shadow: 0 30px 80px rgba(0, 0, 0, 0.8);
     z-index: 100;
     animation: scaleIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -2588,10 +2987,8 @@ canvas {
     width: 100%;
     height: 100%;
     background: rgba(0, 0, 0, 0.75);
-    /* Darker */
-    backdrop-filter: blur(8px);
-    /* Less blur, more contrast */
-    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -2599,10 +2996,28 @@ canvas {
     gap: 20px;
     color: var(--text-primary);
     z-index: 2200;
-    /* SUPER HIGH */
     padding: 20px;
     text-align: center;
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-md);
+    /* Match Canvas (12px) */
+    overflow: hidden;
+
+    /* Animation State (Default: Invisible) */
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+}
+
+/* Active State (Visible) */
+.game-overlay-msg.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Fallback: Force invisible if NOT active (Fixes "Missing Animation" bug) */
+#breakout-game-over:not(.active) {
+    opacity: 0 !important;
+    pointer-events: none;
 }
 
 .game-stage {
@@ -2897,7 +3312,237 @@ canvas {
 
 /* Thumb */
 .wordle-thumb {
-    background: linear-gradient(135deg, #538d4e, #b59f3b);
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+/* --- REFACTORED START SCREEN (Premium Glass) --- */
+.start-screen-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    /* FIX: Transparent background to show themed canvas behind */
+    background: rgba(0, 0, 0, 0.2);
+    /* Very subtle tint instead of full opaque */
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+
+    /* LAYOUT (Restored) */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.start-screen-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+    /* Enable clicks */
+}
+
+.breakout-menu-floater {
+    /* Restore container background for the menu panel */
+    background: rgba(30, 30, 35, 0.85);
+    /* Darker base */
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    border-radius: 24px;
+    padding: 20px;
+    /* Reduced from 30px */
+
+    /* Subtle Gradient for "Lækkerhed" */
+    background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 100%);
+
+    /* Layout */
+    text-align: center;
+    max-width: 380px;
+    /* Narrower for vertical stack */
+    width: 90%;
+    /* Ensure it fits vertically in 320px height */
+    max-height: 90%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    transform: translateY(20px) scale(0.95);
+    transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.start-screen-overlay.active .breakout-menu-floater,
+.game-overlay-msg.active .breakout-menu-floater {
+    transform: translateY(0) scale(1);
+}
+
+/* SPECIAL GAME OVER VARIANT (Smaller & Colorful) */
+.breakout-menu-floater.game-over-special {
+    max-width: 240px;
+    /* Reduced from 280px */
+    padding: 15px;
+    /* Reduced from 20px */
+    background: linear-gradient(135deg, rgba(30, 30, 35, 0.95), rgba(20, 20, 20, 0.98));
+    border: 2px solid transparent;
+    background-clip: padding-box, border-box;
+    background-origin: padding-box, border-box;
+    /* Gradient Border Trick - NOW DYNAMIC THEME */
+    background-image: linear-gradient(rgba(30, 30, 35, 0.9), rgba(30, 30, 35, 0.9)),
+        linear-gradient(45deg, var(--accent), var(--text-secondary));
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+    /* Neutral shadow to let border shine */
+    transition: all 0.5s ease;
+}
+
+/* Typography for Game Over Special */
+.game-over-title {
+    font-size: 1.5rem;
+    /* Reduced from 2rem */
+    margin: 0 0 10px 0;
+    background: linear-gradient(135deg, #fff 0%, #aaa 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.game-over-score-container {
+    margin: 15px 0;
+}
+
+.game-over-label {
+    font-size: 0.75rem;
+    /* Reduced from 0.9rem */
+    color: rgba(255, 255, 255, 0.6);
+    letter-spacing: 1px;
+    margin-bottom: 2px;
+}
+
+.game-over-score {
+    font-size: 2.5rem;
+    /* Reduced from 3.5rem */
+    font-weight: 800;
+    line-height: 1;
+    color: white;
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+}
+
+/* Specialized Buttons */
+.game-over-btn-primary {
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+    padding: 10px 15px !important;
+    /* Force smaller padding */
+    font-size: 0.9rem !important;
+    /* Force smaller text */
+    border-radius: 12px !important;
+}
+
+.game-over-btn-secondary {
+    justify-content: center;
+    background: rgba(255, 50, 50, 0.1);
+    border-color: rgba(255, 50, 50, 0.2);
+    padding: 10px 15px !important;
+    font-size: 0.9rem !important;
+    border-radius: 12px !important;
+}
+
+/* Vertical Button Stack */
+.menu-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    /* Reduced gap */
+    margin-top: 15px;
+    /* Reduced margin */
+    margin-bottom: 0;
+}
+
+.glass-menu-btn {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 18px 25px;
+
+    /* Base Glass */
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+
+    color: white;
+    font-family: 'Inter', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+}
+
+.glass-menu-btn span.lives {
+    font-size: 0.9rem;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: rgba(0, 0, 0, 0.3);
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 500;
+}
+
+/* Color Tints (ALWAYS VISIBLE) */
+.glass-menu-btn.easy {
+    background: linear-gradient(90deg, rgba(16, 185, 129, 0.15), rgba(16, 185, 129, 0.05));
+    border-color: rgba(16, 185, 129, 0.3);
+}
+
+.glass-menu-btn.normal {
+    background: linear-gradient(90deg, rgba(251, 191, 36, 0.15), rgba(251, 191, 36, 0.05));
+    border-color: rgba(251, 191, 36, 0.3);
+}
+
+.glass-menu-btn.hard {
+    background: linear-gradient(90deg, rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.05));
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.glass-menu-btn:hover {
+    transform: translateX(5px);
+}
+
+.glass-menu-btn.easy:hover {
+    background: linear-gradient(90deg, rgba(16, 185, 129, 0.3), rgba(16, 185, 129, 0.1));
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
+    border-color: #10b981;
+}
+
+.glass-menu-btn.normal:hover {
+    background: linear-gradient(90deg, rgba(251, 191, 36, 0.3), rgba(251, 191, 36, 0.1));
+    box-shadow: 0 0 20px rgba(251, 191, 36, 0.2);
+    border-color: #fbbf24;
+}
+
+.glass-menu-btn.hard:hover {
+    background: linear-gradient(90deg, rgba(239, 68, 68, 0.3), rgba(239, 68, 68, 0.1));
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
+    border-color: #ef4444;
+}
+
+.cancel-link {
+    display: inline-block;
+    margin-top: 15px;
+    color: #888;
+    text-decoration: none;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    transition: color 0.2s;
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-weight: 500;
+}
+
+.cancel-link:hover {
+    color: white;
 }
 
 /* --- ANIMATIONS --- */
@@ -2998,8 +3643,15 @@ canvas {
 
 .shop-card:hover {
     background: rgba(255, 255, 255, 0.08);
-    transform: translateY(-2px);
-    box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.3);
+    transform: translateY(-10px) scale(1.02);
+    box-shadow:
+        0 20px 40px -5px rgba(0, 0, 0, 0.4),
+        0 0 20px rgba(var(--accent-rgb), 0.3);
+    border-color: rgba(var(--accent-rgb), 0.5);
+    /* Parallax Highlight on Hover */
+    background-image: radial-gradient(circle at calc(50% - var(--mouse-x, 0) * 150px) calc(50% - var(--mouse-y, 0) * 150px),
+            rgba(255, 255, 255, 0.05),
+            transparent 80%);
 }
 
 .shop-card.owned {
@@ -3442,4 +4094,105 @@ body.theme-ocean {
     font-weight: 600;
     padding: 3px 8px;
     border-radius: 4px;
+}
+
+/* SEGMENTED CONTROL (Premium Settings Switcher) */
+.segmented-control {
+    display: flex;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 12px;
+    padding: 4px;
+    gap: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.segment-btn {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    padding: 8px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+}
+
+.segment-btn:hover {
+    color: white;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.segment-btn.active {
+    background: var(--accent);
+    color: black;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* SETTINGS ACTIONS (CENTERED) */
+.settings-actions {
+    margin-top: 20px;
+    width: 100%;
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    /* CENTER BUTTONS */
+}
+
+.settings-actions button {
+    min-width: 120px;
+    /* Don't stretch */
+    flex: 0 1 auto;
+}
+
+/* GAME CANVAS WRAPPER (For strict overlay clipping) */
+.game-canvas-wrapper {
+    position: relative;
+    display: inline-flex;
+    /* Shrink to canvas size */
+    justify-content: center;
+    align-items: center;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    /* Clips the square overlay to rounded corners */
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    max-width: 100%;
+}
+
+.game-canvas-wrapper canvas {
+    border-radius: 0 !important;
+    /* Wrapper handles radius */
+    box-shadow: none !important;
+    /* Wrapper handles shadow */
+    display: block;
+}
+
+/* Ensure overlay stays inside wrapper */
+.game-canvas-wrapper .game-overlay-msg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 0 !important;
+    /* Wrapper handles radius */
+}
+
+/* FADE OUT ANIMATION for Settings */
+.fade-out-anim {
+    animation: fadeOutFast 0.2s ease forwards !important;
+    pointer-events: none;
+}
+
+@keyframes fadeOutFast {
+    from {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+
+    to {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.95);
+    }
 }

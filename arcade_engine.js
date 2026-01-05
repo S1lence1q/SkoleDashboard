@@ -502,8 +502,10 @@ window.Arcade = {    // Global Settings
         rightPressed: false,
         leftPressed: false,
         ballAttached: true,
+        gameActive: false, // NEW: Track active state
 
         start() {
+            this.gameActive = true; // LOCK SETTINGS
             this.canvas = document.getElementById('breakout-canvas');
             if (!this.canvas) return;
             this.ctx = this.canvas.getContext('2d');
@@ -550,6 +552,7 @@ window.Arcade = {    // Global Settings
             this.shakeTime = 0;
             this.paddleFlashTimer = 0;
             this.hasWidePaddle = false;
+            this.widePaddleTimer = 0; // Initialize Timer
 
             this.updateLives();
             document.getElementById('breakout-current-score').textContent = "0";
@@ -566,6 +569,7 @@ window.Arcade = {    // Global Settings
         },
 
         stop() {
+            this.gameActive = false; // RELEASE LOCK
             if (this.loopId) clearInterval(this.loopId);
             document.removeEventListener('keydown', this.keyDownHandler.bind(this));
             document.removeEventListener('keyup', this.keyUpHandler.bind(this));
@@ -573,14 +577,25 @@ window.Arcade = {    // Global Settings
 
         // Helper to determine paddle width based on upgrades
         getBasePaddleWidth() {
-            let width = 100; // Hardcoded Standard
+            let width = 100; // Default
+
+            // 1. Check Specific Setting (Most Accurate)
+            if (window.Arcade && window.Arcade.settings && window.Arcade.settings.breakoutPaddle) {
+                width = parseInt(window.Arcade.settings.breakoutPaddle);
+            }
+            // 2. Fallback to Difficulty (Safety Net)
+            else if (window.Arcade && window.Arcade.settings && window.Arcade.settings.breakoutDifficulty) {
+                const diff = window.Arcade.settings.breakoutDifficulty;
+                if (diff === 'hard') width = 80;
+                if (diff === 'medium') width = 100;
+                if (diff === 'easy') width = 150;
+            }
+
+            // 3. Golden Paddle Upgrade
             if (window.Arcade.state.inventory.includes('paddle-golden')) width *= 1.5;
+
             return width;
         },
-
-
-
-
 
         spawnPowerUp(x, y) {
             let chance = 0.2;
@@ -622,13 +637,27 @@ window.Arcade = {    // Global Settings
 
                     // EFFECT
                     if (p.type === 'wide') {
-                        const newW = this.paddle.w * 1.5;
-                        if (newW > this.width * 0.5) {
-                            this.paddle.targetW = this.width * 0.5;
+                        // FIX: Only apply if not already wide (to prevent infinite stacking)
+                        if (!this.hasWidePaddle) {
+                            const baseW = this.getBasePaddleWidth(); // Get correct base size (Hard: 80, Normal: 100)
+                            // User request: Don't scale "too much". Use fixed +50px or 1.3x instead of 1.5x?
+                            // Let's go with 1.4x for a noticeable but controlled boost.
+                            const newW = baseW * 1.4;
+
+                            // Visual clamp
+                            if (newW > this.width * 0.6) {
+                                this.paddle.targetW = this.width * 0.6;
+                            } else {
+                                this.paddle.targetW = newW;
+                            }
+                            this.hasWidePaddle = true;
+                            this.widePaddleTimer = 600; // 10 Seconds (60fps)
+                            if (window.Arcade && window.Arcade.showToast) window.Arcade.showToast("BREDT BAT! ↔️");
                         } else {
-                            this.paddle.targetW = newW;
+                            // Refresh Timer if already active
+                            this.widePaddleTimer = 600;
+                            if (window.Arcade && window.Arcade.showToast) window.Arcade.showToast("BREDT BAT FORLÆNGET! ⏱️");
                         }
-                        this.hasWidePaddle = true;
 
                     } else if (p.type === 'life') {
                         // NUCLEAR FIX: Inline Logic + Logging
@@ -728,6 +757,16 @@ window.Arcade = {    // Global Settings
                 this.paddle.x -= (newW - oldW) / 2;
             }
 
+            // POWERUP TIMERS
+            if (this.hasWidePaddle && this.widePaddleTimer > 0) {
+                this.widePaddleTimer--;
+                if (this.widePaddleTimer <= 0) {
+                    this.hasWidePaddle = false;
+                    this.paddle.targetW = this.getBasePaddleWidth(); // Revert to Difficulty Base
+                    if (window.Arcade && window.Arcade.showToast) window.Arcade.showToast("Normalt Bat");
+                }
+            }
+
             this.paddle.x += this.paddle.dx;
             if (this.paddle.x < 0) this.paddle.x = 0;
             if (this.paddle.x + this.paddle.w > this.width) this.paddle.x = this.width - this.paddle.w;
@@ -761,12 +800,27 @@ window.Arcade = {    // Global Settings
                                 let hitPoint = b.x - (this.paddle.x + this.paddle.w / 2);
                                 hitPoint = hitPoint / (this.paddle.w / 2);
                                 let angle = hitPoint * (Math.PI / 3);
-                                let speed = Math.sqrt(b.dx * b.dx + b.dy * b.dy);
-                                speed = Math.min(speed + 0.2, 9);
-                                b.dx = speed * Math.sin(angle);
-                                b.dy = -speed * Math.cos(angle);
+
+                                b.dx = b.speed * Math.sin(angle);
+                                b.dy = -b.speed * Math.cos(angle);
+
                                 if (Arcade.Audio) Arcade.Audio.boop();
                                 this.paddleFlashTimer = 15;
+
+                                // DYNAMIC SPEED INCREASE (Per Bounce)
+                                // Increase speed based on difficulty: Easy (2%), Medium (3%), Hard (4%)
+                                let speedMult = 1.03; // Default Medium
+                                if (window.Arcade && window.Arcade.settings) {
+                                    if (window.Arcade.settings.breakoutDifficulty === 'easy') speedMult = 1.02;
+                                    if (window.Arcade.settings.breakoutDifficulty === 'hard') speedMult = 1.04;
+                                }
+
+                                // Cap it at 2x initial speed or Max 15
+                                let maxSpeed = (this.level < 5) ? 10 : 15;
+                                if (b.speed < maxSpeed) {
+                                    b.speed *= speedMult;
+                                    console.log("🚀 Ball Speed Up:", b.speed);
+                                }
                             }
                         }
 
@@ -984,6 +1038,11 @@ window.Arcade = {    // Global Settings
 
                     if (active) {
                         let health = 1;
+                        let isHard = (window.Arcade && window.Arcade.settings && window.Arcade.settings.breakoutDifficulty === 'hard');
+
+                        // Hard Mode: Chance for tough bricks even on Level 1
+                        if (isHard && Math.random() < 0.25) health = 2;
+
                         if (this.level >= 2 && Math.random() < 0.2) health = 2;
                         if (this.level >= 4 && Math.random() < 0.2) health = 3;
 
@@ -1008,17 +1067,16 @@ window.Arcade = {    // Global Settings
                         if (chance > 1) chance = chance / 100;
 
                         // Debug Log (Once per level generation)
-
-                        // Debug Log (Once per level generation)
                         if (i === 0 && j === 0) console.log("Powerup Chance:", chance);
 
                         if (Math.random() < chance) {
                             const r = Math.random();
-                            // ADJUSTED RARITY (User Feedback v83)
-                            if (r < 0.45) pType = 'wide';      // 45% of powerups
-                            else if (r < 0.85) pType = 'super'; // 40% (Fun factor)
-                            else if (r < 0.95) pType = 'multiball'; // 10%
-                            else pType = 'life';               // 5% (Ultra Rare)
+                            // TUNED RARITY (User Feedback v100)
+                            // Goal: Multiball/Super common, Wide occasional, Life RARE
+                            if (r < 0.45) pType = 'multiball'; // 45%
+                            else if (r < 0.80) pType = 'super'; // 35%
+                            else if (r < 0.95) pType = 'wide';  // 15%
+                            else pType = 'life';               // 5% (Back to Rare)
                         }
 
                         let delay = (j * 50) + (i * 10);
@@ -1121,12 +1179,40 @@ window.Arcade = {    // Global Settings
                             this.ctx.restore();
 
                             // 3. Health Indicator (Subtle Dots based on health)
-                            // Optional: If visual clutter is bad, we can skip this, but it helps gameplay.
-                            // Let's keep it super simple: Just opacity or color intensity?
-                            // User asked for visual change, let's trust the "Gem" look for now.
+                            // Revised: CRACKS/RIFTS if damaged
+                            if (b.maxHealth > 1 && b.status < b.maxHealth) {
+                                this.ctx.save();
+                                this.ctx.beginPath();
+                                this.ctx.strokeStyle = "rgba(0,0,0,0.5)";
+                                this.ctx.lineWidth = 2;
+
+                                // Deterministic Random "Seed" based on position
+                                const seed = (i * 997 + j * 761) % 1000;
+
+                                // Simple Zig-Zag Crack
+                                this.ctx.moveTo(drawX + drawW * 0.2, drawY + drawH * 0.2);
+                                if (seed % 2 === 0) {
+                                    this.ctx.lineTo(drawX + drawW * 0.5, drawY + drawH * 0.6);
+                                    this.ctx.lineTo(drawX + drawW * 0.8, drawY + drawH * 0.3);
+                                } else {
+                                    this.ctx.lineTo(drawX + drawW * 0.4, drawY + drawH * 0.8);
+                                    this.ctx.lineTo(drawX + drawW * 0.7, drawY + drawH * 0.5);
+                                }
+
+                                // More cracks if critically low (1 life left)
+                                if (b.status === 1 && b.maxHealth >= 3) {
+                                    this.ctx.moveTo(drawX + drawW * 0.8, drawY + drawH * 0.8);
+                                    this.ctx.lineTo(drawX + drawW * 0.5, drawY + drawH * 0.5);
+                                }
+
+                                this.ctx.stroke();
+                                this.ctx.restore();
+                            }
+
+                            this.ctx.globalAlpha = 1.0; // Reset
                         }
 
-                        // POWERUP INDICATOR (Large Generic Star)
+                        // POWERUP INDICATOR (Large Generic Star) - VALID FOR ALL BRICKS
                         if (b.powerupType) {
                             this.ctx.font = "bold 16px Inter, sans-serif";
                             this.ctx.textAlign = "center";
@@ -1141,16 +1227,6 @@ window.Arcade = {    // Global Settings
 
                             this.ctx.shadowBlur = 0; // Reset
                         }
-
-                        this.ctx.closePath();
-
-                        // Sheen (Simplified)
-                        this.ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
-                        this.ctx.beginPath();
-                        this.ctx.roundRect(drawX, drawY, drawW, drawH / 2, { topLeft: 4, topRight: 4, bottomLeft: 0, bottomRight: 0 });
-                        this.ctx.fill();
-
-                        this.ctx.globalAlpha = 1.0; // Reset
                     }
                 }
             }
@@ -1197,8 +1273,18 @@ window.Arcade = {    // Global Settings
                                 }
 
                                 if (b.status <= 0) {
-                                    // Destroy
-                                    this.score += 10;
+                                    // SCORING (Difficulty Multiplier)
+                                    let points = 10;
+                                    let diff = 'normal';
+                                    if (window.Arcade && window.Arcade.settings && window.Arcade.settings.breakoutDifficulty) {
+                                        diff = window.Arcade.settings.breakoutDifficulty;
+                                    }
+
+                                    if (diff === 'easy') points = 10;       // 1x
+                                    else if (diff === 'medium') points = 15; // 1.5x
+                                    else if (diff === 'hard') points = 25;   // 2.5x (High Reward)
+
+                                    this.score += points;
 
                                     // Juice
                                     const colors = ['#f472b6', '#a78bfa', '#60a5fa', '#34d399', '#fde047'];
@@ -1262,8 +1348,22 @@ window.Arcade = {    // Global Settings
             this.paddle.dx = 0;
 
             // FIX BALL SPEED
-            // Cap speed to 9 to prevent "Absurd" speeds
-            let speed = Math.min(4 + ((this.level - 1) * 0.4), 9);
+            // Base speed depends on Difficulty
+            let baseSpeed = 4;
+            let cap = 9;
+
+            if (window.Arcade && window.Arcade.settings && window.Arcade.settings.breakoutDifficulty) {
+                const diff = window.Arcade.settings.breakoutDifficulty;
+                if (diff === 'medium') baseSpeed = 4.5;
+                if (diff === 'hard') {
+                    baseSpeed = 6; // Starts 50% faster!
+                    cap = 12; // Allow higher max speed in Hard Mode
+                }
+            }
+
+            // Calculate speed: FIXED Base (Dynamic increase during gameplay)
+            // Removes level scaling to prevent impossible starts
+            let speed = Math.min(baseSpeed, cap);
 
             // Normalize Launch Vector (45 degrees)
             // 45 deg = 0.707
@@ -1363,6 +1463,7 @@ window.Arcade = {    // Global Settings
             Arcade.Audio.win();
             this.powerups = [];
             this.hasWidePaddle = false;
+            this.widePaddleTimer = 0; // Explicitly kill timer
 
             // INSTANT LEVEL UP (No Text)
             this.isTransitioning = false;
@@ -1620,10 +1721,8 @@ window.Arcade = {    // Global Settings
                     // Trigger External Hook (Confetti, etc.)
                     if (this.onFinish) this.onFinish(true, this.currentRow + 1);
 
-                    this.gameOver(true); // SHOW UI FIRST
-                    try {
-                        if (Arcade.Audio) Arcade.Audio.wordleWin();
-                    } catch (e) { console.warn("Audio Error:", e); }
+                    if (Arcade.Audio) Arcade.Audio.wordleWin();
+                    this.gameOver(true);
 
                 } else if (this.currentRow === 5) {
                     // Loss Logic
@@ -1636,10 +1735,8 @@ window.Arcade = {    // Global Settings
                         if (this.onFinish) this.onFinish(false, 6);
                     }
 
-                    this.gameOver(false); // SHOW UI FIRST
-                    try {
-                        if (Arcade.Audio) Arcade.Audio.wordleLose();
-                    } catch (e) { console.warn("Audio Error:", e); }
+                    if (Arcade.Audio) Arcade.Audio.wordleLose();
+                    this.gameOver(false);
                 } else {
                     this.currentRow++;
                     this.guess = [];
@@ -1723,15 +1820,6 @@ window.Arcade = {    // Global Settings
             res.textContent = this.solution;
 
             overlay.classList.remove('hidden');
-
-            // NUCLEAR OPTION: Force styles directly to ensure visibility
-            overlay.style.display = 'flex';
-
-            // Allow reflow
-            requestAnimationFrame(() => {
-                overlay.style.opacity = '1';
-                overlay.classList.add('active');
-            });
 
             // Direct Trigger for Juice
             if (won && window.fireConfetti) window.fireConfetti();
@@ -2029,33 +2117,17 @@ window.Arcade = {    // Global Settings
             const overlay = document.getElementById('pong-game-over');
             const msg = document.getElementById('pong-msg');
             msg.textContent = won ? "DU VANDT!" : "DU TABTE!";
-
-            overlay.classList.remove('hidden');
-
-            // NUCLEAR OPTION: Force styles directly to ensure visibility
-            overlay.style.display = 'flex';
-
-            // Allow reflow
-            requestAnimationFrame(() => {
-                overlay.style.opacity = '1';
-                overlay.classList.add('active');
-            });
-
             if (won) {
-                try {
-                    if (Arcade.Audio) Arcade.Audio.wordleWin();
-                } catch (e) { }
-
+                if (Arcade.Audio) Arcade.Audio.wordleWin(); // Recycle celebratory sound
                 // Update persistent score (Total Wins?)
                 let currentWins = Arcade.state.highScores['pong_wins'] || 0;
                 currentWins++;
                 Arcade.saveScore('pong_wins', currentWins);
                 Arcade.updateUI(); // Refresh menu
             } else {
-                try {
-                    if (Arcade.Audio) Arcade.Audio.wordleLose();
-                } catch (e) { }
+                if (Arcade.Audio) Arcade.Audio.wordleLose();
             }
+            overlay.classList.remove('hidden');
         },
 
         hideGameOver() {
@@ -2724,6 +2796,6 @@ window.openArcade = () => {
 // VERSION CHECK (Safe)
 document.addEventListener('DOMContentLoaded', () => {
     const vTag = document.getElementById('version-display');
-    if (vTag) vTag.textContent = "v96 (Cleaned)";
-    console.log("Version v96 Loaded");
+    if (vTag) vTag.textContent = "v114 (IDs Fixed)";
+    console.log("Version v114 Loaded");
 });

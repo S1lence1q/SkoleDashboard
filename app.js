@@ -100,6 +100,9 @@ function init() {
     updateTime();
     setInterval(updateTime, 1000); // Update every second
     renderSchedule();
+
+    // God Mode
+    // God Mode init removed (now on-click)
 }
 
 // --- FOCUS TIMER LOGIC (REMOVED) ---
@@ -1342,7 +1345,55 @@ window.restartSnake = function () {
 // Breakout Specifics
 window.openBreakout = function () {
     window.transitionTo('arcade-game-selector', 'stage-breakout');
-    if (window.Arcade) setTimeout(() => window.Arcade.Breakout.start(), 300);
+
+    // 1. SILENCE THE GAME (Fixes "Pre-load" glitch)
+    // Force stop loop and clear canvas so it's black/empty behind the menu
+    if (window.Arcade && window.Arcade.Breakout) {
+        window.Arcade.Breakout.stop();
+        // Manually clear because stop() might just pause
+        if (window.Arcade.Breakout.ctx && window.Arcade.Breakout.canvas) {
+            window.Arcade.Breakout.ctx.clearRect(0, 0, window.Arcade.Breakout.canvas.width, window.Arcade.Breakout.canvas.height);
+        }
+    }
+
+    // Hide HUD but Keep Layout (Prevent Jump)
+    const hud = document.getElementById('breakout-hud');
+    if (hud) hud.style.visibility = 'hidden';
+
+    // Show Start Overlay
+    const overlay = document.getElementById('breakout-start-overlay');
+    if (overlay) {
+        overlay.classList.remove('hidden'); // Ensure it's displayable
+        // Force reflow
+        void overlay.offsetWidth;
+        overlay.classList.add('active');
+    }
+}
+
+window.startGameWithDifficulty = function (level) {
+    try {
+        // 1. Apply Settings
+        if (window.applyDifficulty) window.applyDifficulty(level);
+    } catch (e) {
+        console.error("Error applying difficulty:", e);
+    }
+
+    // Show HUD
+    const hud = document.getElementById('breakout-hud');
+    if (hud) hud.style.visibility = 'visible';
+
+    // 2. Hide Overlay (FORCE)
+    const overlay = document.getElementById('breakout-start-overlay');
+    if (overlay) {
+        overlay.classList.remove('active');
+        // Optional: Hide entirely after transition
+        setTimeout(() => overlay.classList.add('hidden'), 400);
+    }
+
+    // 3. Start Game (Delayed for smooth Fade Out)
+    setTimeout(() => {
+        if (window.Arcade) window.Arcade.Breakout.start();
+    }, 400); // Wait for CSS transition (0.4s)
 }
 
 window.closeBreakout = function () {
@@ -1673,9 +1724,9 @@ window.restartSpace = function () {
     if (window.Arcade) window.Arcade.Space.start();
 }
 
-window.toggleArcadeSettings = function () {
+window.refreshArcadeSettingsUI = function () {
     const p = document.getElementById('arcade-settings');
-    const isHidden = p.classList.contains('hidden');
+    if (!p || p.classList.contains('hidden')) return;
 
     // Detect Active Game
     const isSnake = !document.getElementById('stage-snake').classList.contains('hidden');
@@ -1684,81 +1735,413 @@ window.toggleArcadeSettings = function () {
     const isWordle = !document.getElementById('stage-wordle').classList.contains('hidden');
     const isSpace = !document.getElementById('stage-space').classList.contains('hidden');
 
-    const snakeControls = document.getElementById('settings-snake-controls');
-    const breakoutControls = document.getElementById('settings-breakout-controls');
-    const pongControls = document.getElementById('settings-pong-controls');
-    const wordleControls = document.getElementById('settings-wordle-controls');
-    const spaceControls = document.getElementById('settings-space-controls');
+    // Controls WRAPPERS (Basic & Advanced)
+    // Basic Wrappers
+    const basicBreakout = document.getElementById('basic-breakout');
+    const basicPong = document.getElementById('basic-pong');
+    const basicSpace = document.getElementById('basic-space');
+
+    // Advanced Wrappers
+    const advSnake = document.getElementById('adv-snake');
+    const advBreakout = document.getElementById('adv-breakout');
+    const advPong = document.getElementById('adv-pong');
+    // const advSpace = document.getElementById('adv-space'); // Doesn't exist yet
+
+    // Advanced MASTER Wrapper
+    const settingsAdvanced = document.getElementById('settings-advanced');
+
+    // Sync UI with Current Settings
+    if (window.Arcade && window.Arcade.settings) {
+        const s = window.Arcade.settings;
+        if (document.getElementById('set-sound-enabled')) document.getElementById('set-sound-enabled').checked = s.soundEnabled;
+
+        // Snake
+        if (document.getElementById('set-snake-speed')) document.getElementById('set-snake-speed').value = s.snakeSpeed || 100;
+        if (document.getElementById('set-snake-walls')) document.getElementById('set-snake-walls').checked = s.snakeWalls;
+        if (document.getElementById('set-snake-theme')) document.getElementById('set-snake-theme').value = s.snakeTheme || 'classic';
+
+        // Breakout
+        if (document.getElementById('set-breakout-chance')) {
+            let val = s.breakoutChance || 0.2;
+            if (val <= 1) val = Math.round(val * 100);
+            document.getElementById('set-breakout-chance').value = val;
+        }
+        if (document.getElementById('set-breakout-multiball')) document.getElementById('set-breakout-multiball').value = s.breakoutMultiball || 'standard';
+        if (document.getElementById('set-breakout-lives')) document.getElementById('set-breakout-lives').value = s.breakoutLives || 3;
+        if (document.getElementById('set-breakout-paddle')) document.getElementById('set-breakout-paddle').value = s.breakoutPaddle || 100;
+
+        // Sync Segmented Controls (Helper)
+        const syncSeg = (id, val) => {
+            const p = document.getElementById(id);
+            if (!p) return;
+            const btns = p.querySelectorAll('.segment-btn');
+            btns.forEach(b => {
+                b.classList.remove('active');
+                if (b.getAttribute('onclick').includes("'" + val + "'")) b.classList.add('active');
+            });
+        };
+
+        syncSeg('seg-breakout-diff', s.breakoutDifficulty || 'normal');
+        syncSeg('seg-pong-diff', s.pongDifficulty || 'normal');
+        syncSeg('seg-space-diff', s.spaceDifficulty || 'normal');
+
+        // Pong
+        if (document.getElementById('set-pong-score')) document.getElementById('set-pong-score').value = s.pongWinScore || 5;
+        if (document.getElementById('set-pong-player-paddle')) document.getElementById('set-pong-player-paddle').value = s.pongPlayerPaddle || 100;
+        if (document.getElementById('set-pong-cpu-paddle')) document.getElementById('set-pong-cpu-paddle').value = s.pongCpuPaddle || 80;
+    }
+
+    // RESET VISIBILITY (Hide All First)
+    if (basicBreakout) basicBreakout.classList.add('hidden');
+    if (basicPong) basicPong.classList.add('hidden');
+    if (basicSpace) basicSpace.classList.add('hidden');
+
+    if (advSnake) advSnake.classList.add('hidden');
+    if (advBreakout) advBreakout.classList.add('hidden');
+    if (advPong) advPong.classList.add('hidden');
+
+    // Determine God Mode Status
+    const godMode = window.Arcade && window.Arcade.godMode;
+    if (settingsAdvanced) {
+        if (godMode) settingsAdvanced.classList.remove('hidden');
+        else settingsAdvanced.classList.add('hidden');
+    }
+
+    // SHOW RELEVANT CONTROLS
+    if (isSnake) {
+        // Snake has no basic controls currently, only advanced
+        if (godMode && advSnake) advSnake.classList.remove('hidden');
+    } else if (isBreakout) {
+        if (basicBreakout) basicBreakout.classList.remove('hidden');
+        if (godMode && advBreakout) advBreakout.classList.remove('hidden');
+    } else if (isPong) {
+        if (basicPong) basicPong.classList.remove('hidden');
+        if (godMode && advPong) advPong.classList.remove('hidden');
+    } else if (isSpace) {
+        if (basicSpace) basicSpace.classList.remove('hidden');
+    } else if (isWordle) {
+        // Wordle has no standard settings yet
+    }
+}
+
+window.toggleArcadeSettings = function () {
+    const p = document.getElementById('arcade-settings');
+    const isHidden = p.classList.contains('hidden');
 
     if (isHidden) {
         // Open Settings
         p.classList.remove('hidden');
+        window.refreshArcadeSettingsUI(); // Use helper
 
-        // Sync UI with Current Settings
-        if (window.Arcade && window.Arcade.settings) {
-            const s = window.Arcade.settings;
-            if (document.getElementById('set-sound-enabled')) document.getElementById('set-sound-enabled').checked = s.soundEnabled;
-
-            // Snake
-            if (document.getElementById('set-snake-speed')) document.getElementById('set-snake-speed').value = s.snakeSpeed || 100;
-            if (document.getElementById('set-snake-walls')) document.getElementById('set-snake-walls').checked = s.snakeWalls;
-            if (document.getElementById('set-snake-theme')) document.getElementById('set-snake-theme').value = s.snakeTheme || 'classic';
-
-            // Breakout
-            if (document.getElementById('set-breakout-chance')) document.getElementById('set-breakout-chance').value = s.breakoutChance || 0.2;
-            if (document.getElementById('set-breakout-multiball')) document.getElementById('set-breakout-multiball').value = s.breakoutMultiball || 'standard';
-            if (document.getElementById('set-breakout-lives')) document.getElementById('set-breakout-lives').value = s.breakoutLives || 3;
-            if (document.getElementById('set-breakout-paddle')) document.getElementById('set-breakout-paddle').value = s.breakoutPaddle || 100;
-
-            // Pong
-            if (document.getElementById('set-pong-difficulty')) document.getElementById('set-pong-difficulty').value = s.pongDifficulty || 'normal';
-            if (document.getElementById('set-pong-score')) document.getElementById('set-pong-score').value = s.pongWinScore || 5;
-            if (document.getElementById('set-pong-player-paddle')) document.getElementById('set-pong-player-paddle').value = s.pongPlayerPaddle || 100;
-            if (document.getElementById('set-pong-player-paddle')) document.getElementById('set-pong-player-paddle').value = s.pongPlayerPaddle || 100;
-            if (document.getElementById('set-pong-cpu-paddle')) document.getElementById('set-pong-cpu-paddle').value = s.pongCpuPaddle || 80;
-
-            // Space
-            if (document.getElementById('set-space-difficulty')) document.getElementById('set-space-difficulty').value = s.spaceDifficulty || 'normal';
+        // PAUSE GAMES
+        if (window.Arcade) {
+            if (window.Arcade.Snake && !document.getElementById('stage-snake').classList.contains('hidden')) window.Arcade.Snake.isPaused = true;
+            if (window.Arcade.Breakout && !document.getElementById('stage-breakout').classList.contains('hidden')) window.Arcade.Breakout.isPaused = true;
+            if (window.Arcade.Pong && !document.getElementById('stage-pong').classList.contains('hidden')) window.Arcade.Pong.isPaused = true;
+            if (window.Arcade.Space && !document.getElementById('stage-space').classList.contains('hidden')) window.Arcade.Space.isPaused = true;
         }
 
-        // Show/Hide Controls based on Game
-        snakeControls.classList.add('hidden');
-        if (breakoutControls) breakoutControls.classList.add('hidden');
-        if (pongControls) pongControls.classList.add('hidden');
-        if (wordleControls) wordleControls.classList.add('hidden');
-        if (spaceControls) spaceControls.classList.add('hidden');
-
-        if (isSnake) {
-            snakeControls.classList.remove('hidden');
-            if (window.Arcade && window.Arcade.Snake) window.Arcade.Snake.isPaused = true;
-        } else if (isBreakout) {
-            if (breakoutControls) breakoutControls.classList.remove('hidden');
-            if (window.Arcade && window.Arcade.Breakout) window.Arcade.Breakout.isPaused = true;
-        } else if (isPong) {
-            if (pongControls) pongControls.classList.remove('hidden');
-            if (window.Arcade && window.Arcade.Pong) window.Arcade.Pong.isPaused = true;
-        } else if (isSpace) {
-            if (spaceControls) spaceControls.classList.remove('hidden');
-            if (window.Arcade && window.Arcade.Space) window.Arcade.Space.isPaused = true;
-        } else if (isWordle) {
-            if (wordleControls) wordleControls.classList.remove('hidden');
-        }
     } else {
-        // Close Settings
-        p.classList.add('hidden');
+        // Closing handled by closeSettings()
+        closeSettings();
+    }
+}
 
-        // Resume Active Game
-        if (isSnake && window.Arcade) window.Arcade.Snake.start();
-        if (isBreakout && window.Arcade) window.Arcade.Breakout.isPaused = false;
-        if (isPong && window.Arcade) {
-            window.Arcade.Pong.gameActive = true;
-            window.Arcade.Pong.loop();
+window.closeSettings = function () {
+    const p = document.getElementById('arcade-settings');
+
+    // Animation Logic
+    if (p && !p.classList.contains('hidden')) {
+        p.classList.add('fade-out-anim');
+        setTimeout(() => {
+            p.classList.add('hidden');
+            p.classList.remove('fade-out-anim');
+        }, 200);
+    } else if (p) {
+        // Already hidden, just ensure state
+        p.classList.add('hidden');
+    }
+
+    // UNPAUSE GAMES
+    if (window.Arcade) {
+        if (window.Arcade.Snake) window.Arcade.Snake.isPaused = false;
+        if (window.Arcade.Breakout) window.Arcade.Breakout.isPaused = false;
+        if (window.Arcade.Pong) window.Arcade.Pong.isPaused = false;
+        if (window.Arcade.Space) window.Arcade.Space.isPaused = false;
+    }
+}
+
+window.restartActiveGame = function () {
+    closeSettings(); // First close settings
+
+    // Detect Active
+    const isSnake = !document.getElementById('stage-snake').classList.contains('hidden');
+    const isBreakout = !document.getElementById('stage-breakout').classList.contains('hidden');
+    const isPong = !document.getElementById('stage-pong').classList.contains('hidden');
+    const isSpace = !document.getElementById('stage-space').classList.contains('hidden');
+    const isWordle = !document.getElementById('stage-wordle').classList.contains('hidden');
+
+    if (isBreakout) {
+        if (window.restartBreakout) window.restartBreakout();
+        else if (window.Arcade && window.Arcade.Breakout) window.Arcade.Breakout.start();
+    } else if (isSnake) {
+        if (window.Arcade && window.Arcade.Snake) window.Arcade.Snake.start();
+    } else if (isPong) {
+        if (window.Arcade && window.Arcade.Pong) window.Arcade.Pong.start();
+    } else if (isSpace) {
+        if (window.Arcade && window.Arcade.Space) window.Arcade.Space.start();
+    } else if (isWordle) {
+        // Wordle might effectively just be a reload or new word
+        if (window.Arcade && window.Arcade.Wordle) window.Arcade.Wordle.start();
+    }
+}
+
+// --- DIFFICULTY PRESETS ---
+window.applyDifficulty = function (level) {
+    if (!window.Arcade || !window.Arcade.settings) return;
+
+    // PREVENT CHANGE IF GAME IS ACTIVE
+    let active = false;
+    if (window.Arcade.Snake && window.Arcade.Snake.gameActive) active = true;
+    if (window.Arcade.Breakout && window.Arcade.Breakout.gameActive) active = true;
+    if (window.Arcade.Pong && window.Arcade.Pong.gameActive) active = true;
+
+    if (active) {
+        showArcadeToast("Kan ikke skifte mode i igangværende spil! Start forfra.", "warning");
+        return;
+    }
+
+    if (level === 'easy') {
+        // Snake
+        updateArcadeSetting('speed', 150);
+        updateArcadeSetting('walls', false);
+        // Breakout
+        updateArcadeSetting('breakoutLives', 5);
+        updateArcadeSetting('breakoutChance', 0.25); // More powerups
+        updateArcadeSetting('breakoutPaddle', 150); // Wider paddle
+        updateArcadeSetting('breakoutDifficulty', 'easy');
+        // Pong
+        updateArcadeSetting('pongDifficulty', 'easy');
+        updateArcadeSetting('pongPlayerPaddle', 150);
+        // Space
+        updateArcadeSetting('spaceDifficulty', 'easy');
+
+        showArcadeToast("Easy Mode valgt", "success");
+    }
+    else if (level === 'medium') {
+        // Snake
+        updateArcadeSetting('speed', 100);
+        updateArcadeSetting('walls', true);
+        // Breakout
+        updateArcadeSetting('breakoutLives', 3);
+        updateArcadeSetting('breakoutChance', 0.15); // Standard
+        updateArcadeSetting('breakoutPaddle', 100);
+        updateArcadeSetting('breakoutDifficulty', 'medium');
+        // Pong
+        updateArcadeSetting('pongDifficulty', 'normal');
+        updateArcadeSetting('pongPlayerPaddle', 100);
+        // Space
+        updateArcadeSetting('spaceDifficulty', 'normal');
+
+        showArcadeToast("Normal Mode valgt", "success");
+    }
+    else if (level === 'hard') {
+        // Snake
+        updateArcadeSetting('speed', 50);
+        updateArcadeSetting('walls', true);
+        // Breakout
+        updateArcadeSetting('breakoutLives', 1);
+        updateArcadeSetting('breakoutChance', 0.08); // SCARCE powerups (User request)
+        updateArcadeSetting('breakoutPaddle', 80);
+        updateArcadeSetting('breakoutDifficulty', 'hard');
+        // Pong
+        updateArcadeSetting('pongDifficulty', 'hard');
+        updateArcadeSetting('pongPlayerPaddle', 80);
+        // Space
+        updateArcadeSetting('spaceDifficulty', 'hard');
+
+        showArcadeToast("Hard Mode valgt", "warning");
+    }
+
+    // Refresh UI values if open, but DO NOT AUTO-OPEN
+    if (!document.getElementById('arcade-settings').classList.contains('hidden')) {
+        window.refreshArcadeSettingsUI(); // Only refresh if already open
+    }
+}
+
+//TOAST NOTIFICATION (Replaces native alert)
+window.showArcadeToast = function (msg, type = 'info') {
+    let toast = document.getElementById('arcade-toast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'arcade-toast';
+        toast.style.position = 'fixed';
+        toast.style.bottom = '20px';
+        toast.style.left = '50%';
+        toast.style.transform = 'translateX(-50%) translateY(100px)';
+        toast.style.background = 'rgba(20, 20, 30, 0.95)';
+        toast.style.border = '1px solid rgba(255,255,255,0.2)';
+        toast.style.padding = '12px 24px';
+        toast.style.borderRadius = '30px';
+        toast.style.color = 'white';
+        toast.style.zIndex = '100000';
+        toast.style.transition = 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+        toast.style.boxShadow = '0 10px 30px rgba(0,0,0,0.5)';
+        toast.style.display = 'flex';
+        toast.style.alignItems = 'center';
+        toast.style.gap = '10px';
+        toast.style.fontWeight = '500';
+        document.body.appendChild(toast);
+    }
+
+    // Icon based on type
+    let icon = 'ℹ️';
+    if (type === 'success') icon = '✅';
+    if (type === 'warning') icon = '⚠️';
+    if (type === 'god') icon = '⚡';
+
+    toast.innerHTML = `<span style="font-size: 1.2rem;">${icon}</span> <span>${msg}</span>`;
+
+    // Animate In
+    setTimeout(() => {
+        toast.style.transform = 'translateX(-50%) translateY(0)';
+    }, 10);
+
+    // Animate Out
+    if (window.toastTimer) clearTimeout(window.toastTimer);
+    window.toastTimer = setTimeout(() => {
+        toast.style.transform = 'translateX(-50%) translateY(100px)';
+    }, 3000);
+}
+
+// --- GOD MODE TRIGGER ---
+let godModeClicks = 0;
+let godModeTimer = null;
+
+// --- GOD MODE TRIGGER (Consolidated) ---
+window.triggerGodMode = function () {
+    godModeClicks++;
+
+    // Reset if too slow
+    clearTimeout(godModeTimer);
+    godModeTimer = setTimeout(() => {
+        godModeClicks = 0;
+    }, 2000);
+
+    if (godModeClicks === 5) {
+        // TOGGLE GOD MODE
+        if (window.Arcade) {
+            window.Arcade.godMode = !window.Arcade.godMode;
+        } else {
+            window.Arcade = { godMode: true };
+        }
+
+        // UNLOCK GOD MODE UI
+        const wrapper = document.getElementById('settings-advanced');
+        const trigger = document.getElementById('countdown');
+        const subjectTrigger = document.getElementById('current-subject');
+
+        // Visual feedback (Animate whatever is visible)
+        const animate = (el) => {
+            if (el) {
+                el.style.color = "gold";
+                el.style.transform = "scale(1.2)";
+                setTimeout(() => {
+                    el.style.color = "";
+                    el.style.transform = "";
+                }, 500);
+            }
+        };
+
+        if (trigger && !trigger.classList.contains('hidden') && trigger.textContent !== "") animate(trigger);
+        if (subjectTrigger) animate(subjectTrigger);
+
+        if (window.Arcade.godMode) {
+            if (wrapper) wrapper.classList.remove('hidden');
+            window.showArcadeToast("GOD MODE ACTIVATED! Avancerede indstillinger låst op.", "god");
+        } else {
+            if (wrapper) wrapper.classList.add('hidden');
+            window.showArcadeToast("God Mode Deactivated.", "info");
+        }
+        godModeClicks = 0;
+
+        // Refresh settings if open
+        if (!document.getElementById('arcade-settings').classList.contains('hidden')) {
+            window.refreshArcadeSettingsUI();
         }
     }
 }
 
+window.setDifficultyPrompt = function (game, level, btn) {
+    // 1. Update Game Specific Presets
+    if (game === 'breakout') {
+        updateArcadeSetting('breakoutDifficulty', level);
+        if (level === 'easy') {
+            updateArcadeSetting('breakoutLives', 5);
+            updateArcadeSetting('breakoutChance', 0.25);
+            updateArcadeSetting('breakoutPaddle', 150);
+        } else if (level === 'hard') {
+            updateArcadeSetting('breakoutLives', 1);
+            updateArcadeSetting('breakoutChance', 0.12); // Scarce but fair
+            updateArcadeSetting('breakoutPaddle', 80);
+        } else {
+            // Normal
+            updateArcadeSetting('breakoutLives', 3);
+            updateArcadeSetting('breakoutChance', 0.15);
+            updateArcadeSetting('breakoutPaddle', 100);
+        }
+    } else if (game === 'pong') {
+        updateArcadeSetting('pongDifficulty', level);
+        if (level === 'easy') {
+            updateArcadeSetting('pongPlayerPaddle', 150);
+            updateArcadeSetting('pongCpuPaddle', 60); // Dumb CPU
+        } else if (level === 'hard') {
+            updateArcadeSetting('pongPlayerPaddle', 80);
+            updateArcadeSetting('pongCpuPaddle', 100); // God CPU
+        } else {
+            updateArcadeSetting('pongPlayerPaddle', 100);
+            updateArcadeSetting('pongCpuPaddle', 80);
+        }
+    } else if (game === 'space') {
+        updateArcadeSetting('spaceDifficulty', level);
+        // Add space params if needed
+    }
+
+    // 2. UI Visual Update
+    if (btn && btn.parentElement) {
+        const sibs = btn.parentElement.querySelectorAll('.segment-btn');
+        sibs.forEach(s => s.classList.remove('active'));
+        btn.classList.add('active');
+    }
+
+    // 3. User Feedback & Close
+    let txt = "Normal";
+    if (level === 'easy') txt = "Let";
+    if (level === 'hard') txt = "Svær";
+    showArcadeToast(`${game.charAt(0).toUpperCase() + game.slice(1)}: ${txt} sat`, "success");
+
+    // Close as requested by user ("Why are settings still open?")
+    setTimeout(closeSettings, 200);
+}
+
 window.updateArcadeSetting = function (key, val) {
     if (!window.Arcade) return;
+
+    // UI SYNC (If triggered via preset)
+    // We want the dropdowns to match the preset selection
+    // Snake
+    if (key === 'speed') { const el = document.getElementById('set-snake-speed'); if (el) el.value = val; }
+    if (key === 'walls') { const el = document.getElementById('set-snake-walls'); if (el) el.checked = val; }
+    // Breakout
+    if (key === 'breakoutLives') { const el = document.getElementById('set-breakout-lives'); if (el) el.value = val; }
+    if (key === 'breakoutChance') { const el = document.getElementById('set-breakout-chance'); if (el) el.value = val; }
+    if (key === 'breakoutPaddle') { const el = document.getElementById('set-breakout-paddle'); if (el) el.value = val; }
+    // Pong
+    if (key === 'pongDifficulty') { const el = document.getElementById('set-pong-difficulty'); if (el) el.value = val; }
+    if (key === 'pongPlayerPaddle') { const el = document.getElementById('set-pong-player-paddle'); if (el) el.value = val; }
+    // Space
+    if (key === 'spaceDifficulty') { const el = document.getElementById('set-space-difficulty'); if (el) el.value = val; }
+
 
     // Convert types
     if (key === 'speed') val = parseInt(val);
@@ -1782,6 +2165,7 @@ window.updateArcadeSetting = function (key, val) {
         'breakoutMultiball': 'breakoutMultiball',
         'breakoutLives': 'breakoutLives',
         'breakoutPaddle': 'breakoutPaddle',
+        'breakoutDifficulty': 'breakoutDifficulty', // NEW
         'pongDifficulty': 'pongDifficulty',
         'pongWinScore': 'pongWinScore',
         'pongPlayerPaddle': 'pongPlayerPaddle',
@@ -1801,7 +2185,12 @@ window.updateArcadeSetting = function (key, val) {
         }
     }
     if (key === 'breakoutPaddle' && window.Arcade.Breakout && window.Arcade.Breakout.paddle) {
-        window.Arcade.Breakout.paddle.targetW = val;
+        // Fix: Use engine logic to respect upgrades (Golden Paddle)
+        if (typeof window.Arcade.Breakout.getBasePaddleWidth === 'function') {
+            window.Arcade.Breakout.paddle.targetW = window.Arcade.Breakout.getBasePaddleWidth();
+        } else {
+            window.Arcade.Breakout.paddle.targetW = val;
+        }
     }
 
     // Pong Live Updates
@@ -1832,105 +2221,11 @@ window.updateCoinDisplay = function () {
     els.forEach(el => el.textContent = coins);
 }
 
-window.openShop = function () {
-    console.log('openShop: Triggered');
-    const el = document.getElementById('arcade-shop');
-    if (!el) {
-        console.error('openShop: #arcade-shop not found!');
-        return;
-    }
-    el.classList.remove('hidden');
-    console.log('openShop: Class removed');
-    renderShopItems();
-}
 
-window.closeShop = function () {
-    document.getElementById('arcade-shop').classList.add('hidden');
-}
 
-window.renderShopItems = function () {
-    const list = document.getElementById('shop-items');
-    list.innerHTML = '';
 
-    // Add grid class if missing
-    list.className = 'shop-grid';
 
-    if (!window.Arcade) return;
 
-    window.Arcade.shop.forEach(item => {
-        const owned = window.Arcade.state.inventory.includes(item.id);
-        const canAfford = window.Arcade.state.coins >= item.cost;
-        const isActive = document.body.classList.contains(item.id);
-
-        const card = document.createElement('div');
-        card.className = 'shop-card ' + (owned ? 'owned' : '') + (isActive ? ' active-theme' : '');
-
-        // Determine Icon
-        let icon = "📦";
-        if (item.id.includes('matrix')) icon = "💻";
-        else if (item.id.includes('sunset')) icon = "🌅";
-        else if (item.id.includes('ocean')) icon = "🌊";
-        else if (item.id.includes('golden')) icon = "🏏";
-        else if (item.id.includes('life')) icon = "❤️";
-        else if (item.id.includes('slow')) icon = "🐌";
-        else if (item.id.includes('neon')) icon = "🌟";
-
-        let btnAction = '';
-        let btnText = '';
-        let btnClass = '';
-
-        if (owned) {
-            if (item.type === 'theme') {
-                if (isActive) {
-                    btnText = "Valgt";
-                    btnClass = "btn small disabled active-btn";
-                    btnAction = "";
-                } else {
-                    btnText = "Vælg";
-                    btnClass = "btn secondary small";
-                    btnAction = `window.Arcade.equipTheme('${item.id}'); renderShopItems();`;
-                }
-            } else if (item.type === 'mod') {
-                btnText = "Aktiv";
-                btnClass = "btn small disabled mod-active";
-            } else {
-                btnText = "Ejet";
-                btnClass = "btn small disabled";
-            }
-        } else {
-            if (canAfford) {
-                btnText = `${item.cost} 🪙`;
-                btnClass = "btn primary small buy-btn";
-                btnAction = `if(window.Arcade.buyItem('${item.id}')) renderShopItems();`;
-            } else {
-                btnText = `${item.cost} 🪙`;
-                btnClass = "btn small disabled";
-                btnAction = "";
-            }
-        }
-
-        card.innerHTML = `
-            <div class="shop-icon">${icon}</div>
-            <div class="shop-info">
-                <h3>${item.name}</h3>
-                <p>${item.desc}</p>
-            </div>
-            <div class="shop-actions">
-                <button class="${btnClass}" onclick="${btnAction}">${btnText}</button>
-            </div>
-        `;
-        list.appendChild(card);
-    });
-}
-
-window.openLeaderboard = function () {
-    document.getElementById('arcade-leaderboard').classList.remove('hidden');
-    renderLeaderboard();
-}
-
-window.closeLeaderboard = function () {
-    document.getElementById('arcade-leaderboard').classList.add('hidden');
-}
 
 window.renderLeaderboard = function () {
     const list = document.getElementById('leaderboard-content');
@@ -2164,77 +2459,7 @@ window.changeTopic = function (dir) {
 
 // End Script
 
-/**
- * SECRET GOD MODE TRIGGER (RETRY) 🌩️
- * Click the Main Status Card 5 times
- */
-document.addEventListener('DOMContentLoaded', () => {
-    let secretClicks = 0;
-    let secretTimer = null;
-    const triggerZone = document.getElementById('status-card'); // The big card
-
-    if (triggerZone) {
-        // Prevent selecting text on rapid clicks
-        triggerZone.style.userSelect = 'none';
-        triggerZone.style.cursor = 'pointer'; // Hint that it's clickable (subtle)
-
-        triggerZone.addEventListener('click', (e) => {
-            // Don't trigger if clicking buttons inside (like Start/Reset or Widget arrows)
-            if (e.target.tagName === 'BUTTON' || e.target.closest('button') || e.target.tagName === 'A') return;
-
-            secretClicks++;
-
-            // Reset after 3 seconds
-            clearTimeout(secretTimer);
-            secretTimer = setTimeout(() => {
-                secretClicks = 0;
-            }, 3000);
-
-            if (secretClicks === 5) {
-                // Activate
-                const debugPanel = document.querySelector('.debug-hidden');
-                if (debugPanel) {
-                    const isHidden = !debugPanel.classList.contains('show');
-
-                    // Toggle class
-                    if (isHidden) {
-                        debugPanel.classList.add('show');
-                        debugPanel.style.display = 'block'; // Force
-                        showToast("⚡ GOD MODE: UNOUVER (Se i menuen)");
-                    } else {
-                        debugPanel.classList.remove('show');
-                        debugPanel.style.display = 'none'; // Force
-                        showToast("🚫 GOD MODE: DEAKTIVERET");
-                    }
-
-                    // Visual feedback
-                    triggerZone.style.animation = 'shake 0.5s';
-                    setTimeout(() => triggerZone.style.animation = '', 500);
-                } else {
-                    console.error("Debug panel not found!");
-                    showToast("Fejl: Debug panel mangler");
-                }
-                secretClicks = 0;
-            }
-        });
-    } else {
-        console.error("Status Card not found for trigger");
-    }
-
-    // Helper Toast (if not exists)
-    window.showToast = function (msg) {
-        let toast = document.getElementById('toast');
-        if (!toast) {
-            toast = document.createElement('div');
-            toast.id = 'toast';
-            document.body.appendChild(toast);
-        }
-        toast.textContent = msg;
-        toast.classList.remove('hidden');
-        toast.style.display = 'block';
-        setTimeout(() => toast.style.display = 'none', 3000);
-    }
-});
+// (Duplicate God Mode Removed)
 
 // Add shake animation style AND Toast Style (Bulletproof)
 const styleSheet = document.createElement("style");
@@ -2354,3 +2579,126 @@ window.fireConfetti = function () {
 
     update();
 }
+
+// --- IMMERSIVE FX ENGINE (Sound & Parallax) ---
+
+const SoundFX = {
+    ctx: null,
+    enabled: true,
+
+    init() {
+        if (!this.enabled) return;
+        try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            this.ctx = new AudioContext();
+            console.log("🔊 SoundFX Engine Initialized");
+        } catch (e) {
+            console.warn("Web Audio API not supported");
+            this.enabled = false;
+        }
+    },
+
+    // Ensure context is running (Unlock on user gesture)
+    resume() {
+        if (this.ctx && this.ctx.state === 'suspended') {
+            this.ctx.resume();
+        }
+    },
+
+    playTone(freq, type, duration, vol) {
+        if (!this.ctx || !this.enabled) return;
+        this.resume();
+
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+
+        gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start();
+        osc.stop(this.ctx.currentTime + duration);
+    },
+
+    hover() {
+        // High, very short tick (Nintendo Switch style)
+        this.playTone(800, 'sine', 0.05, 0.02);
+    },
+
+    click() {
+        // Deeper, "thacky" click
+        this.playTone(300, 'triangle', 0.1, 0.05);
+    },
+
+    back() {
+        // Swoosh down
+        this.playTone(150, 'sine', 0.15, 0.05);
+    },
+
+    success() {
+        if (!this.ctx || !this.enabled) return;
+        this.resume();
+
+        // Simple Major Chord
+        const now = this.ctx.currentTime;
+        [440, 554.37, 659.25].forEach((freq, i) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, now);
+            gain.gain.setValueAtTime(0.03, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5 + (i * 0.1));
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now + (i * 0.05));
+            osc.stop(now + 1.0);
+        });
+    }
+};
+
+// Global Interactive & Parallax Init
+function initImmersiveFX() {
+    // 1. Initialize Audio Context on first interaction
+    const unlockAudio = () => {
+        SoundFX.init();
+        SoundFX.resume();
+        // Remove listeners once unlocked
+        document.removeEventListener('click', unlockAudio);
+        document.removeEventListener('keydown', unlockAudio);
+    };
+    document.addEventListener('click', unlockAudio);
+    document.addEventListener('keydown', unlockAudio);
+
+    // 2. Attach Sound Listeners to generic UI elements
+    // Hover disabled per user feedback (too constant)
+    /*
+    document.addEventListener('mouseover', (e) => {
+        if (e.target.closest('button, a, .clickable, .game-card, .nav-btn, .theme-dot')) {
+            SoundFX.hover();
+        }
+    });
+
+    document.addEventListener('mousedown', (e) => {
+        if (e.target.closest('button, a, .clickable, .game-card, .nav-btn, .theme-dot')) {
+            SoundFX.click();
+        }
+    });
+    */
+
+    // 3. Parallax Mouse Tracking
+    document.addEventListener('mousemove', (e) => {
+        const x = (e.clientX / window.innerWidth) - 0.5; // -0.5 to 0.5
+        const y = (e.clientY / window.innerHeight) - 0.5;
+
+        document.body.style.setProperty('--mouse-x', x);
+        document.body.style.setProperty('--mouse-y', y);
+    });
+}
+
+// Start Immersive FX
+initImmersiveFX();
