@@ -199,6 +199,9 @@ window.Arcade = {    // Global Settings
             this.state.highScores[game] = score;
             localStorage.setItem('arcade_scores', JSON.stringify(this.state.highScores));
             isHigh = true;
+            // CELEBRATION!
+            if (window.fireConfetti) window.fireConfetti();
+            if (window.showArcadeToast) window.showArcadeToast("NY REKORD! 🎉", "god");
         }
 
         // 2. Global Firebase Score
@@ -278,6 +281,76 @@ window.Arcade = {    // Global Settings
         if (whEl) whEl.textContent = `Rekord: ${wordleHigh} `;
     },
 
+    // --- GLOBAL OVERLAY HELPER ---
+    showSimpleGameOver(title, message, btnText, onRestart, onExit) {
+        console.log("DEBUG: showSimpleGameOver called", title);
+
+        // 1. Clean existing
+        const old = document.getElementById('global-game-over');
+        if (old) old.remove();
+
+        // 2. Create Modal
+        const el = document.createElement('div');
+        el.id = 'global-game-over';
+        el.style.position = 'fixed';
+        el.style.top = '0';
+        el.style.left = '0';
+        el.style.width = '100%';
+        el.style.height = '100%';
+        el.style.zIndex = '999999'; // TO THE MOON 🚀
+        el.style.background = 'rgba(0,0,0,0.85)';
+        el.style.backdropFilter = 'blur(12px)';
+        el.style.display = 'flex';
+        el.style.flexDirection = 'column';
+        el.style.justifyContent = 'center';
+        el.style.alignItems = 'center';
+        el.style.opacity = '0';
+        el.style.transition = 'opacity 0.4s ease';
+
+        // 3. Content
+        el.innerHTML = `
+            <div style="
+                background: var(--bg-card); 
+                padding: 40px; 
+                border-radius: 20px; 
+                border: 1px solid rgba(255,255,255,0.1); 
+                text-align: center; 
+                box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+                transform: scale(0.9);
+                transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                min-width: 320px;
+            ">
+                <h1 style="margin: 0 0 10px 0; font-size: 2.5rem; color: #fff;">${title}</h1>
+                <p style="margin: 0 0 30px 0; font-size: 1.2rem; color: var(--text-secondary);">${message}</p>
+                <div style="display: flex; gap: 15px; justify-content: center;">
+                    <button id="gg-restart" class="btn primary" style="padding: 12px 30px; font-size: 1.1rem;">${btnText}</button>
+                    <button id="gg-exit" class="btn secondary" style="padding: 12px 30px; font-size: 1.1rem;">Afslut</button>
+                </div>
+            </div>
+        `;
+
+        // 4. Mount
+        document.body.appendChild(el);
+
+        // 5. Events
+        document.getElementById('gg-restart').onclick = () => {
+            el.style.opacity = '0';
+            setTimeout(() => el.remove(), 300);
+            onRestart();
+        };
+        document.getElementById('gg-exit').onclick = () => {
+            el.style.opacity = '0';
+            setTimeout(() => el.remove(), 300);
+            onExit();
+        };
+
+        // 6. Animate In
+        requestAnimationFrame(() => {
+            el.style.opacity = '1';
+            el.querySelector('div').style.transform = 'scale(1)';
+        });
+    },
+
     // --- GAMES ---
 
     /**
@@ -305,36 +378,54 @@ window.Arcade = {    // Global Settings
         },
 
         start() {
-            if (!this.ctx) this.init();
-            if (this.gameInterval) clearInterval(this.gameInterval);
+            this.canvas = document.getElementById('snake-canvas');
+            if (!this.canvas) return;
+            this.ctx = this.canvas.getContext('2d');
+
+            // Settings
+            const mode = Arcade.settings.snakeMode || 'classic'; // classic, fast, feast
+            const theme = Arcade.settings.snakeTheme || 'classic';
+            this.speed = (mode === 'fast') ? 60 : 100;
+            const appleCount = (mode === 'feast') ? 5 : 1;
+
+            if (this.loopId) clearInterval(this.loopId);
 
             // Reset State
             this.gameActive = true;
-            this.waitingForStart = true; // Wait for input
+            this.isPaused = false;
             this.score = 0;
+            this.apples = []; // Reset apples array
+
             this.snake = {
-                x: 160, y: 160, dx: 0, dy: 0,
+                x: 160, y: 160, dx: this.grid, dy: 0,
                 cells: [], maxCells: 4
             };
-            this.apple = { x: 320, y: 320 };
+
+            // Spawn Apples
+            for (let i = 0; i < appleCount; i++) {
+                this.placeApple();
+            }
 
             document.getElementById('snake-current-score').textContent = '0';
             document.getElementById('snake-game-over').classList.add('hidden');
 
-            // Draw Initial State
-            this.placeApple();
-            this.draw();
-            this.drawStartMessage(); // Show "Press Key"
-
             // Listeners
-            document.removeEventListener('keydown', this.boundHandleKey); // Clean old
+            // Use local bind or global handler? Original used boundHandleKey property.
+            document.removeEventListener('keydown', this.boundHandleKey);
             this.boundHandleKey = this.handleKey.bind(this);
             document.addEventListener('keydown', this.boundHandleKey);
+
+            // Initial Draw (Fix blank screen issue)
+            this.draw();
+
+            // Start Loop
+            this.loopId = setInterval(() => requestAnimationFrame(() => this.loop()), this.speed);
         },
 
         stop() {
             this.gameActive = false;
-            clearInterval(this.gameInterval);
+            this.isPaused = true;
+            if (this.loopId) clearInterval(this.loopId);
             document.removeEventListener('keydown', this.boundHandleKey);
         },
 
@@ -344,27 +435,28 @@ window.Arcade = {    // Global Settings
                 e.preventDefault();
             }
 
-            if (!this.gameActive || this.isPaused) return;
+            if (this.isPaused) return;
 
-            // First Keypress Starts Game
-            if (this.waitingForStart) {
-                if ([37, 38, 39, 40].includes(e.which)) {
-                    this.waitingForStart = false;
-                    // Modifier: Snake Slow
-                    let speed = Arcade.settings.snakeSpeed;
-                    if (Arcade.state.inventory.includes('snake-slow')) speed = speed * 1.2; // 20% slower
-
-                    this.gameInterval = setInterval(this.loop.bind(this), speed);
-                } else {
-                    return; // Ignore non-arrow keys
-                }
+            // Left
+            if (e.which === 37 && this.snake.dx === 0) {
+                this.snake.dx = -this.grid;
+                this.snake.dy = 0;
             }
-
-            // Prevent reversing
-            if (e.which === 37 && this.snake.dx === 0) { this.snake.dx = -this.grid; this.snake.dy = 0; }
-            else if (e.which === 38 && this.snake.dy === 0) { this.snake.dy = -this.grid; this.snake.dx = 0; }
-            else if (e.which === 39 && this.snake.dx === 0) { this.snake.dx = this.grid; this.snake.dy = 0; }
-            else if (e.which === 40 && this.snake.dy === 0) { this.snake.dy = this.grid; this.snake.dx = 0; }
+            // Up
+            else if (e.which === 38 && this.snake.dy === 0) {
+                this.snake.dy = -this.grid;
+                this.snake.dx = 0;
+            }
+            // Right
+            else if (e.which === 39 && this.snake.dx === 0) {
+                this.snake.dx = this.grid;
+                this.snake.dy = 0;
+            }
+            // Down
+            else if (e.which === 40 && this.snake.dy === 0) {
+                this.snake.dy = this.grid;
+                this.snake.dx = 0;
+            }
         },
 
         drawStartMessage() {
@@ -383,19 +475,17 @@ window.Arcade = {    // Global Settings
             this.snake.x += this.snake.dx;
             this.snake.y += this.snake.dy;
 
-            // Wall Collision Logic
+            // Wall Collision Logic (Always Wrap for fun unless Hardcore set? Let's Default Wrap)
+            // Or use Arcade.settings.walls
             if (Arcade.settings.snakeWalls) {
-                // Hard Walls
                 if (this.snake.x < 0 || this.snake.x >= this.canvas.width ||
                     this.snake.y < 0 || this.snake.y >= this.canvas.height) {
                     this.gameOver();
                     return;
                 }
             } else {
-                // Wrap Walls
                 if (this.snake.x < 0) this.snake.x = this.canvas.width - this.grid;
                 else if (this.snake.x >= this.canvas.width) this.snake.x = 0;
-
                 if (this.snake.y < 0) this.snake.y = this.canvas.height - this.grid;
                 else if (this.snake.y >= this.canvas.height) this.snake.y = 0;
             }
@@ -406,33 +496,42 @@ window.Arcade = {    // Global Settings
                 this.snake.cells.pop();
             }
 
-            // Apple Collision
-            if (this.snake.x === this.apple.x && this.snake.y === this.apple.y) {
-                this.snake.maxCells++;
-                this.score += 10;
-                document.getElementById('snake-current-score').textContent = this.score;
-                this.placeApple();
-                if (Arcade.Audio) Arcade.Audio.ping();
-            }
+            // Apple Collision (Check ALL apples)
+            let ate = false;
+            // Use reverse loop to allow splicing if we wanted to remove specific apples, 
+            // but here we just respawn them.
+            this.apples.forEach((apple, index) => {
+                if (this.snake.x === apple.x && this.snake.y === apple.y) {
+                    this.snake.maxCells++;
+                    this.score += 10;
+                    document.getElementById('snake-current-score').textContent = this.score;
+
+                    // Respawn THIS apple
+                    this.placeApple(index);
+
+                    if (Arcade.Audio) Arcade.Audio.ping();
+                    ate = true;
+                }
+            });
 
             // Draw
             this.draw();
         },
 
         draw() {
-            // Clear
             this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-            // Draw Apple
+            // Draw Apples
             this.ctx.fillStyle = this.getThemeColor('apple');
-            this.ctx.fillRect(this.apple.x, this.apple.y, this.grid - 1, this.grid - 1);
+            this.apples.forEach(apple => {
+                this.ctx.fillRect(apple.x, apple.y, this.grid - 1, this.grid - 1);
+            });
 
             // Draw Snake
             this.ctx.fillStyle = this.getThemeColor('snake');
             this.snake.cells.forEach((cell, index) => {
                 this.ctx.fillRect(cell.x, cell.y, this.grid - 1, this.grid - 1);
-
-                // Self Collision Check
+                // Self Collision
                 if (index > 0 && cell.x === this.snake.x && cell.y === this.snake.y) {
                     this.gameOver();
                 }
@@ -440,21 +539,38 @@ window.Arcade = {    // Global Settings
         },
 
         getThemeColor(type) {
-            // Theme Colors
             const themes = {
-                classic: { snake: '#4ade80', apple: '#ef4444' }, // Green/Red
-                neon: { snake: '#d946ef', apple: '#22d3ee' },    // Pink/Cyan
-                retro: { snake: '#ffffff', apple: '#ffffff' }    // Monochrome
+                classic: { snake: '#4ade80', apple: '#ef4444' },
+                neon: { snake: '#d946ef', apple: '#22d3ee' },
+                retro: { snake: '#ffffff', apple: '#888888' }
             };
-            return themes[Arcade.settings.snakeTheme][type];
+            const t = themes[Arcade.settings.snakeTheme] || themes['classic'];
+            return t[type];
         },
 
-        placeApple() {
-            this.apple.x = this.getRandomInt(0, 25) * this.grid;
-            this.apple.y = this.getRandomInt(0, 25) * this.grid;
-            // Ensure not on snake
-            if (this.snake.cells.some(c => c.x === this.apple.x && c.y === this.apple.y)) {
-                this.placeApple();
+        placeApple(indexToReplace = -1) {
+            // New random pos
+            const newApple = {
+                x: this.getRandomInt(0, 25) * this.grid,
+                y: this.getRandomInt(0, 25) * this.grid
+            };
+
+            // Check collision with snake
+            if (this.snake.cells.some(c => c.x === newApple.x && c.y === newApple.y)) {
+                this.placeApple(indexToReplace); // Retry
+                return;
+            }
+
+            // Check collision with other apples
+            if (this.apples.some(a => a.x === newApple.x && a.y === newApple.y)) {
+                this.placeApple(indexToReplace); // Retry
+                return;
+            }
+
+            if (indexToReplace !== -1) {
+                this.apples[indexToReplace] = newApple;
+            } else {
+                this.apples.push(newApple);
             }
         },
 
@@ -467,12 +583,20 @@ window.Arcade = {    // Global Settings
             if (Arcade.Audio) Arcade.Audio.die();
             const isHigh = Arcade.saveScore('snake', this.score);
             Arcade.updateUI();
-
-            // Show Game Over Screen
             const goScreen = document.getElementById('snake-game-over');
-            const goTitle = goScreen.querySelector('h2');
+            // Fix: Use correct selector for new structure
+            const goTitle = goScreen.querySelector('.game-over-title') || goScreen.querySelector('h2');
             goTitle.textContent = isHigh ? "NY REKORD! 🏆" : "SPILLET ER SLUT";
+
+            const finalScore = document.getElementById('snake-final-score');
+            if (finalScore) finalScore.textContent = this.score;
+
             goScreen.classList.remove('hidden');
+            // Force visibility (override inline hide)
+            goScreen.style.display = 'flex';
+            goScreen.style.visibility = 'visible';
+            goScreen.style.opacity = '1';
+            goScreen.style.pointerEvents = 'auto';
         },
 
         // Called when eating apple
@@ -1591,19 +1715,28 @@ window.Arcade = {    // Global Settings
                 this.updateTile(this.currentRow, i, '');
             }
 
-            // Type the word safely
+            // Type the word safely with stagger
             const letters = word.split('');
-            letters.forEach(l => this.addLetter(l));
+            let delay = 0;
 
-            // Force Submit (bypass validation if needed, or just call submit)
-            this.submitGuess(true); // true = isRemote
+            letters.forEach((l, index) => {
+                setTimeout(() => {
+                    this.addLetter(l, true); // true = silent
+                }, delay);
+                delay += 250; // 250ms stagger (Slower as requested)
+            });
+
+            // Force Submit after typing
+            setTimeout(() => {
+                this.submitGuess(true); // true = isRemote
+            }, delay + 50);
         },
 
-        addLetter(letter) {
+        addLetter(letter, silent = false) {
             if (this.guess.length < 5) {
                 this.guess.push(letter);
                 this.updateTile(this.currentRow, this.guess.length - 1, letter);
-                if (Arcade.Audio) Arcade.Audio.type();
+                if (!silent && Arcade.Audio) Arcade.Audio.type();
             }
         },
 
@@ -1812,14 +1945,19 @@ window.Arcade = {    // Global Settings
 
         gameOver(won) {
             this.gameActive = false;
-            const overlay = document.getElementById('wordle-game-over');
-            const msg = document.getElementById('wordle-msg');
-            const res = document.getElementById('wordle-result-word');
 
-            msg.textContent = won ? "GODT GÅET!" : "ÆV, NÆSTE GANG!";
-            res.textContent = this.solution;
+            const title = won ? "GODT GÅET!" : "ÆV!";
+            const msg = won ? `Ordet var: <strong style="color:var(--accent)">${this.solution}</strong>` : `Ordet var: <strong>${this.solution}</strong>`;
 
-            overlay.classList.remove('hidden');
+            if (Arcade.showSimpleGameOver) {
+                Arcade.showSimpleGameOver(
+                    title,
+                    msg,
+                    "Nyt Ord",
+                    () => window.restartWordle(),
+                    () => window.closeWordle()
+                );
+            }
 
             // Direct Trigger for Juice
             if (won && window.fireConfetti) window.fireConfetti();
@@ -2114,20 +2252,35 @@ window.Arcade = {    // Global Settings
 
         gameOver(won) {
             this.gameActive = false;
-            const overlay = document.getElementById('pong-game-over');
-            const msg = document.getElementById('pong-msg');
-            msg.textContent = won ? "DU VANDT!" : "DU TABTE!";
+
+            const title = won ? "DU VANDT! 🏆" : "DU TABTE 💀";
+            const msg = won ? "Fedt mand! Vil du spille igen?" : "Bedre held næste gang!";
+
+            if (Arcade.showSimpleGameOver) {
+                Arcade.showSimpleGameOver(
+                    title,
+                    msg,
+                    "Spil Igen",
+                    () => window.restartPong(),
+                    () => window.closePong()
+                );
+            }
+
             if (won) {
-                if (Arcade.Audio) Arcade.Audio.wordleWin(); // Recycle celebratory sound
+                try {
+                    if (Arcade.Audio) Arcade.Audio.wordleWin();
+                } catch (e) { }
+
                 // Update persistent score (Total Wins?)
                 let currentWins = Arcade.state.highScores['pong_wins'] || 0;
                 currentWins++;
                 Arcade.saveScore('pong_wins', currentWins);
                 Arcade.updateUI(); // Refresh menu
             } else {
-                if (Arcade.Audio) Arcade.Audio.wordleLose();
+                try {
+                    if (Arcade.Audio) Arcade.Audio.wordleLose();
+                } catch (e) { }
             }
-            overlay.classList.remove('hidden');
         },
 
         hideGameOver() {
@@ -2139,375 +2292,12 @@ window.Arcade = {    // Global Settings
             // ... simplistic hex parser if needed, but canvas takes hex strings fine
             return hex;
         }
-    },
-
-    Space: {
-        canvas: null,
-        ctx: null,
-        animationId: null,
-        width: 0,
-        height: 0,
-        isPaused: false,
-        gameActive: false,
-        lastTime: 0,
-
-        // Game State
-        score: 0,
-        lives: 3,
-        level: 1,
-
-        // Entities
-        player: { x: 0, y: 0, w: 40, h: 40, speed: 5, movingLeft: false, movingRight: false, cooldown: 0, invulnerable: 0 },
-        bullets: [], // {x, y, vy, type: 'player'|'enemy'}
-        enemies: [], // {x, y, w, h, type, row, col}
-        particles: [],
-
-        // Enemy Config
-        enemyRows: 4,
-        enemyCols: 8,
-        enemyDir: 1, // 1 = right, -1 = left
-        enemySpeed: 1, // Increases not level
-        enemyDropAmount: 20,
-        enemyFireRate: 0.0005,
-
-        init() {
-            this.canvas = document.getElementById('space-canvas');
-            if (this.canvas) {
-                this.ctx = this.canvas.getContext('2d');
-                this.width = this.canvas.width;
-                this.height = this.canvas.height;
-            }
-
-            // Keyboard Listeners
-            window.addEventListener('keydown', e => {
-                if (!this.gameActive || this.isPaused) return;
-                if (e.key === 'ArrowLeft') this.player.movingLeft = true;
-                if (e.key === 'ArrowRight') this.player.movingRight = true;
-                if (e.key === ' ' || e.key === 'ArrowUp') this.fireBullet();
-            });
-
-            window.addEventListener('keyup', e => {
-                if (e.key === 'ArrowLeft') this.player.movingLeft = false;
-                if (e.key === 'ArrowRight') this.player.movingRight = false;
-            });
-
-            // Mobile Controls
-            const btnLeft = document.getElementById('btn-space-left');
-            const btnRight = document.getElementById('btn-space-right');
-            const btnFire = document.getElementById('btn-space-fire');
-
-            if (btnLeft) {
-                btnLeft.ontouchstart = (e) => { e.preventDefault(); this.player.movingLeft = true; };
-                btnLeft.ontouchend = (e) => { e.preventDefault(); this.player.movingLeft = false; };
-                // Mouse fallback
-                btnLeft.onmousedown = (e) => { this.player.movingLeft = true; };
-                btnLeft.onmouseup = (e) => { this.player.movingLeft = false; };
-            }
-            if (btnRight) {
-                btnRight.ontouchstart = (e) => { e.preventDefault(); this.player.movingRight = true; };
-                btnRight.ontouchend = (e) => { e.preventDefault(); this.player.movingRight = false; };
-                btnRight.onmousedown = (e) => { this.player.movingRight = true; };
-                btnRight.onmouseup = (e) => { this.player.movingRight = false; };
-            }
-            if (btnFire) {
-                btnFire.ontouchstart = (e) => { e.preventDefault(); this.fireBullet(); btnFire.classList.add('active'); };
-                btnFire.ontouchend = (e) => { e.preventDefault(); btnFire.classList.remove('active'); };
-                btnFire.onmousedown = (e) => { this.fireBullet(); };
-            }
-        },
-
-        start() {
-            if (!this.canvas) this.init();
-            this.resetGame();
-            this.gameActive = true;
-            this.isPaused = false;
-            this.lastTime = performance.now();
-            this.hideGameOver();
-            this.loop(this.lastTime);
-            // Focus canvas for keyboard
-            this.canvas.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        },
-
-        stop() {
-            this.gameActive = false;
-            cancelAnimationFrame(this.animationId);
-        },
-
-        resetGame() {
-            this.score = 0;
-            this.lives = 3;
-            this.level = 1;
-            this.resetLevel();
-            this.updateHUD();
-        },
-
-        resetLevel() {
-            this.bullets = [];
-            this.particles = [];
-
-            // Player Pos
-            this.player.x = this.width / 2 - this.player.w / 2;
-            this.player.y = this.height - 60;
-            this.player.movingLeft = false;
-            this.player.movingRight = false;
-
-            // Spawn Enemies
-            this.enemies = [];
-            const startX = 50;
-            const startY = 50;
-            const gap = 15;
-            const w = 30;
-            const h = 20;
-
-            // Difficulty config from settings
-            let difficulty = 'normal';
-            if (window.Arcade && window.Arcade.settings) difficulty = window.Arcade.settings.spaceDifficulty || 'normal';
-
-            this.enemySpeed = (difficulty === 'easy' ? 0.3 : difficulty === 'hard' ? 1.0 : 0.6) + (this.level * 0.1);
-            this.enemyFireRate = (difficulty === 'easy' ? 0.0001 : difficulty === 'hard' ? 0.001 : 0.0003) + (this.level * 0.0001);
-
-            for (let r = 0; r < this.enemyRows; r++) {
-                for (let c = 0; c < this.enemyCols; c++) {
-                    this.enemies.push({
-                        x: startX + c * (w + gap),
-                        y: startY + r * (h + gap),
-                        w: w,
-                        h: h,
-                        row: r,
-                        col: c,
-                        active: true
-                    });
-                }
-            }
-        },
-
-        fireBullet() {
-            if (!this.gameActive || this.player.cooldown > 0) return;
-
-            this.bullets.push({
-                x: this.player.x + this.player.w / 2,
-                y: this.player.y,
-                vy: -8,
-                type: 'player'
-            });
-
-            // Sound
-            if (window.Arcade.Audio) window.Arcade.Audio.pop(); // Reuse pop sound
-            this.player.cooldown = 15;
-        },
-
-        update(dt) {
-            if (this.isPaused) return;
-
-            // Player Cooldown
-            if (this.player.cooldown > 0) this.player.cooldown--;
-            if (this.player.invulnerable > 0) this.player.invulnerable--;
-
-            // Player Move
-            if (this.player.movingLeft && this.player.x > 0) this.player.x -= this.player.speed;
-            if (this.player.movingRight && this.player.x + this.player.w < this.width) this.player.x += this.player.speed;
-
-            // Bullets
-            for (let i = this.bullets.length - 1; i >= 0; i--) {
-                const b = this.bullets[i];
-                b.y += b.vy;
-
-                // Off screen
-                if (b.y < 0 || b.y > this.height) {
-                    this.bullets.splice(i, 1);
-                    continue;
-                }
-
-                // Collisions
-                if (b.type === 'player') {
-                    // Check Enemies
-                    let hit = false;
-                    for (let e of this.enemies) {
-                        if (e.active && b.x >= e.x && b.x <= e.x + e.w && b.y >= e.y && b.y <= e.y + e.h) {
-                            e.active = false;
-                            this.bullets.splice(i, 1);
-                            this.createExplosion(e.x + e.w / 2, e.y + e.h / 2, '#c084fc');
-                            this.score += 10 * this.level;
-                            this.updateHUD();
-                            hit = true;
-
-                            // Check Win Level
-                            if (this.enemies.every(en => !en.active)) {
-                                this.level++;
-                                setTimeout(() => this.resetLevel(), 1000);
-                            }
-                            break;
-                        }
-                    }
-                    if (hit) continue;
-                } else if (b.type === 'enemy') {
-                    // Check Player
-                    if (this.player.invulnerable <= 0 &&
-                        b.x >= this.player.x && b.x <= this.player.x + this.player.w &&
-                        b.y >= this.player.y && b.y <= this.player.y + this.player.h) {
-                        this.bullets.splice(i, 1);
-                        this.lives--;
-                        this.player.invulnerable = 120; // 2 seconds i-frames
-                        this.createExplosion(this.player.x + this.player.w / 2, this.player.y + this.player.h / 2, '#ef4444');
-                        this.updateHUD();
-                        if (this.lives <= 0) this.gameOver();
-                        continue;
-                    }
-                }
-            }
-
-            // Enemy Logic (March)
-            let hitEdge = false;
-            let activeCount = 0;
-            // Find rightmost and leftmost active
-            for (let e of this.enemies) {
-                if (!e.active) continue;
-                activeCount++;
-                if (this.enemyDir === 1 && e.x + e.w > this.width - 10) hitEdge = true;
-                if (this.enemyDir === -1 && e.x < 10) hitEdge = true;
-
-                // Random Fire
-                if (Math.random() < this.enemyFireRate) {
-                    this.bullets.push({
-                        x: e.x + e.w / 2,
-                        y: e.y + e.h,
-                        vy: 4 + (this.level * 0.5),
-                        type: 'enemy'
-                    });
-                }
-
-                // Lose condition: Touch bottom
-                if (e.y + e.h >= this.player.y) {
-                    this.gameOver();
-                }
-            }
-
-            if (hitEdge) {
-                this.enemyDir *= -1;
-                this.enemies.forEach(e => e.y += this.enemyDropAmount);
-            } else {
-                this.enemies.forEach(e => {
-                    if (e.active) e.x += this.enemySpeed * this.enemyDir;
-                });
-            }
-
-            // Particles
-            for (let i = this.particles.length - 1; i >= 0; i--) {
-                const p = this.particles[i];
-                p.x += p.vx;
-                p.y += p.vy;
-                p.life--;
-                if (p.life <= 0) this.particles.splice(i, 1);
-            }
-        },
-
-        draw() {
-            // Bg
-            this.ctx.clearRect(0, 0, this.width, this.height);
-
-            // Access theme
-            const root = document.body;
-            const accent = getComputedStyle(root).getPropertyValue('--accent').trim();
-
-            // Player (Triangle)
-            if (this.player.invulnerable > 0 && Math.floor(Date.now() / 100) % 2 === 0) {
-                this.ctx.globalAlpha = 0.5;
-            } else {
-                this.ctx.globalAlpha = 1.0;
-            }
-
-            this.ctx.fillStyle = accent;
-            this.ctx.beginPath();
-            this.ctx.moveTo(this.player.x + this.player.w / 2, this.player.y);
-            this.ctx.lineTo(this.player.x + this.player.w, this.player.y + this.player.h);
-            this.ctx.lineTo(this.player.x, this.player.y + this.player.h);
-            this.ctx.closePath();
-            this.ctx.fill();
-
-            // Engines
-            if (this.gameActive) {
-                this.ctx.fillStyle = '#fbbf24';
-                this.ctx.beginPath();
-                this.ctx.moveTo(this.player.x + 10, this.player.y + this.player.h);
-                this.ctx.lineTo(this.player.x + 20, this.player.y + this.player.h + (Math.random() * 10 + 5));
-                this.ctx.lineTo(this.player.x + 30, this.player.y + this.player.h);
-                this.ctx.fill();
-            }
-
-            this.ctx.globalAlpha = 1.0; // Reset
-
-            // Enemies
-            this.enemies.forEach(e => {
-                if (!e.active) return;
-                // Color based on row
-                this.ctx.fillStyle = e.row % 2 === 0 ? '#ff79c6' : '#bd93f9'; // Pink/Purple
-                this.ctx.fillRect(e.x, e.y, e.w, e.h);
-
-                // Eyes
-                this.ctx.fillStyle = '#282a36';
-                this.ctx.fillRect(e.x + 5, e.y + 5, 5, 5);
-                this.ctx.fillRect(e.x + e.w - 10, e.y + 5, 5, 5);
-            });
-
-            // Bullets
-            this.bullets.forEach(b => {
-                this.ctx.fillStyle = b.type === 'player' ? '#f8f8f2' : '#ff5555';
-                this.ctx.fillRect(b.x - 2, b.y, 4, 10);
-            });
-
-            // Particles
-            this.particles.forEach(p => {
-                this.ctx.fillStyle = p.color;
-                this.ctx.globalAlpha = p.life / 20;
-                this.ctx.fillRect(p.x, p.y, 3, 3);
-                this.ctx.globalAlpha = 1;
-            });
-        },
-
-        createExplosion(x, y, color) {
-            for (let i = 0; i < 10; i++) {
-                this.particles.push({
-                    x: x, y: y,
-                    vx: (Math.random() - 0.5) * 4,
-                    vy: (Math.random() - 0.5) * 4,
-                    life: 20,
-                    color: color
-                });
-            }
-        },
-
-        updateHUD() {
-            document.getElementById('space-score').textContent = this.score;
-            document.getElementById('space-lives').textContent = "❤️".repeat(Math.max(0, this.lives));
-        },
-
-        gameOver() {
-            this.gameActive = false;
-            document.getElementById('space-game-over').classList.remove('hidden');
-
-            // Save Score
-            const oldHigh = window.Arcade.state.highScores['space'] || 0;
-            if (this.score > oldHigh) {
-                window.Arcade.saveScore('space', this.score);
-                window.Arcade.updateUI(); // Updates menu display via monkey patch
-            }
-        },
-
-        hideGameOver() {
-            document.getElementById('space-game-over').classList.add('hidden');
-        },
-
-        loop(timestamp) {
-            if (!this.gameActive) return;
-            const dt = timestamp - this.lastTime;
-            this.lastTime = timestamp;
-
-            this.update(dt);
-            this.draw();
-            this.animationId = requestAnimationFrame((t) => this.loop(t));
-        }
     }
 };
+
+// Space Invaders Removed 
+
+// Space Logic Fully Removed
 
 // Update UI helper to handle Pong AND Space
 const originalUpdateUI2 = Arcade.updateUI;
@@ -2653,7 +2443,8 @@ window.renderShopItemsFinal = function () {
     }
 
     // DEBUG PROBE
-    list.innerHTML = '<div style="color:red; padding:20px;">LOADING SHOP v27...</div>';
+    // DEBUG PROBE - REMOVED
+    // list.innerHTML = '<div style="color:red; padding:20px;">LOADING SHOP v27...</div>';
 
     // FORCE GRID & PADDING
     list.style.display = 'grid';
@@ -2672,9 +2463,9 @@ window.renderShopItemsFinal = function () {
         { id: 'snake-skin-neon', name: 'Neon Snake', type: 'skin', cost: 300, desc: 'Selvlysende slange.' }
     ];
 
-    // Update Header to show count (Visual Debug)
-    const header = document.querySelector('#arcade-shop-final h2');
-    if (header) header.textContent = `Arcade Shop 🛒 v27 (${items.length})`;
+    // Update Header to show count (Visual Debug) - REMOVED for clean UI
+    // const header = document.querySelector('#arcade-shop-final h2');
+    // if (header) header.textContent = `Arcade Shop 🛒 v27 (${items.length})`;
 
     let inventory = [];
     let coins = 0;
@@ -2755,12 +2546,21 @@ window.openShop = () => {
     // 1. Open Modal (Standard Way)
     openModal('arcade-shop-final');
 
+    // Force Clean Title (Immediate)
+    const titleEl = document.querySelector('#arcade-shop-final .modal-header h2');
+    if (titleEl) titleEl.textContent = "Arcade Shop 🛒";
+
     // 2. Render Content (Using the Override Logic if available)
     if (window.renderShopItemsOverride) {
         window.renderShopItemsOverride();
     } else if (window.renderShopItems) {
         window.renderShopItems();
     }
+
+    // 3. FORCE CLEAN TITLE AGAIN (Async) - No longer needed as source is fixed
+    // setTimeout(() => {
+    //     if (titleEl) titleEl.textContent = "Arcade Shop 🛒";
+    // }, 10);
 };
 
 window.closeShop = () => {
@@ -2784,18 +2584,10 @@ window.closeShop = () => {
 
 window.editPlayerName = window.openProfileHub; // Legacy mapping
 
-window.openArcade = () => {
-    document.getElementById('view-dashboard').classList.add('hidden');
-    document.getElementById('view-arcade').classList.remove('hidden');
-    // Ensure name is loaded
-    if (!Arcade.state.playerName) {
-        // Optional logic
-    }
-};
 
 // VERSION CHECK (Safe)
 document.addEventListener('DOMContentLoaded', () => {
     const vTag = document.getElementById('version-display');
-    if (vTag) vTag.textContent = "v114 (IDs Fixed)";
-    console.log("Version v114 Loaded");
+    if (vTag) vTag.textContent = "v55";
+    console.log("Version v55 Loaded");
 });

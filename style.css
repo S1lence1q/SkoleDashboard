@@ -335,7 +335,8 @@ body {
 /* Layout */
 .app-container {
     width: 100%;
-    max-width: 1000px;
+    max-width: 100%;
+    /* FIX: Full width to ensure scrolling works everywhere */
     height: 100%;
     /* Fill the fixed body */
     display: flex;
@@ -359,6 +360,10 @@ body {
     padding: 0 5px;
     flex-shrink: 0;
     /* Keep nav fixed size */
+    width: 100%;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 /* Dashboard Scroll Container */
@@ -513,8 +518,8 @@ h1,
 
 .settings-btn:hover {
     transform: scale(1.1);
-    border-color: var(--accent);
-    background-color: var(--bg-card-highlight);
+    /* border-color: var(--accent); */
+    /* background-color: var(--bg-card-highlight); */
 }
 
 
@@ -525,8 +530,13 @@ h1,
 
 .storyboard-container {
     width: 100%;
-    max-width: 800px;
-    margin: 0 auto;
+    max-width: 100%;
+    /* FIX: Full width to prevent scroll dead zones */
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    /* Center the content cards */
 }
 
 .story-section {
@@ -549,7 +559,8 @@ h1,
 
 .content-wrapper {
     width: 100%;
-    max-width: 600px;
+    max-width: 900px;
+    /* Wider schedule for better readability */
 }
 
 /* HERO SECTION SPECIFICS */
@@ -1444,6 +1455,16 @@ button:active {
     align-items: center;
 }
 
+.stat-pill {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 6px 12px;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
 .hub-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -1665,17 +1686,29 @@ body.animations-active .subject-widget {
 .schedule-item {
     background-color: var(--bg-card);
     border-radius: var(--radius-md);
-    padding: var(--spacing-sm) var(--spacing-md);
+    padding: 1.2rem;
+    /* More spacing */
     display: flex;
     align-items: center;
     gap: var(--spacing-md);
-    transition: background-color 0.2s;
+    transition: all 0.2s ease;
+    /* Smoother transition */
     border-left: 4px solid transparent;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    /* Subtle border definition */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    /* Depth */
 }
 
 .schedule-item.active {
     background-color: var(--bg-card-highlight);
     border-left: 4px solid var(--accent);
+    transform: scale(1.02);
+    /* Pop effect */
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+    /* Stronger shadow */
+    border-color: var(--accent);
+    /* Highlight border */
 }
 
 .schedule-item.past {
@@ -1707,7 +1740,7 @@ body.animations-active .subject-widget {
 
 /* Utilities */
 .hidden {
-    display: none;
+    display: none !important;
 }
 
 .hidden-input {
@@ -2220,21 +2253,29 @@ header {
 }
 
 /* PREMIUM SCHEDULE CARDS */
+/* PREMIUM SCHEDULE CARDS */
 .schedule-card {
     /* FORCE SOLID COLOR - NO TRANSPARENCY */
     background: var(--bg-card) !important;
     border: 1px solid rgba(255, 255, 255, 0.05);
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     backdrop-filter: none;
-    border-radius: 16px;
     padding: 20px;
     margin-bottom: 12px;
     transition: all 0.2s ease;
-    display: flex;
-    justify-content: space-between;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+
+    /* GRID LAYOUT TO PREVENT OVERLAP */
+    display: grid;
+    grid-template-columns: 80px 1fr auto;
+    /* Fixed Time | Fluid Subject | Auto Teacher */
     align-items: center;
+    gap: 15px;
+
     position: relative;
-    overflow: hidden;
+    overflow: visible;
+    /* changed from hidden to allow popout if needed, but grid contains it well */
     /* Ensure hardware acceleration */
     transform: translateZ(0);
 }
@@ -2406,17 +2447,10 @@ header {
     width: 100%;
     height: 100%;
     background: var(--bg-app);
-    /* Dynamic Theme Spotlight (Parallax) */
-    background-image: radial-gradient(circle at calc(50% + var(--mouse-x, 0) * 100px) calc(30% + var(--mouse-y, 0) * 80px),
-            rgba(var(--accent-rgb), 0.15),
-            transparent 70%);
     z-index: 10005;
-    /* Max Z-Index (Above Header) */
     display: flex;
     flex-direction: column;
-    animation: fadeIn 0.3s ease;
-    transition: background-image 0.1s;
-    /* Smooth out jagged mouse moves */
+    /* Animation removed - now handled via Nuclear JS */
 }
 
 .arcade-header {
@@ -4195,4 +4229,36 @@ body.theme-ocean {
         opacity: 0;
         transform: translate(-50%, -50%) scale(0.95);
     }
+}
+
+/* SPA TRANSITIONS (Premium Feel) */
+@keyframes arcadeFadeIn {
+    0% {
+        opacity: 0;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+@keyframes slideDownOut {
+    0% {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateY(30px) scale(0.98);
+        opacity: 0;
+    }
+}
+
+.arcade-fade-in {
+    animation: arcadeFadeIn 0.5s ease forwards !important;
+}
+
+.anim-slide-down-out {
+    animation: slideDownOut 0.5s cubic-bezier(0.32, 0.72, 0, 1) forwards !important;
+    pointer-events: none;
 }

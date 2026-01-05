@@ -570,6 +570,18 @@ function updateTime() {
         now = new Date(now.getTime() + currentState.timeOffset);
     }
 
+    // Dynamic Greeting
+    const hour = now.getHours();
+    let greeting = "Lige nu";
+    if (hour >= 5 && hour < 10) greeting = "Godmorgen 🌅";
+    else if (hour >= 10 && hour < 14) greeting = "God formiddag 👋";
+    else if (hour >= 14 && hour < 18) greeting = "God eftermiddag ☕";
+    else if (hour >= 18 && hour < 24) greeting = "God aften 🌙";
+    else greeting = "Godnat 🦉";
+
+    const statusEl = document.getElementById('status-label');
+    if (statusEl) statusEl.textContent = capitalizeFirstLetter(greeting);
+
     // Update Header Clock (REMOVED - Cleaner look)
     // const timeString = now.toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' });
     // if(clockEl) clockEl.textContent = timeString;
@@ -1169,6 +1181,16 @@ const extrasOverlay = document.getElementById('extras-overlay');
 if (menuBtn && extrasOverlay) {
     menuBtn.addEventListener('click', () => {
         extrasOverlay.classList.remove('hidden');
+
+        // Show God Mode Tools if active
+        const gmMenu = document.getElementById('menu-god-mode');
+        if (gmMenu) {
+            if (window.Arcade && window.Arcade.godMode) {
+                gmMenu.classList.remove('hidden');
+            } else {
+                gmMenu.classList.add('hidden');
+            }
+        }
     });
 }
 
@@ -1284,49 +1306,131 @@ window.handleArcadeBack = function () {
 }
 
 window.openArcade = function () {
-    document.getElementById('extras-overlay').classList.add('hidden');
-    document.getElementById('main-header').classList.add('hidden'); // Hide Main Header to prevent overlap
+    const dashboard = document.getElementById('view-dashboard');
     const arcade = document.getElementById('view-arcade');
+    const extras = document.getElementById('extras-overlay');
+    const header = document.getElementById('main-header');
 
-    // Animate In
-    arcade.classList.add('fade-target');
-    arcade.classList.add('fade-out-state');
+    if (extras) extras.classList.add('hidden');
+    if (header) header.classList.add('hidden');
+
+    // 1. NUCLEAR RESET: Kill all prev anims & styles
+    arcade.getAnimations().forEach(anim => anim.cancel());
+    arcade.style.opacity = "0";
+    arcade.style.transform = "none";
+    arcade.style.transition = "none";
     arcade.classList.remove('hidden');
 
-    void arcade.offsetWidth;
-    arcade.classList.remove('fade-out-state');
+    // 2. DASHBOARD SHIELD: Keep it solid to hide background text
+    dashboard.classList.remove('hidden');
+    dashboard.style.opacity = "1";
+    dashboard.style.transition = "none";
+
+    // 3. PURE FADE IN
+    const anim = arcade.animate([
+        { opacity: 0 },
+        { opacity: 1 }
+    ], {
+        duration: 400,
+        easing: 'ease-out'
+    });
+
+    anim.onfinish = () => {
+        arcade.style.opacity = "1";
+        dashboard.classList.add('hidden');
+        dashboard.style.opacity = "";
+    };
 
     // Init Arcade engine
     if (window.Arcade) window.Arcade.init();
 }
 
 window.closeArcade = function () {
-    // Animate Out
+    const dashboard = document.getElementById('view-dashboard');
     const arcade = document.getElementById('view-arcade');
-    arcade.classList.add('fade-target');
-    arcade.classList.add('fade-out-state');
+    const header = document.getElementById('main-header');
 
-    setTimeout(() => {
+    // 1. NUCLEAR RESET & PREPARE REVEAL
+    dashboard.classList.remove('hidden');
+    dashboard.style.opacity = "1"; // Solid shield stays behind
+    dashboard.style.transition = "none";
+
+    arcade.getAnimations().forEach(anim => anim.cancel());
+    arcade.style.opacity = "1";
+    arcade.style.transition = "none";
+
+    // 2. PURE FADE OUT
+    const anim = arcade.animate([
+        { opacity: 1 },
+        { opacity: 0 }
+    ], {
+        duration: 400,
+        easing: 'ease-in'
+    });
+
+    anim.onfinish = () => {
         arcade.classList.add('hidden');
-        arcade.classList.remove('fade-target');
-        arcade.classList.remove('fade-out-state');
+        arcade.style.opacity = "";
+        arcade.style.transform = "";
+        if (header) header.classList.remove('hidden');
 
+        // Game Cleanup
         document.body.style.overflow = '';
         if (window.Arcade) {
-            if (window.Arcade.Snake) window.Arcade.Snake.stop();
-            if (window.Arcade.Breakout) window.Arcade.Breakout.stop();
-            if (window.Arcade.Wordle) window.Arcade.Wordle.stop();
+            ["Snake", "Breakout", "Wordle"].forEach(game => {
+                if (window.Arcade[game] && window.Arcade[game].stop) window.Arcade[game].stop();
+            });
         }
-    }, 300);
+    };
 }
 
+
+
+// Snake Specifics
 // Snake Specifics
 window.openSnake = function () {
+    console.log("🐍 OPENING SNAKE MENU");
     // Transition: Selector -> Snake
     window.transitionTo('arcade-game-selector', 'stage-snake');
 
-    // Start Game
-    if (window.Arcade) setTimeout(() => window.Arcade.Snake.start(), 300);
+    // Show Start Menu (FORCE VISIBILITY)
+    const menu = document.getElementById('snake-start-menu');
+    if (menu) {
+        menu.classList.remove('hidden');
+        menu.style.display = 'flex';
+        menu.style.visibility = 'visible';
+        menu.style.opacity = '1';
+        menu.style.zIndex = '9000';
+        menu.style.pointerEvents = 'auto'; // FIX: Make clickable!
+    } else {
+        console.error("❌ SNAKE MENU NOT FOUND IN DOM");
+    }
+
+    // Hide Game Over
+    const go = document.getElementById('snake-game-over');
+    if (go) {
+        go.classList.add('hidden');
+        go.style.display = 'none'; // Force hide
+    }
+
+    // Sync Menu UI with Saved Settings
+    if (window.Arcade && window.Arcade.settings) {
+        // 1. Sync Mode
+        const savedMode = window.Arcade.settings.snakeMode || 'classic';
+        const modeBtns = document.querySelectorAll("button[onclick^='setSnakeMode']");
+        modeBtns.forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.getAttribute('onclick').includes(`'${savedMode}'`)) btn.classList.add('active');
+        });
+    }
+}
+
+window.startSnakeGame = function () {
+    const menu = document.getElementById('snake-start-menu');
+    if (menu) menu.classList.add('hidden');
+
+    // Start Game Logic
+    if (window.Arcade) window.Arcade.Snake.start();
 }
 
 window.closeSnake = function () {
@@ -1340,6 +1444,9 @@ window.closeSnake = function () {
 
 window.restartSnake = function () {
     if (window.Arcade) window.Arcade.Snake.start();
+    // Ensure menu is hidden if restarting from game over
+    const menu = document.getElementById('snake-start-menu');
+    if (menu) menu.classList.add('hidden');
 }
 
 // Breakout Specifics
@@ -1464,11 +1571,31 @@ window.closeDuelLobby = function () {
     startWordleSolo();
 }
 
+// FIX: Missing global handlers needed for Game Over screen
+window.restartWordle = function () {
+    window.startWordleSolo();
+}
+
+window.closeWordle = function () {
+    window.transitionTo('stage-wordle', 'arcade-game-selector');
+    if (window.Arcade) window.Arcade.Wordle.stop();
+}
+
+window.restartPong = function () {
+    if (window.Arcade) window.Arcade.Pong.resetGame();
+}
+
+window.closePong = function () {
+    window.transitionTo('stage-pong', 'arcade-game-selector');
+    if (window.Arcade) window.Arcade.Pong.stop();
+}
+
 // Duel State
 let currentDuelCode = null;
 let currentDuelRole = null;
 
 window.createDuelRoom = function () {
+    window.closeSettings();
     // Simpler 2-digit code (10-99)
     const code = Math.floor(10 + Math.random() * 89).toString();
     currentDuelCode = code;
@@ -1494,6 +1621,7 @@ window.createDuelRoom = function () {
 }
 
 window.joinDuelRoom = function () {
+    window.closeSettings();
     const code = document.getElementById('duel-code-input').value;
     if (!code || code.length !== 2) return alert("Indtast 2-cifret kode");
 
@@ -1518,7 +1646,7 @@ window.joinDuelRoom = function () {
 
 function startDuelGame(word, code, role) {
     try {
-        document.getElementById('wordle-duel-lobby').classList.add('hidden');
+        // document.getElementById('wordle-duel-lobby').classList.add('hidden'); // Removed
         document.getElementById('wordle-board').classList.remove('hidden');
         document.getElementById('wordle-keyboard').classList.remove('hidden');
 
@@ -1529,21 +1657,21 @@ function startDuelGame(word, code, role) {
 
         // Status Elements (Now Exist)
         const myStatus = document.getElementById('duel-my-status');
-        if (myStatus) myStatus.textContent = "Række 1";
+        // if (myStatus) myStatus.textContent = "Række 1";
 
         // Improved waiting message
         if (role === 'host') {
             // Optional status updates
         }
         if (role === 'host') {
-            document.getElementById('duel-opp-status').textContent = "(Venter...)";
+            document.getElementById('duel-opp-status').textContent = "Spiller...";
         } else {
             document.getElementById('duel-opp-status').textContent = "Spiller...";
         }
 
         if (window.Arcade && window.Arcade.Wordle) {
             window.Arcade.Wordle.onProgress = (row) => {
-                document.getElementById('duel-my-status').textContent = "Række " + (row);
+                // document.getElementById('duel-my-status').textContent = "Række " + (row);
                 if (liveLinkState.db) {
                     liveLinkState.db.ref(`wordle_duels/${code}/${role}`).update({ row: row });
                 }
@@ -1607,8 +1735,8 @@ function startDuelGame(word, code, role) {
                 const oppStatusEl = document.getElementById('duel-opp-status');
 
                 if (data.status === 'playing') {
-                    oppStatusEl.textContent = `Række ${data.row + 1}`;
-                    oppStatusEl.style.color = '#fb7185';
+                    // oppStatusEl.textContent = `Række ${data.row + 1}`;
+                    // oppStatusEl.style.color = '#fb7185';
                 } else if (data.status === 'won') {
                     oppStatusEl.textContent = "HAR VUNDET! 🏆";
                     oppStatusEl.style.color = '#4ade80';
@@ -1633,6 +1761,11 @@ function startDuelGame(word, code, role) {
                     // Reset UI Text
                     document.getElementById('wordle-msg').textContent = "GODT GÅET!";
                     document.getElementById('wordle-game-over').classList.add('hidden');
+
+                    // Force remove global game over for remote peers
+                    const globalGO = document.getElementById('global-game-over');
+                    if (globalGO) globalGO.remove();
+
                     document.getElementById('duel-opp-status').textContent = "Spiller...";
                     document.getElementById('duel-opp-status').style.color = 'rgba(255,255,255,0.7)';
                 }
@@ -1660,8 +1793,8 @@ window.closeWordle = function () {
 
 window.restartWordle = function () {
     if (currentDuelCode) {
-        if (currentDuelRole === 'host') {
-            // Host triggers restart
+        if (true) {
+            // Host or Guest triggers restart
             const list = window.WordleData.solutions;
             const newWord = list[Math.floor(Math.random() * list.length)].toUpperCase();
 
@@ -1737,9 +1870,11 @@ window.refreshArcadeSettingsUI = function () {
 
     // Controls WRAPPERS (Basic & Advanced)
     // Basic Wrappers
+    const basicSnake = document.getElementById('basic-snake');
     const basicBreakout = document.getElementById('basic-breakout');
     const basicPong = document.getElementById('basic-pong');
     const basicSpace = document.getElementById('basic-space');
+    const basicWordle = document.getElementById('basic-wordle'); // NEW
 
     // Advanced Wrappers
     const advSnake = document.getElementById('adv-snake');
@@ -1795,6 +1930,8 @@ window.refreshArcadeSettingsUI = function () {
     if (basicBreakout) basicBreakout.classList.add('hidden');
     if (basicPong) basicPong.classList.add('hidden');
     if (basicSpace) basicSpace.classList.add('hidden');
+    if (basicSnake) basicSnake.classList.add('hidden');
+    if (basicWordle) basicWordle.classList.add('hidden');
 
     if (advSnake) advSnake.classList.add('hidden');
     if (advBreakout) advBreakout.classList.add('hidden');
@@ -1809,7 +1946,7 @@ window.refreshArcadeSettingsUI = function () {
 
     // SHOW RELEVANT CONTROLS
     if (isSnake) {
-        // Snake has no basic controls currently, only advanced
+        if (basicSnake) basicSnake.classList.remove('hidden');
         if (godMode && advSnake) advSnake.classList.remove('hidden');
     } else if (isBreakout) {
         if (basicBreakout) basicBreakout.classList.remove('hidden');
@@ -1820,7 +1957,7 @@ window.refreshArcadeSettingsUI = function () {
     } else if (isSpace) {
         if (basicSpace) basicSpace.classList.remove('hidden');
     } else if (isWordle) {
-        // Wordle has no standard settings yet
+        if (basicWordle) basicWordle.classList.remove('hidden');
     }
 }
 
@@ -2117,12 +2254,49 @@ window.setDifficultyPrompt = function (game, level, btn) {
     // 3. User Feedback & Close
     let txt = "Normal";
     if (level === 'easy') txt = "Let";
-    if (level === 'hard') txt = "Svær";
-    showArcadeToast(`${game.charAt(0).toUpperCase() + game.slice(1)}: ${txt} sat`, "success");
+    else if (level === 'hard') txt = "Svær";
 
-    // Close as requested by user ("Why are settings still open?")
-    setTimeout(closeSettings, 200);
+    window.showArcadeToast(`${game.toUpperCase()} sværhedsgrad sat til: ${txt}`, "info");
+
+    // Optional: Restart game if needed? 
+    // No, settings usually apply next run/live if supported.
 }
+
+window.setSnakeMode = function (mode, btn) {
+    updateArcadeSetting('snakeMode', mode);
+
+    // UI Visual Update
+    if (btn && btn.parentElement) {
+        const sibs = btn.parentElement.querySelectorAll('.segment-btn');
+        sibs.forEach(s => s.classList.remove('active'));
+        btn.classList.add('active');
+    }
+
+    let label = "Normal";
+    if (mode === 'fast') label = "Hurtig Lyneffekt";
+    if (mode === 'feast') label = "Buffet Mode (Mange æbler)";
+
+    window.showArcadeToast(`Snake Mode: ${label}`, "god");
+
+    // Force restart if game is active to apply changes
+    if (window.Arcade && window.Arcade.Snake && !window.Arcade.Snake.isPaused) {
+        // Asking user to restart might be better, but instant apply is fun
+        // window.Arcade.Snake.start(); // This would restart score. Let's just set settings.
+        // Actually, start() reads settings. Let's let them restart manually for fairness.
+    }
+}
+
+window.setSnakeTheme = function (theme, btn) {
+    updateArcadeSetting('theme', theme); // Maps to 'snakeTheme'
+
+    // UI Visual Update
+    if (btn && btn.parentElement) {
+        const sibs = btn.parentElement.querySelectorAll('.segment-btn');
+        sibs.forEach(s => s.classList.remove('active'));
+        btn.classList.add('active');
+    }
+}
+
 
 window.updateArcadeSetting = function (key, val) {
     if (!window.Arcade) return;
@@ -2161,6 +2335,7 @@ window.updateArcadeSetting = function (key, val) {
         'speed': 'snakeSpeed',
         'walls': 'snakeWalls',
         'theme': 'snakeTheme',
+        'snakeMode': 'snakeMode', // Fix: Allow mode saving
         'breakoutChance': 'breakoutChance',
         'breakoutMultiball': 'breakoutMultiball',
         'breakoutLives': 'breakoutLives',
@@ -2702,3 +2877,42 @@ function initImmersiveFX() {
 
 // Start Immersive FX
 initImmersiveFX();
+// --- TIME TRAVEL (God Mode) ---
+window.simulateTime = function (sliderVal) {
+    const now = new Date();
+    const target = new Date(now);
+
+    // sliderVal is 0-24 float
+    const val = parseFloat(sliderVal);
+    const h = Math.floor(val);
+    const m = Math.floor((val - h) * 60);
+
+    target.setHours(h, m, 0, 0);
+
+    // Calculate offset
+    currentState.timeOffset = target.getTime() - now.getTime();
+    currentState.isSimulating = true;
+
+    // Update display label if exists
+    const label = document.getElementById('sim-time-display');
+    if (label) label.textContent = `${pad(h)}:${pad(m)}`;
+
+    updateTime();
+}
+
+window.resetTime = function () {
+    currentState.isSimulating = false;
+    currentState.timeOffset = 0;
+    updateTime();
+
+    // Reset slider UI
+    const slider = document.getElementById('time-travel-slider');
+    const label = document.getElementById('sim-time-display');
+
+    // Set slider to current time
+    const now = new Date();
+    const currentFloat = now.getHours() + (now.getMinutes() / 60);
+
+    if (slider) slider.value = currentFloat;
+    if (label) label.textContent = "Live";
+}
