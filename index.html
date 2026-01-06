@@ -909,7 +909,7 @@
                                 <!-- Start Button (Right Aligned in Left Box) -->
                                 <div style="flex: 1; display: flex; justify-content: flex-end;">
                                     <button onclick="createDuelRoom()" class="btn primary"
-                                        style="padding: 6px 12px; font-size: 0.8rem; border-radius: 6px; flex-shrink: 0;">
+                                        style="height: 32px; min-height: 32px; padding: 0 12px; font-size: 0.8rem; border-radius: 6px; flex-shrink: 0; display: flex; align-items: center;">
                                         + Opret
                                     </button>
                                 </div>
@@ -921,11 +921,11 @@
                                 <div
                                     style="flex: 1; display: flex; justify-content: flex-start; gap: 6px; align-items: center;">
                                     <button onclick="joinDuelRoom()" class="btn secondary"
-                                        style="padding: 6px 10px; font-size: 0.8rem; border-radius: 6px;">
+                                        style="height: 32px; min-height: 32px; padding: 0 10px; font-size: 0.8rem; border-radius: 6px; display: flex; align-items: center;">
                                         Tilslut
                                     </button>
                                     <input type="text" id="duel-code-input"
-                                        style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 6px; color: white; border-radius: 6px; width: 40px; text-align: center; font-family: monospace; font-size: 0.9rem;"
+                                        style="height: 32px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 0 6px; color: white; border-radius: 6px; width: 40px; text-align: center; font-family: monospace; font-size: 0.9rem; box-sizing: border-box;"
                                         placeholder="00" maxlength="2" inputmode="numeric"
                                         onkeydown="if(event.key==='Enter'){ joinDuelRoom(); this.blur(); event.stopPropagation(); }">
                                 </div>
