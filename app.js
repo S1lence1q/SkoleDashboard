@@ -1919,6 +1919,16 @@ window.closePong = function () {
 // Duel State
 let currentDuelCode = null;
 let currentDuelRole = null;
+let selectedWordleMode = 'race';
+
+window.setWordleMode = function (mode, btn) {
+    selectedWordleMode = mode;
+    const parent = document.getElementById('seg-wordle-mode');
+    if (parent) {
+        parent.querySelectorAll('.segment-btn').forEach(b => b.classList.remove('active'));
+    }
+    btn.classList.add('active');
+}
 
 window.createDuelRoom = function () {
     window.closeSettings();
@@ -1935,7 +1945,9 @@ window.createDuelRoom = function () {
     if (liveLinkState && liveLinkState.db) {
         liveLinkState.db.ref('wordle_duels/' + code).set({
             word: word,
+            mode: selectedWordleMode,
             timestamp: Date.now(),
+            turn: 'host',
             host: { row: 0, status: 'playing' },
             guest: { row: 0, status: 'waiting' }
         });
@@ -1980,7 +1992,7 @@ window.joinDuelRoom = function () {
                 liveLinkState.db.ref('wordle_duels/' + code + '/guest').update({
                     status: 'playing'
                 });
-                startDuelGame(data.word, code, 'guest');
+                startDuelGame(data.word, code, 'guest', data.mode || 'race');
             } else {
                 alert("Rum ikke fundet (Prøv igen?)");
             }
@@ -1990,7 +2002,11 @@ window.joinDuelRoom = function () {
     }
 }
 
-function startDuelGame(word, code, role) {
+window.createDuelRoom = function () {
+    // Already defined above
+}
+
+function startDuelGame(word, code, role, mode = 'race') {
     try {
         // document.getElementById('wordle-duel-lobby').classList.add('hidden'); // Removed
         document.getElementById('wordle-board').classList.remove('hidden');
@@ -2042,35 +2058,66 @@ function startDuelGame(word, code, role) {
 
             // EXPLICIT START
             window.Arcade.Wordle.start(word, true);
-            window.Arcade.Wordle.gameActive = true; // Force flag
+            window.Arcade.Wordle.wordleMode = mode;
             window.Arcade.Wordle.gameActive = true;
 
-            // --- SHARED BOARD LOGIC (CO-OP: GUESS SYNC) ---
+            // --- SHARED BOARD LOGIC (CO-OP / TURN-BASED: GUESS SYNC) ---
             const guessesRef = liveLinkState.db.ref(`wordle_duels/${code}/guesses`);
-            const inputsRef = liveLinkState.db.ref(`wordle_duels/${code}/inputs`); // Keep inputsRef for cleanup
-            inputsRef.off(); // Cleanup old input listeners just in case
-            guessesRef.off(); // Cleanup old guess listeners
+            const roomRef = liveLinkState.db.ref(`wordle_duels/${code}`);
+            guessesRef.off();
 
             // 1. Send Local Guess
             window.Arcade.Wordle.onGuess = (word) => {
-                guessesRef.push({
-                    word: word,
-                    sender: role,
-                    timestamp: firebase.database.ServerValue.TIMESTAMP
-                });
+                if (mode === 'turn') {
+                    // Push to shared history
+                    guessesRef.push({
+                        word: word,
+                        sender: role,
+                        timestamp: firebase.database.ServerValue.TIMESTAMP
+                    });
+                    // Flip Turn
+                    const nextTurn = role === 'host' ? 'guest' : 'host';
+                    roomRef.update({ turn: nextTurn });
+                } else {
+                    // Race mode: just broadcast for summary?
+                    guessesRef.push({
+                        word: word,
+                        sender: role,
+                        timestamp: firebase.database.ServerValue.TIMESTAMP
+                    });
+                }
             };
 
             // 2. Receive Remote Guess
             guessesRef.limitToLast(1).on('child_added', snapshot => {
                 const data = snapshot.val();
-                // Only play if it's new (timestamp check?) or just if it's from opponent
-                // limitToLast(1) might catch old ones on restart?
-                // Better: check if it's NOT ME.
                 if (data && data.sender !== role) {
-                    console.log("Remote Guess:", data.word);
+                    console.log("Remote Guess received:", data.word);
                     window.Arcade.Wordle.playRemoteGuess(data.word);
                 }
             });
+
+            // 3. Turn-Based: Listen for Turn Changes
+            if (mode === 'turn') {
+                roomRef.child('turn').on('value', snap => {
+                    const turn = snap.val();
+                    const oppStatusEl = document.getElementById('duel-opp-status');
+
+                    if (turn === role) {
+                        window.Arcade.Wordle.isReadOnly = false;
+                        if (oppStatusEl) {
+                            oppStatusEl.textContent = "DIN TUR! ✨";
+                            oppStatusEl.style.color = "var(--accent)";
+                        }
+                    } else {
+                        window.Arcade.Wordle.isReadOnly = true;
+                        if (oppStatusEl) {
+                            oppStatusEl.textContent = "VENTER... ⏳";
+                            oppStatusEl.style.color = "rgba(255,255,255,0.5)";
+                        }
+                    }
+                });
+            }
             // ----------------------------------
 
             const opponentRole = role === 'host' ? 'guest' : 'host';

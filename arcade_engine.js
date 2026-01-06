@@ -1651,6 +1651,8 @@ window.Arcade = {    // Global Settings
         gridState: [], // 6 rows of 5 tiles
         gameActive: false,
         isAnimating: false,
+        isReadOnly: false, // NEW: Block input in turn-based mode
+        wordleMode: 'race', // 'race' or 'turn'
         streak: 0,
 
         // DUEL STATE
@@ -1665,6 +1667,7 @@ window.Arcade = {    // Global Settings
             this.currentCol = 0;
             this.guess = [];
             this.isAnimating = false;
+            this.isReadOnly = false;
             this.gridState = Array(6).fill().map(() => Array(5).fill('')); // Empty Grid
 
             // Pick Word
@@ -1706,7 +1709,7 @@ window.Arcade = {    // Global Settings
         onGuess: null, // Callback for FULL word submission
 
         handleKey(e) {
-            if (!this.gameActive || this.isAnimating) return;
+            if (!this.gameActive || this.isAnimating || this.isReadOnly) return;
             const key = e.key ? e.key.toUpperCase() : e.toUpperCase();
 
             // Prevent shortcuts
