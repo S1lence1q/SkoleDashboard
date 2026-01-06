@@ -1897,15 +1897,7 @@ window.closeDuelLobby = function () {
     startWordleSolo();
 }
 
-// FIX: Missing global handlers needed for Game Over screen
-window.restartWordle = function () {
-    window.startWordleSolo();
-}
-
-window.closeWordle = function () {
-    window.transitionTo('stage-wordle', 'arcade-game-selector');
-    if (window.Arcade) window.Arcade.Wordle.stop();
-}
+// Game handlers are defined further down in the Wordle/Duel section
 
 window.restartPong = function () {
     if (window.Arcade) window.Arcade.Pong.resetGame();
@@ -1961,7 +1953,7 @@ window.createDuelRoom = function () {
                  <p style="font-size:0.95rem; opacity:0.8; margin-top: 10px;">Giv koden til din ven for at starte kampen.</p>`,
                 "Start Spil",
                 () => {
-                    startDuelGame(word, code, 'host');
+                    startDuelGame(word, code, 'host', selectedWordleMode);
                 },
                 () => {
                     // Cancel / Fortryd
@@ -2002,9 +1994,6 @@ window.joinDuelRoom = function () {
     }
 }
 
-window.createDuelRoom = function () {
-    // Already defined above
-}
 
 function startDuelGame(word, code, role, mode = 'race') {
     try {
@@ -2192,10 +2181,12 @@ window.restartWordle = function () {
             const newWord = list[Math.floor(Math.random() * list.length)].toUpperCase();
 
             // 1. Reset Board Data
-            liveLinkState.db.ref(`wordle_duels/${currentDuelCode}`).update({
+            const resetData = {
                 word: newWord,
-                // Reset inputs? Maybe just clear them
-            });
+                turn: 'host' // Reset turn to host for new game
+            };
+            liveLinkState.db.ref(`wordle_duels/${currentDuelCode}`).update(resetData);
+
             liveLinkState.db.ref(`wordle_duels/${currentDuelCode}/inputs`).remove(); // Clear old history
             liveLinkState.db.ref(`wordle_duels/${currentDuelCode}/guesses`).remove(); // Clear guess history
 
