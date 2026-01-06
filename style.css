@@ -644,9 +644,12 @@ h1,
     font-weight: 400;
 }
 
-/* Schedule List Vertical Tweak */
 /* Day Selector & Buttons */
 .day-selector {
+    display: flex !important;
+    justify-content: center !important;
+    gap: 12px !important;
+    margin-bottom: 2rem !important;
     scrollbar-width: none;
     -ms-overflow-style: none;
     -webkit-overflow-scrolling: touch;
@@ -658,6 +661,8 @@ h1,
 }
 
 .day-btn {
+    all: unset;
+    /* Reset everything to be sure */
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
     color: var(--text-secondary);
@@ -670,6 +675,11 @@ h1,
     white-space: nowrap;
     min-width: 80px;
     scroll-snap-align: start;
+    text-align: center;
+    font-family: var(--font-family);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .day-btn:hover {
