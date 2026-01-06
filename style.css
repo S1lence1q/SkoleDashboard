@@ -559,8 +559,8 @@ h1,
 
 .content-wrapper {
     width: 100%;
-    max-width: 900px;
-    /* Wider schedule for better readability */
+    max-width: 650px;
+    /* Balanced width for elegance */
 }
 
 /* HERO SECTION SPECIFICS */
@@ -666,14 +666,14 @@ h1,
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
     color: var(--text-secondary);
-    padding: 10px 20px;
+    padding: 6px 16px;
     border-radius: 12px;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     white-space: nowrap;
-    min-width: 80px;
+    min-width: 60px;
     scroll-snap-align: start;
     text-align: center;
     font-family: var(--font-family);
