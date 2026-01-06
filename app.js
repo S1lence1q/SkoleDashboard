@@ -646,13 +646,7 @@ function updateTime() {
     }
 
     // Dynamic Greeting
-    const hour = now.getHours();
-    let greeting = "Lige nu";
-    if (hour >= 5 && hour < 10) greeting = "Godmorgen 🌅";
-    else if (hour >= 10 && hour < 14) greeting = "God formiddag 👋";
-    else if (hour >= 14 && hour < 18) greeting = "God eftermiddag ☕";
-    else if (hour >= 18 && hour < 24) greeting = "God aften 🌙";
-    else greeting = "Godnat 🦉";
+    const greeting = getDynamicGreeting(now);
 
     const statusEl = document.getElementById('status-label');
     if (statusEl) statusEl.textContent = capitalizeFirstLetter(greeting);
@@ -783,13 +777,7 @@ function updateStatus(now) {
             // Before school or in a gap
 
             // GREETING OVERRIDE FIX
-            // If it's morning (before 10) and we are waiting for something, say Good Morning
-            const hour = now.getHours();
-            if (hour < 10) {
-                statusLabelEl.textContent = "Godmorgen 🌅";
-            } else {
-                statusLabelEl.textContent = "Næste";
-            }
+            statusLabelEl.textContent = getDynamicGreeting(now);
 
             currentSubjectEl.textContent = nextLesson.subject;
             currentSubjectEl.style.color = nextLesson.color; // Use next lesson color
@@ -800,12 +788,11 @@ function updateStatus(now) {
 
             const diffSeconds = Math.floor((startTimeDate - now) / 1000);
             countdownEl.textContent = formatCountdown(diffSeconds);
-
             nextInfoEl.textContent = `Starter kl. ${nextLesson.start}`;
 
         } else {
             // After school
-            statusLabelEl.textContent = "Status";
+            statusLabelEl.textContent = getDynamicGreeting(now);
             currentSubjectEl.textContent = "Fri";
             currentSubjectEl.style.color = "var(--text-primary)";
             nextInfoEl.textContent = "Vi ses i morgen!";
@@ -3264,3 +3251,15 @@ document.addEventListener('DOMContentLoaded', () => {
         init();
     }
 });
+
+/**
+ * Returns a greeting based on the current hour.
+ */
+function getDynamicGreeting(now) {
+    const hour = now.getHours();
+    if (hour >= 5 && hour < 10) return "Godmorgen 🌅";
+    if (hour >= 10 && hour < 14) return "God formiddag 👋";
+    if (hour >= 14 && hour < 18) return "God eftermiddag ☕";
+    if (hour >= 18 && hour < 24) return "God aften 🌙";
+    return "Godnat 🦉";
+}

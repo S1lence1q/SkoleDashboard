@@ -7,7 +7,7 @@
 const BackgroundEffects = {
     canvas: null,
     ctx: null,
-    particles: [],
+    weatherParticles: [],
     animationId: null,
 
     // State
@@ -81,11 +81,11 @@ const BackgroundEffects = {
     },
 
     createParticles() {
-        this.particles = [];
-        const count = 80; // Slightly more for better coverage
+        this.weatherParticles = [];
+        const count = 60; // Clean density for weather only
 
         for (let i = 0; i < count; i++) {
-            this.particles.push(this.getParticleType());
+            this.weatherParticles.push(this.getParticleType());
         }
     },
 
@@ -94,16 +94,16 @@ const BackgroundEffects = {
             x: Math.random() * this.canvas.width,
             y: Math.random() * this.canvas.height,
             size: Math.random() * 2 + 1,
-            speedX: (Math.random() - 0.5) * 0.2,
-            speedY: Math.random() * 0.5 + 0.1,
-            opacity: Math.random() * 0.2 + 0.05,
-            color: 'rgba(255, 255, 255, '
+            speedX: (Math.random() - 0.5) * 0.1,
+            speedY: Math.random() * 0.3 + 0.1,
+            opacity: Math.random() * 0.15 + 0.05,
+            color: 'rgba(255, 255, 255, ' // Natural White/Translucent
         };
 
-        // Weather Overrides
+        // WEATHER LOGIC
         if (this.currentWeather === 'rain') {
             base.speedY = Math.random() * 5 + 5;
-            base.speedX = -1; // Slanted
+            base.speedX = -1;
             base.size = 1;
             base.isRain = true;
         } else if (this.currentWeather === 'snow') {
@@ -113,19 +113,7 @@ const BackgroundEffects = {
             base.isSnow = true;
         } else if (this.currentWeather === 'clear' && this.isDay) {
             base.isSun = true;
-            base.speedY = -0.1; // Float up
-        }
-
-        // Theme Overrides (Experimental but subtle)
-        if (this.currentTheme === 'theme-matrix') {
-            base.color = 'rgba(0, 255, 70, '; // Subtle green
-            base.speedY = Math.random() * 1.5 + 0.5;
-            base.isMatrix = true;
-            base.opacity = Math.random() * 0.05 + 0.02; // Very ghostly
-        } else if (this.currentTheme === 'theme-midnight') {
-            base.color = 'rgba(255, 255, 255, ';
-            base.isStar = true;
-            base.twinkle = Math.random() * 0.005;
+            base.speedY = -0.05;
         }
 
         return base;
@@ -133,7 +121,7 @@ const BackgroundEffects = {
 
     update() {
         if (!this.enabled) return;
-        this.particles.forEach(p => {
+        this.weatherParticles.forEach(p => {
             p.x += p.speedX;
             p.y += p.speedY;
 
@@ -144,13 +132,6 @@ const BackgroundEffects = {
             }
             if (p.x > this.canvas.width) p.x = 0;
             if (p.x < 0) p.x = this.canvas.width;
-
-            // Twinkle for stars
-            if (p.isStar) {
-                p.opacity += (Math.random() - 0.5) * 0.01;
-                if (p.opacity < 0.05) p.opacity = 0.05;
-                if (p.opacity > 0.3) p.opacity = 0.3;
-            }
         });
     },
 
@@ -158,7 +139,7 @@ const BackgroundEffects = {
         if (!this.enabled) return;
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-        this.particles.forEach(p => {
+        this.weatherParticles.forEach(p => {
             this.ctx.fillStyle = p.color + p.opacity + ')';
 
             if (p.isRain) {
