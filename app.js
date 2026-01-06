@@ -422,60 +422,65 @@ window.showLiveLink = function () {
     const dashboard = document.getElementById('view-dashboard');
     const liveLink = document.getElementById('view-livelink');
 
+    // 1. Prepare Shield
+    dashboard.classList.remove('hidden');
+    dashboard.style.opacity = "1";
+    dashboard.style.transition = "none";
+
+    // 2. Prepare Target
     liveLink.classList.remove('hidden');
-    liveLink.classList.remove('anim-slide-down-out');
+    liveLink.getAnimations().forEach(anim => anim.cancel());
+    liveLink.style.opacity = "0";
+    liveLink.style.transform = "scale(0.98)";
 
-    // Force Reflow (CRITICAL for animation to restart)
-    void liveLink.offsetWidth;
+    // 3. Golden Animation In
+    const anim = liveLink.animate([
+        { opacity: 0, transform: 'scale(0.98)' },
+        { opacity: 1, transform: 'scale(1)' }
+    ], {
+        duration: 350,
+        easing: 'cubic-bezier(0.4, 0, 0.2, 1)'
+    });
 
-    liveLink.classList.add('anim-slide-down-in');
-
-    // Dashboard scales down
-    dashboard.style.transition = "transform 0.4s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.4s ease";
-    dashboard.style.transform = "scale(0.92)";
-    dashboard.style.opacity = "0.5";
-    dashboard.style.pointerEvents = "none";
-
-    setTimeout(() => {
+    anim.onfinish = () => {
+        liveLink.style.opacity = "1";
+        liveLink.style.transform = "scale(1)";
         dashboard.classList.add('hidden');
-        dashboard.style.pointerEvents = "auto";
-    }, 400);
+        dashboard.style.opacity = "";
+    };
 }
 
 window.showDashboard = function () {
     const dashboard = document.getElementById('view-dashboard');
     const liveLink = document.getElementById('view-livelink');
 
+    // 1. Prepare Shield
+    liveLink.classList.remove('hidden');
+    liveLink.style.opacity = "1";
+    liveLink.style.transition = "none";
+
+    // 2. Prepare Dashboard (Target)
     dashboard.classList.remove('hidden');
-    dashboard.style.pointerEvents = "none"; // Prevent clicks during anim
+    dashboard.getAnimations().forEach(anim => anim.cancel());
+    dashboard.style.opacity = "0";
+    dashboard.style.transform = "scale(0.98)";
 
-    // Force Reflow
-    void dashboard.offsetWidth;
-
-    // Animate dashboard in (scale up)
-    // Start from 0.5 opacity (where we left it) so it doesn't flash
-    dashboard.style.transition = "transform 0.4s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.4s ease";
-    dashboard.style.transform = "scale(0.92)";
-    dashboard.style.opacity = "0.5";
-
-    requestAnimationFrame(() => {
-        dashboard.style.transform = "scale(1)";
-        dashboard.style.opacity = "1";
+    // 3. Golden Animation In (Dashboard)
+    const anim = dashboard.animate([
+        { opacity: 0, transform: 'scale(0.98)' },
+        { opacity: 1, transform: 'scale(1)' }
+    ], {
+        duration: 350,
+        easing: 'cubic-bezier(0.4, 0, 0.2, 1)'
     });
 
-    // Animate Live Link out
-    liveLink.classList.remove('anim-slide-down-in');
-    liveLink.classList.add('anim-slide-down-out');
-
-    setTimeout(() => {
+    anim.onfinish = () => {
+        dashboard.style.opacity = "1";
+        dashboard.style.transform = "scale(1)";
         liveLink.classList.add('hidden');
-        liveLink.classList.remove('anim-slide-down-out');
-        dashboard.style.pointerEvents = "auto";
-        // Reset dashboard styles specifically
-        dashboard.style.transform = "";
-        dashboard.style.opacity = "";
-        dashboard.style.transition = "";
-    }, 400);
+        liveLink.style.opacity = "";
+        liveLink.style.transform = "";
+    };
 }
 
 function checkLock() {
@@ -1376,17 +1381,18 @@ window.openArcade = function () {
     dashboard.style.opacity = "1";
     dashboard.style.transition = "none";
 
-    // 3. PURE FADE IN
+    // 3. GOLDEN ANIMATION (Fade + Scale) - Matches window.transitionTo
     const anim = arcade.animate([
-        { opacity: 0 },
-        { opacity: 1 }
+        { opacity: 0, transform: 'scale(0.98)' },
+        { opacity: 1, transform: 'scale(1)' }
     ], {
-        duration: 400,
-        easing: 'ease-out'
+        duration: 350,
+        easing: 'cubic-bezier(0.4, 0, 0.2, 1)' // Standard "App" feel
     });
 
     anim.onfinish = () => {
         arcade.style.opacity = "1";
+        arcade.style.transform = "scale(1)";
         dashboard.classList.add('hidden');
         dashboard.style.opacity = "";
     };
@@ -1407,15 +1413,16 @@ window.closeArcade = function () {
 
     arcade.getAnimations().forEach(anim => anim.cancel());
     arcade.style.opacity = "1";
+    arcade.style.transform = "scale(1)";
     arcade.style.transition = "none";
 
-    // 2. PURE FADE OUT
+    // 2. GOLDEN ANIMATION OUT
     const anim = arcade.animate([
-        { opacity: 1 },
-        { opacity: 0 }
+        { opacity: 1, transform: 'scale(1)' },
+        { opacity: 0, transform: 'scale(0.98)' }
     ], {
-        duration: 400,
-        easing: 'ease-in'
+        duration: 300,
+        easing: 'cubic-bezier(0.4, 0, 0.2, 1)'
     });
 
     anim.onfinish = () => {
@@ -1427,7 +1434,7 @@ window.closeArcade = function () {
         // Game Cleanup
         document.body.style.overflow = '';
         if (window.Arcade) {
-            ["Snake", "Breakout", "Wordle"].forEach(game => {
+            ["Snake", "Breakout", "Wordle", "Pong"].forEach(game => {
                 if (window.Arcade[game] && window.Arcade[game].stop) window.Arcade[game].stop();
             });
         }
