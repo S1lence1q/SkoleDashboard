@@ -1943,8 +1943,10 @@ window.createDuelRoom = function () {
         // FRIENDLY CONFIRMATION (Premium Modal)
         if (window.Arcade && window.Arcade.showSimpleGameOver) {
             window.Arcade.showSimpleGameOver(
-                "RUM OPRETTET! 🎮",
-                `Dit rum nummer er:<br><span style="font-size: 5rem; color: var(--accent); font-weight: 800; display: block; margin: 15px 0;">${code}</span><p style="font-size:0.9rem; opacity:0.7;">Del koden med din modstander for at starte.</p>`,
+                "DUEL KLAR! 🎮",
+                `<p style="margin-bottom: 0px; opacity: 0.6; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">Din rum-kode</p>
+                 <span style="font-size: 4rem; color: var(--accent); font-weight: 900; display: block; margin: 10px 0; font-family: 'Inter', sans-serif;">${code}</span>
+                 <p style="font-size:0.95rem; opacity:0.8; margin-top: 10px;">Giv koden til din ven for at starte kampen.</p>`,
                 "Start Spil",
                 () => {
                     startDuelGame(word, code, 'host');

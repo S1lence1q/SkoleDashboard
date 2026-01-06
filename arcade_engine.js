@@ -316,21 +316,24 @@ window.Arcade = {    // Global Settings
         // 3. Content
         el.innerHTML = `
             <div style="
-                background: var(--bg-card); 
-                padding: 40px; 
-                border-radius: 20px; 
-                border: 1px solid rgba(255,255,255,0.1); 
+                background: rgba(15, 17, 21, 0.95); 
+                backdrop-filter: blur(20px);
+                -webkit-backdrop-filter: blur(20px);
+                padding: 30px; 
+                border-radius: 24px; 
+                border: 1px solid rgba(255,255,255,0.08); 
                 text-align: center; 
-                box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-                transform: scale(0.9);
-                transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-                min-width: 320px;
+                box-shadow: 0 25px 50px -12px rgba(0,0,0,0.7);
+                transform: scale(0.95);
+                transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+                width: 90%;
+                max-width: 360px;
             ">
-                <h1 style="margin: 0 0 10px 0; font-size: 2.5rem; color: #fff;">${title}</h1>
-                <p style="margin: 0 0 30px 0; font-size: 1.2rem; color: var(--text-secondary);">${message}</p>
+                <h2 style="margin: 0 0 8px 0; font-size: 1.6rem; color: #fff; letter-spacing: -0.5px; font-weight: 800;">${title}</h2>
+                <div style="margin: 0 0 24px 0; font-size: 1rem; color: var(--text-secondary); line-height: 1.5;">${message}</div>
                 <div style="display: flex; gap: 15px; justify-content: center;">
-                    <button id="gg-restart" class="btn primary" style="padding: 12px 30px; font-size: 1.1rem;">${btnText}</button>
-                    <button id="gg-exit" class="btn secondary" style="padding: 12px 30px; font-size: 1.1rem;">${secondaryBtnText}</button>
+                    <button id="gg-restart" class="btn primary" style="height: 44px; min-height: 44px; padding: 0 24px; font-size: 1rem; border-radius: 12px; font-weight: 800;">${btnText}</button>
+                    <button id="gg-exit" class="btn secondary" style="height: 44px; min-height: 44px; padding: 0 24px; font-size: 1rem; border-radius: 12px; font-weight: 700;">${secondaryBtnText}</button>
                 </div>
             </div>
         `;
