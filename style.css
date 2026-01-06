@@ -645,10 +645,51 @@ h1,
 }
 
 /* Schedule List Vertical Tweak */
+/* Day Selector & Buttons */
+.day-selector {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+}
+
+.day-selector::-webkit-scrollbar {
+    display: none;
+}
+
+.day-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-secondary);
+    padding: 10px 20px;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+    min-width: 80px;
+    scroll-snap-align: start;
+}
+
+.day-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+    color: var(--text-primary);
+}
+
+.day-btn.active {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+    box-shadow: 0 4px 15px rgba(var(--accent-rgb, 79, 209, 197), 0.3);
+}
+
 .schedule-list-vertical {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 1.5rem;
+    padding-bottom: 2rem;
 }
 
 

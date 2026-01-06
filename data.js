@@ -11,7 +11,7 @@ window.SkoleData = {
             {
                 dayIndex: 1, dayName: 'Mandag', lessons: [
                     { subject: 'Morgensamling', teacher: '', start: '08:30', end: '08:45', color: 'var(--color-subject-12)' },
-                    { subject: 'Engelsk', teacher: 'Fie + Karen', start: '09:15', end: '09:20', color: 'var(--color-subject-3)' },
+                    { subject: 'Engelsk', teacher: 'Fie + Karen', start: '08:45', end: '09:20', color: 'var(--color-subject-3)' },
                     { subject: 'Pause', teacher: '', start: '09:20', end: '09:30', type: 'break', color: 'var(--color-break)' },
                     { subject: 'Engelsk', teacher: 'Fie + Karen', start: '09:30', end: '10:00', color: 'var(--color-subject-3)' },
                     { subject: 'Brunch', teacher: '', start: '10:00', end: '10:30', type: 'break', color: 'var(--color-break)' },
@@ -24,7 +24,7 @@ window.SkoleData = {
             {
                 dayIndex: 2, dayName: 'Tirsdag', lessons: [
                     { subject: 'Morgensamling', teacher: '', start: '08:30', end: '08:45', color: 'var(--color-subject-12)' },
-                    { subject: 'Dansk', teacher: 'Karen + Lars', start: '09:15', end: '09:20', color: 'var(--color-subject-1)' },
+                    { subject: 'Dansk', teacher: 'Karen + Lars', start: '08:45', end: '09:20', color: 'var(--color-subject-1)' },
                     { subject: 'Pause', teacher: '', start: '09:20', end: '09:30', type: 'break', color: 'var(--color-break)' },
                     { subject: 'Dansk', teacher: 'Karen + Lars', start: '09:30', end: '10:00', color: 'var(--color-subject-1)' },
                     { subject: 'Brunch', teacher: '', start: '10:00', end: '10:30', type: 'break', color: 'var(--color-break)' },
@@ -37,7 +37,7 @@ window.SkoleData = {
             {
                 dayIndex: 3, dayName: 'Onsdag', lessons: [
                     { subject: 'Morgensamling', teacher: '', start: '08:30', end: '08:45', color: 'var(--color-subject-12)' },
-                    { subject: 'Engelsk', teacher: 'Fie + Karen', start: '09:15', end: '09:20', color: 'var(--color-subject-3)' },
+                    { subject: 'Engelsk', teacher: 'Fie + Karen', start: '08:45', end: '09:20', color: 'var(--color-subject-3)' },
                     { subject: 'Pause', teacher: '', start: '09:20', end: '09:30', type: 'break', color: 'var(--color-break)' },
                     { subject: 'Engelsk', teacher: 'Fie + Karen', start: '09:30', end: '10:00', color: 'var(--color-subject-3)' },
                     { subject: 'Brunch', teacher: '', start: '10:00', end: '10:30', type: 'break', color: 'var(--color-break)' },
@@ -48,7 +48,7 @@ window.SkoleData = {
             {
                 dayIndex: 4, dayName: 'Torsdag', lessons: [
                     { subject: 'Morgensamling', teacher: '', start: '08:30', end: '08:45', color: 'var(--color-subject-12)' },
-                    { subject: 'Dansk', teacher: 'Karen + Lars', start: '09:15', end: '09:20', color: 'var(--color-subject-1)' },
+                    { subject: 'Dansk', teacher: 'Karen + Lars', start: '08:45', end: '09:20', color: 'var(--color-subject-1)' },
                     { subject: 'Pause', teacher: '', start: '09:20', end: '09:30', type: 'break', color: 'var(--color-break)' },
                     { subject: 'Dansk', teacher: 'Karen + Lars', start: '09:30', end: '10:00', color: 'var(--color-subject-1)' },
                     { subject: 'Brunch', teacher: '', start: '10:00', end: '10:30', type: 'break', color: 'var(--color-break)' },
@@ -61,7 +61,7 @@ window.SkoleData = {
             {
                 dayIndex: 5, dayName: 'Fredag', lessons: [
                     { subject: 'Morgensamling', teacher: '', start: '08:30', end: '08:45', color: 'var(--color-subject-12)' },
-                    { subject: 'Dansk', teacher: 'Karen + Lars', start: '09:15', end: '09:20', color: 'var(--color-subject-1)' },
+                    { subject: 'Dansk', teacher: 'Karen + Lars', start: '08:45', end: '09:20', color: 'var(--color-subject-1)' },
                     { subject: 'Pause', teacher: '', start: '09:20', end: '09:30', type: 'break', color: 'var(--color-break)' },
                     { subject: 'Dansk', teacher: 'Karen + Lars', start: '09:30', end: '10:00', color: 'var(--color-subject-1)' },
                     { subject: 'Brunch', teacher: '', start: '10:00', end: '10:30', type: 'break', color: 'var(--color-break)' },

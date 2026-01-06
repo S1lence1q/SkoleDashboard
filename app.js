@@ -731,24 +731,61 @@ function updateStatus(now) {
 /**
  * Render the schedule list (Premium Layout)
  */
+/**
+ * Select a day to view in the schedule
+ */
+window.selectDay = function (index) {
+    currentState.selectedDayIndex = index;
+    renderSchedule();
+};
+
+/**
+ * Render the schedule list (Premium Layout)
+ */
 function renderSchedule() {
+    if (!scheduleListEl) return;
     scheduleListEl.innerHTML = '';
 
-    if (!currentState.scheduleToday) {
-        scheduleListEl.innerHTML = '<div class="schedule-card"><span class="card-subject" style="text-align:center; padding:0;">Ingen timer i dag 😴</span></div>';
+    // Determine which day to show
+    const now = new Date();
+    const todayIndex = now.getDay();
+    const displayIndex = currentState.selectedDayIndex !== undefined ? currentState.selectedDayIndex : todayIndex;
+
+    // Find schedule for that day
+    const activeSchedule = schedules[currentState.currentClass];
+    const scheduleToRender = activeSchedule ? activeSchedule.find(d => d.dayIndex === displayIndex) : null;
+
+    // Update UI Indicators
+    const titleEl = document.getElementById('schedule-title');
+    if (titleEl) {
+        if (displayIndex === todayIndex) {
+            titleEl.textContent = "Dagens Plan";
+        } else {
+            const dayName = days[displayIndex] || "Skema";
+            titleEl.textContent = dayName + "s Plan";
+        }
+    }
+
+    // Update day buttons
+    document.querySelectorAll('.day-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.id === `day-${displayIndex}`) btn.classList.add('active');
+    });
+
+    if (!scheduleToRender) {
+        scheduleListEl.innerHTML = '<div class="schedule-card"><span class="card-subject" style="text-align:center; padding:0;">Ingen timer denne dag 😴</span></div>';
         return;
     }
 
-    currentState.scheduleToday.lessons.forEach((lesson, index) => {
+    scheduleToRender.lessons.forEach((lesson, index) => {
         const item = document.createElement('div');
-        // Use new CSS class
         item.className = 'schedule-card';
         if (lesson.type === 'break') item.className += ' break-item';
 
         item.dataset.start = lesson.start;
         item.dataset.end = lesson.end;
 
-        // Subject Icon Mapping (Simple)
+        // Subject Icon Mapping
         let icon = "📚";
         if (lesson.subject.includes("Idræt")) icon = "⚽";
         if (lesson.subject.includes("Musik")) icon = "🎵";
@@ -760,6 +797,7 @@ function renderSchedule() {
         if (lesson.subject.includes("Historie")) icon = "🏛️";
         if (lesson.subject.includes("Kristendom")) icon = "⛪";
         if (lesson.subject.includes("Pause")) icon = "🥪";
+        if (lesson.subject.includes("Brunch") || lesson.subject.includes("Frokost")) icon = "🍱";
 
         const teacherHtml = lesson.teacher && lesson.type !== 'break'
             ? `<div class="card-room">${lesson.teacher}</div>`
@@ -775,6 +813,18 @@ function renderSchedule() {
 
         scheduleListEl.appendChild(item);
     });
+
+    // If viewing TODAY, highlight active item
+    if (displayIndex === todayIndex) {
+        // Find current lesson from today's schedule
+        const currentTimeValue = now.getHours() * 60 + now.getMinutes();
+        const currentLesson = scheduleToRender.lessons.find(l => {
+            const startVal = timeStringToMinutes(l.start);
+            const endVal = timeStringToMinutes(l.end);
+            return currentTimeValue >= startVal && currentTimeValue < endVal;
+        });
+        highlightActiveItem(currentLesson);
+    }
 }
 
 function highlightActiveItem(currentLesson) {

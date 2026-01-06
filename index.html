@@ -289,9 +289,20 @@
                 <!-- SECTION 2: SCHEDULE -->
                 <section id="schedule" class="story-section">
                     <div class="content-wrapper">
-                        <h2 class="section-title" style="text-align: center; margin-bottom: 2rem; font-size: 2rem;">
-                            Dagens
-                            Plan</h2>
+                        <h2 class="section-title"
+                            style="text-align: center; margin-bottom: 1rem; font-size: 2rem; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                            📅 <span id="schedule-title">Skema</span>
+                        </h2>
+
+                        <!-- DAY SELECTOR -->
+                        <div class="day-selector"
+                            style="display: flex; gap: 10px; overflow-x: auto; padding: 10px 5px; margin-bottom: 2rem; scrollbar-width: none; -ms-overflow-style: none;">
+                            <button class="day-btn" onclick="selectDay(1)" id="day-1">Man</button>
+                            <button class="day-btn" onclick="selectDay(2)" id="day-2">Tir</button>
+                            <button class="day-btn" onclick="selectDay(3)" id="day-3">Ons</button>
+                            <button class="day-btn" onclick="selectDay(4)" id="day-4">Tor</button>
+                            <button class="day-btn" onclick="selectDay(5)" id="day-5">Fre</button>
+                        </div>
                         <div id="schedule-list" class="schedule-list-vertical">
                             <!-- Schedule items injected here -->
                         </div>
