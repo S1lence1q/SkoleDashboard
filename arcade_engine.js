@@ -1648,7 +1648,6 @@ window.Arcade = {    // Global Settings
         currentCol: 0,
         guess: [], // Available letters in current row
         solution: "",
-        gridState: [], // 6 rows of 5 tiles
         gameActive: false,
         isAnimating: false,
         isReadOnly: false, // NEW: Block input in turn-based mode
@@ -1668,7 +1667,6 @@ window.Arcade = {    // Global Settings
             this.guess = [];
             this.isAnimating = false;
             this.isReadOnly = false;
-            this.gridState = Array(6).fill().map(() => Array(5).fill('')); // Empty Grid
 
             // Pick Word
             if (forcedWord) {
@@ -1790,7 +1788,7 @@ window.Arcade = {    // Global Settings
             }
 
             // Check
-            this.revealRow();
+            this.revealRow(isRemote);
         },
 
         shakeRow() {
@@ -1799,7 +1797,7 @@ window.Arcade = {    // Global Settings
             setTimeout(() => row.classList.remove('shake'), 500);
         },
 
-        revealRow() {
+        revealRow(isRemote = false) {
             this.isAnimating = true;
             const row = this.currentRow;
             const guessWord = this.guess.join('');
@@ -1855,7 +1853,6 @@ window.Arcade = {    // Global Settings
                 }
 
                 // Win/Loss Check
-                // Win/Loss Check
                 if (guessWord === this.solution) {
 
                     // Win Logic
@@ -1867,44 +1864,70 @@ window.Arcade = {    // Global Settings
                     }
 
                     // Trigger External Hook (Confetti, etc.)
-                    if (this.onFinish) this.onFinish(true, this.currentRow + 1);
+                    let result = null;
+                    if (this.onFinish) result = this.onFinish(true, this.currentRow + 1, isRemote);
 
                     if (Arcade.Audio) Arcade.Audio.wordleWin();
-                    this.gameOver(true);
+                    this.gameOver(true, result?.title, result?.msg);
 
-                } else if (this.currentRow === 5) {
-                    // Loss Logic
-                    if (!this.duelMode) {
-                        this.streak = 0;
-                        const streakEl = document.getElementById('wordle-current-streak');
-                        if (streakEl) streakEl.textContent = this.streak;
-                    } else {
-                        // Duel Loss
-                        if (this.onFinish) this.onFinish(false, 6);
-                    }
-
-                    if (Arcade.Audio) Arcade.Audio.wordleLose();
-                    this.gameOver(false);
                 } else {
-                    this.currentRow++;
-                    this.guess = [];
+                    // Not Guessed
+                    const isLastRow = this.currentRow === 5;
+
+                    if (isLastRow && this.wordleMode !== 'turn') {
+                        // Loss Logic (Only for Solo or Race mode)
+                        if (!this.duelMode) {
+                            this.streak = 0;
+                            const streakEl = document.getElementById('wordle-current-streak');
+                            if (streakEl) streakEl.textContent = this.streak;
+                        }
+                        let result = null;
+                        if (this.onFinish) result = this.onFinish(false, 6);
+
+                        if (Arcade.Audio) Arcade.Audio.wordleLose();
+                        this.gameOver(false, result?.title, result?.msg);
+                    } else {
+                        // Continue Playing
+                        if (this.currentRow >= 5) {
+                            // In Turn-Based mode or if they found a way to go beyond row 6
+                            this.addRow();
+                        }
+                        this.currentRow++;
+                        this.guess = [];
+                    }
                 }
                 this.isAnimating = false;
             }, 5 * 250 + 200);
         },
 
+        addRow() {
+            const board = document.getElementById('wordle-board');
+            if (!board) return;
+
+            const row = document.createElement('div');
+            row.className = 'wordle-row';
+            for (let j = 0; j < 5; j++) {
+                const tile = document.createElement('div');
+                tile.className = 'tile';
+                row.appendChild(tile);
+            }
+            board.appendChild(row);
+
+            // Scroll to bottom
+            setTimeout(() => {
+                board.scrollTo({
+                    top: board.scrollHeight,
+                    behavior: 'smooth'
+                });
+            }, 50);
+        },
+
         renderBoard() {
             const board = document.getElementById('wordle-board');
+            if (!board) return;
             board.innerHTML = '';
             for (let i = 0; i < 6; i++) {
-                const row = document.createElement('div');
-                row.className = 'wordle-row';
-                for (let j = 0; j < 5; j++) {
-                    const tile = document.createElement('div');
-                    tile.className = 'tile';
-                    row.appendChild(tile);
-                }
-                board.appendChild(row);
+                this.addRow();
             }
         },
 
@@ -1959,11 +1982,12 @@ window.Arcade = {    // Global Settings
             });
         },
 
-        gameOver(won) {
+        gameOver(won, customTitle = null, customMsg = null) {
             this.gameActive = false;
 
-            const title = won ? "GODT GÅET!" : "ÆV!";
-            const msg = won ? `Ordet var: <strong style="color:var(--accent)">${this.solution}</strong>` : `Ordet var: <strong>${this.solution}</strong>`;
+            const title = customTitle || (won ? "GODT GÅET!" : "ÆV!");
+            const defaultMsg = won ? `Ordet var: <strong style="color:var(--accent)">${this.solution}</strong>` : `Ordet var: <strong>${this.solution}</strong>`;
+            const msg = customMsg || defaultMsg;
 
             if (Arcade.showSimpleGameOver) {
                 Arcade.showSimpleGameOver(
@@ -1975,8 +1999,7 @@ window.Arcade = {    // Global Settings
                 );
             }
 
-            // Direct Trigger for Juice
-            if (won && window.fireConfetti) window.fireConfetti();
+            // Celebration/Loss effects are handled by the onFinish hook
         }
     },
 

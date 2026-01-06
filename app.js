@@ -1912,6 +1912,8 @@ window.closePong = function () {
 let currentDuelCode = null;
 let currentDuelRole = null;
 let selectedWordleMode = 'race';
+let lastWinnerRole = 'host';
+let gameStartTimestamp = Date.now();
 
 window.setWordleMode = function (mode, btn) {
     selectedWordleMode = mode;
@@ -1924,21 +1926,25 @@ window.setWordleMode = function (mode, btn) {
 
 window.createDuelRoom = function () {
     window.closeSettings();
-    // Simpler 2-digit code (10-99)
-    const code = Math.floor(10 + Math.random() * 89).toString();
+    // 3-digit code for fewer collisions
+    const codeNum = Math.floor(100 + Math.random() * 900);
+    const code = codeNum.toString().padStart(3, '0');
     currentDuelCode = code;
     currentDuelRole = 'host';
+    gameStartTimestamp = Date.now();
 
     // Pick Word
     const list = window.WordleData.solutions;
     const word = list[Math.floor(Math.random() * list.length)].toUpperCase();
 
-    // Save to Firebase
+    // Save to Firebase (Wipes path automatically)
     if (liveLinkState && liveLinkState.db) {
-        liveLinkState.db.ref('wordle_duels/' + code).set({
+        console.log("Creating room with code:", code);
+        const roomRef = liveLinkState.db.ref('wordle_duels/' + code);
+        roomRef.set({
             word: word,
             mode: selectedWordleMode,
-            timestamp: Date.now(),
+            timestamp: gameStartTimestamp,
             turn: 'host',
             host: { row: 0, status: 'playing' },
             guest: { row: 0, status: 'waiting' }
@@ -1972,15 +1978,19 @@ window.createDuelRoom = function () {
 
 window.joinDuelRoom = function () {
     window.closeSettings();
-    const code = document.getElementById('duel-code-input').value;
-    if (!code || code.length !== 2) return alert("Indtast 2-cifret kode");
+    const codeInput = document.getElementById('duel-code-input').value.trim();
+    if (!codeInput || codeInput.length !== 3) return alert("Indtast 3-cifret kode");
+    const code = codeInput;
 
     if (liveLinkState && liveLinkState.db) {
+        console.log("Attempting to join room:", code);
         liveLinkState.db.ref('wordle_duels/' + code).once('value', snapshot => {
             const data = snapshot.val();
             if (data) {
+                console.log("Room found! Joining...");
                 currentDuelCode = code;
                 currentDuelRole = 'guest';
+                gameStartTimestamp = data.timestamp || Date.now();
                 liveLinkState.db.ref('wordle_duels/' + code + '/guest').update({
                     status: 'playing'
                 });
@@ -2010,39 +2020,61 @@ function startDuelGame(word, code, role, mode = 'race') {
         const myStatus = document.getElementById('duel-my-status');
         // if (myStatus) myStatus.textContent = "Række 1";
 
-        // Improved waiting message
-        if (role === 'host') {
-            // Optional status updates
-        }
-        if (role === 'host') {
-            document.getElementById('duel-opp-status').textContent = "Spiller...";
-        } else {
+        // Initial status (only for Race mode)
+        if (mode !== 'turn') {
             document.getElementById('duel-opp-status').textContent = "Spiller...";
         }
 
         if (window.Arcade && window.Arcade.Wordle) {
             window.Arcade.Wordle.onProgress = (row) => {
                 // document.getElementById('duel-my-status').textContent = "Række " + (row);
-                if (liveLinkState.db) {
+                if (liveLinkState && liveLinkState.db) {
                     liveLinkState.db.ref(`wordle_duels/${code}/${role}`).update({ row: row });
                 }
             };
 
-            window.Arcade.Wordle.onFinish = (won, row) => {
+            window.Arcade.Wordle.onFinish = (won, row, isRemote) => {
                 if (liveLinkState.db) {
+                    const winnerStatus = won ? (isRemote ? 'lost' : 'won') : 'lost';
+                    if (winnerStatus === 'won') {
+                        lastWinnerRole = role; // I won locally
+                    } else if (winnerStatus === 'lost' && won) {
+                        lastWinnerRole = role === 'host' ? 'guest' : 'host'; // Opponent won
+                    }
+
+                    // Update personal status in Firebase
                     liveLinkState.db.ref(`wordle_duels/${code}/${role}`).update({
-                        status: won ? 'won' : 'lost',
+                        status: winnerStatus,
                         row: row
                     });
                 }
-                const msgEl = document.getElementById('wordle-msg');
-                if (msgEl) {
-                    if (won) {
-                        msgEl.textContent = "DU VANDT DUELLEN! 🏆";
+
+                let title = won ? "DU VANDT! 🏆" : "DU TABTE... 💀";
+                let finalMsg = won ? `Ordet var: <strong style="color:var(--accent)">${window.Arcade.Wordle.solution}</strong>` : `Ordet var: <strong>${window.Arcade.Wordle.solution}</strong>`;
+
+                if (won) {
+                    if (mode === 'turn') {
+                        if (!isRemote) {
+                            title = "DU VANDT! 🏆";
+                            window.fireConfetti();
+                        } else {
+                            title = "MODSTANDEREN VANDT! 💀";
+                            if (window.fireSadRain) window.fireSadRain();
+                        }
+                    } else {
+                        // Race Mode Finish
+                        title = "DU VANDT! 🏆";
                         window.fireConfetti();
                     }
-                    else msgEl.textContent = "DU TABTE... 💀";
+                } else {
+                    // Loss (Race or Solo)
+                    title = "DU TABTE... 💀";
+                    if (window.fireSadRain) window.fireSadRain();
                 }
+                const msgEl = document.getElementById('wordle-msg');
+                if (msgEl) msgEl.textContent = title;
+
+                return { title: title, msg: finalMsg };
             };
 
             // EXPLICIT START
@@ -2078,33 +2110,36 @@ function startDuelGame(word, code, role, mode = 'race') {
             };
 
             // 2. Receive Remote Guess
-            guessesRef.limitToLast(1).on('child_added', snapshot => {
+            guessesRef.on('child_added', snapshot => {
                 const data = snapshot.val();
-                if (data && data.sender !== role) {
+                // Filter out old guesses from previous games on same code
+                if (data && data.sender !== role && (data.timestamp > gameStartTimestamp)) {
                     console.log("Remote Guess received:", data.word);
                     window.Arcade.Wordle.playRemoteGuess(data.word);
                 }
             });
 
             // 3. Turn-Based: Listen for Turn Changes
+            const syncTurnUI = (turn) => {
+                const oppStatusEl = document.getElementById('duel-opp-status');
+                if (turn === role) {
+                    window.Arcade.Wordle.isReadOnly = false;
+                    if (oppStatusEl) {
+                        oppStatusEl.textContent = "DIN TUR! ✨";
+                        oppStatusEl.style.color = "var(--accent)";
+                    }
+                } else {
+                    window.Arcade.Wordle.isReadOnly = true;
+                    if (oppStatusEl) {
+                        oppStatusEl.textContent = "VENTER... ⏳";
+                        oppStatusEl.style.color = "rgba(255,255,255,0.5)";
+                    }
+                }
+            };
+
             if (mode === 'turn') {
                 roomRef.child('turn').on('value', snap => {
-                    const turn = snap.val();
-                    const oppStatusEl = document.getElementById('duel-opp-status');
-
-                    if (turn === role) {
-                        window.Arcade.Wordle.isReadOnly = false;
-                        if (oppStatusEl) {
-                            oppStatusEl.textContent = "DIN TUR! ✨";
-                            oppStatusEl.style.color = "var(--accent)";
-                        }
-                    } else {
-                        window.Arcade.Wordle.isReadOnly = true;
-                        if (oppStatusEl) {
-                            oppStatusEl.textContent = "VENTER... ⏳";
-                            oppStatusEl.style.color = "rgba(255,255,255,0.5)";
-                        }
-                    }
+                    syncTurnUI(snap.val());
                 });
             }
             // ----------------------------------
@@ -2139,6 +2174,14 @@ function startDuelGame(word, code, role, mode = 'race') {
                     console.log("Host restarted game. New word:", newWord);
                     word = newWord; // Update local scope
                     window.Arcade.Wordle.start(newWord, true);
+                    window.Arcade.Wordle.wordleMode = mode; // RE-SET MODE
+
+                    // FORCE Turn Sync if in Turn-Based mode
+                    if (mode === 'turn') {
+                        liveLinkState.db.ref(`wordle_duels/${code}/turn`).once('value', snap => {
+                            syncTurnUI(snap.val());
+                        });
+                    }
 
                     // Reset UI Text
                     document.getElementById('wordle-msg').textContent = "GODT GÅET!";
@@ -2148,8 +2191,10 @@ function startDuelGame(word, code, role, mode = 'race') {
                     const globalGO = document.getElementById('global-game-over');
                     if (globalGO) globalGO.remove();
 
-                    document.getElementById('duel-opp-status').textContent = "Spiller...";
-                    document.getElementById('duel-opp-status').style.color = 'rgba(255,255,255,0.7)';
+                    if (mode !== 'turn') {
+                        document.getElementById('duel-opp-status').textContent = "Spiller...";
+                        document.getElementById('duel-opp-status').style.color = 'rgba(255,255,255,0.7)';
+                    }
                 }
             });
 
@@ -2183,7 +2228,7 @@ window.restartWordle = function () {
             // 1. Reset Board Data
             const resetData = {
                 word: newWord,
-                turn: 'host' // Reset turn to host for new game
+                turn: lastWinnerRole || 'host' // Winner from last round starts!
             };
             liveLinkState.db.ref(`wordle_duels/${currentDuelCode}`).update(resetData);
 
@@ -3080,10 +3125,18 @@ window.fireConfetti = function () {
     canvas.style.position = 'fixed';
     canvas.style.top = '0';
     canvas.style.left = '0';
-    canvas.style.width = '100%';
-    canvas.style.height = '100%';
+    canvas.style.width = '100vw';
+    canvas.style.height = '100vh';
     canvas.style.pointerEvents = 'none';
-    canvas.style.zIndex = '9999';
+    canvas.style.zIndex = '1000000';
+    canvas.style.display = 'block';
+    // OVERRIDE GLOBAL CANVAS STYLES
+    canvas.style.background = 'transparent';
+    canvas.style.boxShadow = 'none';
+    canvas.style.border = 'none';
+    canvas.style.borderRadius = '0';
+    canvas.style.margin = '0';
+    canvas.style.padding = '0';
     document.body.appendChild(canvas);
 
     const ctx = canvas.getContext('2d');
@@ -3093,20 +3146,25 @@ window.fireConfetti = function () {
     const pieces = [];
     const colors = ['#f43f5e', '#ec4899', '#d946ef', '#a855f7', '#8b5cf6', '#6366f1', '#3b82f6'];
 
-    for (let i = 0; i < 200; i++) {
+    // Two cannons! (Bottom Left & Bottom Right)
+    const count = 250;
+    for (let i = 0; i < count; i++) {
+        const side = i % 2 === 0 ? 'left' : 'right';
         pieces.push({
-            x: canvas.width / 2,
-            y: canvas.height / 3, // Start a bit higher
+            x: side === 'left' ? 0 : canvas.width,
+            y: canvas.height * 0.8,
             w: Math.random() * 8 + 4,
             h: Math.random() * 8 + 4,
-            vx: (Math.random() - 0.5) * 15, // Explosive X
-            vy: (Math.random() - 0.5) * 15 - 5, // Explosive Y with upward tendency
+            vx: side === 'left' ? (Math.random() * 15 + 5) : -(Math.random() * 15 + 5),
+            vy: -(Math.random() * 15 + 10),
             color: colors[Math.floor(Math.random() * colors.length)],
             rotation: Math.random() * 360,
-            gravity: 0.2
+            rotationSpeed: (Math.random() - 0.5) * 10,
+            gravity: 0.25
         });
     }
 
+    let animationId;
     function update() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         let active = 0;
@@ -3115,10 +3173,10 @@ window.fireConfetti = function () {
             p.x += p.vx;
             p.y += p.vy;
             p.vy += p.gravity;
-            p.vx *= 0.96; // Air resistance
-            p.rotation += 5;
+            p.vx *= 0.98;
+            p.rotation += p.rotationSpeed;
 
-            if (p.y < canvas.height + 20) {
+            if (p.y < canvas.height + 50 && p.x > -50 && p.x < canvas.width + 50) {
                 active++;
                 ctx.save();
                 ctx.translate(p.x, p.y);
@@ -3130,16 +3188,93 @@ window.fireConfetti = function () {
         });
 
         if (active > 0) {
-            requestAnimationFrame(update);
+            animationId = requestAnimationFrame(update);
         } else {
-            document.body.removeChild(canvas);
+            cleanup();
         }
     }
 
-    update();
-}
+    function cleanup() {
+        if (animationId) cancelAnimationFrame(animationId);
+        if (canvas.parentNode) canvas.parentNode.removeChild(canvas);
+    }
 
-// --- IMMERSIVE FX ENGINE (Sound & Parallax) ---
+    update();
+    // Safety cleanup
+    setTimeout(cleanup, 8000);
+};
+
+// --- SAD RAIN SYSTEM (For Losers) ---
+window.fireSadRain = function () {
+    const canvas = document.createElement('canvas');
+    canvas.style.position = 'fixed';
+    canvas.style.top = '0';
+    canvas.style.left = '0';
+    canvas.style.width = '100vw';
+    canvas.style.height = '100vh';
+    canvas.style.pointerEvents = 'none';
+    canvas.style.zIndex = '1000000';
+    canvas.style.background = 'transparent';
+    document.body.appendChild(canvas);
+
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const drops = [];
+    for (let i = 0; i < 100; i++) {
+        drops.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * -canvas.height,
+            l: Math.random() * 20 + 10,
+            v: Math.random() * 10 + 5,
+            opacity: Math.random() * 0.5 + 0.2
+        });
+    }
+
+    let animationId;
+    let startTime = Date.now();
+
+    function update() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        let active = 0;
+        const elapsed = Date.now() - startTime;
+
+        ctx.strokeStyle = 'rgba(150, 160, 180, 0.4)';
+        ctx.lineWidth = 1;
+
+        drops.forEach(d => {
+            d.y += d.v;
+            if (d.y > canvas.height) {
+                if (elapsed < 3000) { // Only loop for 3 seconds
+                    d.y = -20;
+                    d.x = Math.random() * canvas.width;
+                }
+            }
+            if (d.y < canvas.height + 20) {
+                active++;
+                ctx.beginPath();
+                ctx.moveTo(d.x, d.y);
+                ctx.lineTo(d.x, d.y + d.l);
+                ctx.stroke();
+            }
+        });
+
+        if (active > 0) {
+            animationId = requestAnimationFrame(update);
+        } else {
+            cleanup();
+        }
+    }
+
+    function cleanup() {
+        if (animationId) cancelAnimationFrame(animationId);
+        if (canvas.parentNode) canvas.parentNode.removeChild(canvas);
+    }
+
+    update();
+    setTimeout(cleanup, 6000);
+};
 
 const SoundFX = {
     ctx: null,
