@@ -1940,7 +1940,25 @@ window.createDuelRoom = function () {
             guest: { row: 0, status: 'waiting' }
         });
 
-        startDuelGame(word, code, 'host');
+        // FRIENDLY CONFIRMATION (Premium Modal)
+        if (window.Arcade && window.Arcade.showSimpleGameOver) {
+            window.Arcade.showSimpleGameOver(
+                "RUM OPRETTET! 🎮",
+                `Dit rum nummer er:<br><span style="font-size: 5rem; color: var(--accent); font-weight: 800; display: block; margin: 15px 0;">${code}</span><p style="font-size:0.9rem; opacity:0.7;">Del koden med din modstander for at starte.</p>`,
+                "Start Spil",
+                () => {
+                    startDuelGame(word, code, 'host');
+                },
+                () => {
+                    // Cancel / Fortryd
+                    liveLinkState.db.ref('wordle_duels/' + code).remove();
+                },
+                "Fortryd"
+            );
+        } else {
+            // Fallback
+            startDuelGame(word, code, 'host');
+        }
     } else {
         alert("Fejl: Ingen forbindelse til Firebase.");
     }

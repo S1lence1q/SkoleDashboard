@@ -288,7 +288,7 @@ window.Arcade = {    // Global Settings
     },
 
     // --- GLOBAL OVERLAY HELPER ---
-    showSimpleGameOver(title, message, btnText, onRestart, onExit) {
+    showSimpleGameOver(title, message, btnText, onRestart, onExit, secondaryBtnText = "Afslut") {
         console.log("DEBUG: showSimpleGameOver called", title);
 
         // 1. Clean existing
@@ -330,7 +330,7 @@ window.Arcade = {    // Global Settings
                 <p style="margin: 0 0 30px 0; font-size: 1.2rem; color: var(--text-secondary);">${message}</p>
                 <div style="display: flex; gap: 15px; justify-content: center;">
                     <button id="gg-restart" class="btn primary" style="padding: 12px 30px; font-size: 1.1rem;">${btnText}</button>
-                    <button id="gg-exit" class="btn secondary" style="padding: 12px 30px; font-size: 1.1rem;">Afslut</button>
+                    <button id="gg-exit" class="btn secondary" style="padding: 12px 30px; font-size: 1.1rem;">${secondaryBtnText}</button>
                 </div>
             </div>
         `;
