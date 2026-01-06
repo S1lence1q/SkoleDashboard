@@ -1293,51 +1293,109 @@ window.startLoveMatch = function () {
 
 // Helper: Smooth Transition
 // Refactored to be SEQUENTIAL to prevent layout jumps
+// 1. LEGACY TRANSITION (Kept for internal game logic like Snake)
 window.transitionTo = function (hideId, showId) {
+    // Redirect to new Golden Transition for consistency
+    runGoldenTransition(hideId, showId);
+};
+
+// 2. THE GOLDEN ANIMATION HELPER 🏆
+// Standardized "Fade Out -> Then Fade In" sequence.
+function runGoldenTransition(hideId, showId, onComplete) {
     const hideEl = document.getElementById(hideId);
     const showEl = document.getElementById(showId);
 
-    // Step 1: Fade Out
-    if (hideEl && !hideEl.classList.contains('hidden')) {
-        hideEl.classList.add('fade-target');
-        hideEl.classList.add('fade-out-state');
+    // Helper to start the IN phase
+    const startInAnimation = () => {
+        if (!showEl) {
+            if (onComplete) onComplete();
+            return;
+        }
 
-        // Wait for fade out to finish before showing next
-        setTimeout(() => {
-            hideEl.classList.add('hidden');
-            hideEl.classList.remove('fade-out-state');
-            hideEl.classList.remove('fade-target');
+        // Prepare Show Element
+        showEl.classList.remove('hidden');
+        showEl.getAnimations().forEach(a => a.cancel());
+        showEl.style.opacity = "0";
+        showEl.style.transform = "scale(0.98)";
+        showEl.style.transformOrigin = 'center center';
 
-            // Step 2: Fade In Next (only after previous is gone)
-            if (showEl) {
-                showEl.classList.add('hidden'); // Ensure hidden first
-                showEl.classList.remove('fade-out-state'); // Reset state
-                showEl.classList.add('fade-target');
-                showEl.classList.add('fade-out-state'); // Init state
+        // ANIMATE IN
+        const inAnim = showEl.animate([
+            { opacity: 0, transform: 'scale(0.98)' },
+            { opacity: 1, transform: 'scale(1)' }
+        ], {
+            duration: 350, // Luxurious entry
+            easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)', // Soft landing
+            fill: 'forwards'
+        });
 
-                showEl.classList.remove('hidden'); // Put in DOM
+        inAnim.onfinish = () => {
+            showEl.style.opacity = "1";
+            showEl.style.transform = "scale(1)";
+            if (onComplete) onComplete();
 
-                // Force Reflow
-                void showEl.offsetWidth;
-
-                showEl.classList.remove('fade-out-state'); // Animate Opacity -> 1
-
-                // Clean up classes after anim
-                setTimeout(() => {
-                    showEl.classList.remove('fade-target');
-                }, 300);
+            // Re-init Arcade if needed
+            if (showId === 'view-arcade' && window.Arcade) {
+                window.Arcade.init();
             }
-        }, 250); // Slightly faster than CSS to snap
+        };
+    };
+
+    // ANIMATE OUT
+    if (hideEl && !hideEl.classList.contains('hidden')) {
+        // Prepare for animation
+        hideEl.style.transformOrigin = 'center center';
+        hideEl.style.transition = 'none';
+
+        const outAnim = hideEl.animate([
+            { opacity: 1, transform: 'scale(1)' },
+            { opacity: 0, transform: 'scale(0.98)' }
+        ], {
+            duration: 280, // Snappy exit
+            easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+            fill: 'forwards'
+        });
+
+        outAnim.onfinish = () => {
+            hideEl.classList.add('hidden');
+            hideEl.style.opacity = "";
+            hideEl.style.transform = "";
+            startInAnimation(); // Chain to IN
+        };
     } else {
-        // Instant show if no hide (first load?)
-        if (showEl) showEl.classList.remove('hidden');
+        // Nothing to hide? Just show.
+        startInAnimation();
     }
 }
 
-// --- ARCADE NAVIGATION ---
+// --- REFACRORED NAVIGATION FUNCTIONS ---
+
+window.showLiveLink = function () {
+    runGoldenTransition('view-dashboard', 'view-livelink');
+}
+
+window.showDashboard = function () {
+    // Handle return from EITHER Arcade OR LiveLink
+    const fromArcade = !document.getElementById('view-arcade').classList.contains('hidden');
+    const hideId = fromArcade ? 'view-arcade' : 'view-livelink';
+
+    runGoldenTransition(hideId, 'view-dashboard', () => {
+        // Cleanup if coming from Arcade
+        if (fromArcade) {
+            document.body.style.overflow = '';
+            if (window.Arcade) {
+                ["Snake", "Breakout", "Wordle", "Pong"].forEach(game => {
+                    if (window.Arcade[game] && window.Arcade[game].stop) window.Arcade[game].stop();
+                });
+            }
+        }
+    });
+
+    const header = document.getElementById('main-header');
+    if (header) header.classList.remove('hidden');
+}
 
 window.handleArcadeBack = function () {
-    // Check Live Link first
     const liveLink = document.getElementById('view-livelink');
     if (liveLink && !liveLink.classList.contains('hidden')) {
         window.showDashboard();
@@ -1354,91 +1412,21 @@ window.handleArcadeBack = function () {
     else if (isWordle) window.closeWordle();
     else if (isPong) window.closePong();
     else {
-        // Exiting Arcade completely
         window.closeArcade();
-        document.getElementById('main-header').classList.remove('hidden');
     }
 }
 
 window.openArcade = function () {
-    const dashboard = document.getElementById('view-dashboard');
-    const arcade = document.getElementById('view-arcade');
     const extras = document.getElementById('extras-overlay');
     const header = document.getElementById('main-header');
-
     if (extras) extras.classList.add('hidden');
     if (header) header.classList.add('hidden');
 
-    // 1. NUCLEAR RESET: Kill all prev anims & styles
-    arcade.getAnimations().forEach(anim => anim.cancel());
-    arcade.style.opacity = "0";
-    arcade.style.transform = "none";
-    arcade.style.transition = "none";
-    arcade.classList.remove('hidden');
-
-    // 2. DASHBOARD SHIELD: Keep it solid to hide background text
-    dashboard.classList.remove('hidden');
-    dashboard.style.opacity = "1";
-    dashboard.style.transition = "none";
-
-    // 3. GOLDEN ANIMATION (Fade + Scale) - Matches window.transitionTo
-    const anim = arcade.animate([
-        { opacity: 0, transform: 'scale(0.98)' },
-        { opacity: 1, transform: 'scale(1)' }
-    ], {
-        duration: 350,
-        easing: 'cubic-bezier(0.4, 0, 0.2, 1)' // Standard "App" feel
-    });
-
-    anim.onfinish = () => {
-        arcade.style.opacity = "1";
-        arcade.style.transform = "scale(1)";
-        dashboard.classList.add('hidden');
-        dashboard.style.opacity = "";
-    };
-
-    // Init Arcade engine
-    if (window.Arcade) window.Arcade.init();
+    runGoldenTransition('view-dashboard', 'view-arcade');
 }
 
 window.closeArcade = function () {
-    const dashboard = document.getElementById('view-dashboard');
-    const arcade = document.getElementById('view-arcade');
-    const header = document.getElementById('main-header');
-
-    // 1. NUCLEAR RESET & PREPARE REVEAL
-    dashboard.classList.remove('hidden');
-    dashboard.style.opacity = "1"; // Solid shield stays behind
-    dashboard.style.transition = "none";
-
-    arcade.getAnimations().forEach(anim => anim.cancel());
-    arcade.style.opacity = "1";
-    arcade.style.transform = "scale(1)";
-    arcade.style.transition = "none";
-
-    // 2. GOLDEN ANIMATION OUT
-    const anim = arcade.animate([
-        { opacity: 1, transform: 'scale(1)' },
-        { opacity: 0, transform: 'scale(0.98)' }
-    ], {
-        duration: 300,
-        easing: 'cubic-bezier(0.4, 0, 0.2, 1)'
-    });
-
-    anim.onfinish = () => {
-        arcade.classList.add('hidden');
-        arcade.style.opacity = "";
-        arcade.style.transform = "";
-        if (header) header.classList.remove('hidden');
-
-        // Game Cleanup
-        document.body.style.overflow = '';
-        if (window.Arcade) {
-            ["Snake", "Breakout", "Wordle", "Pong"].forEach(game => {
-                if (window.Arcade[game] && window.Arcade[game].stop) window.Arcade[game].stop();
-            });
-        }
-    };
+    window.showDashboard();
 }
 
 
@@ -2914,7 +2902,7 @@ function initImmersiveFX() {
             SoundFX.hover();
         }
     });
-
+ 
     document.addEventListener('mousedown', (e) => {
         if (e.target.closest('button, a, .clickable, .game-card, .nav-btn, .theme-dot')) {
             SoundFX.click();
