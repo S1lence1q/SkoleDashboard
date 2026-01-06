@@ -41,7 +41,9 @@ window.SkoleData = {
                     { subject: 'Pause', teacher: '', start: '09:20', end: '09:30', type: 'break', color: 'var(--color-break)' },
                     { subject: 'Engelsk', teacher: 'Fie + Karen', start: '09:30', end: '10:00', color: 'var(--color-subject-3)' },
                     { subject: 'Brunch', teacher: '', start: '10:00', end: '10:30', type: 'break', color: 'var(--color-break)' },
-                    { subject: 'Valgfag', teacher: '', start: '10:30', end: '12:00', color: 'var(--color-subject-7)' }
+                    { subject: 'Fysik/Kemi', teacher: '', start: '10:30', end: '11:20', color: 'var(--color-subject-9)' },
+                    { subject: 'Pause', teacher: '', start: '11:20', end: '11:30', type: 'break', color: 'var(--color-break)' },
+                    { subject: 'Fysik/Kemi', teacher: '', start: '11:30', end: '12:00', color: 'var(--color-subject-9)' }
                 ]
             },
             // Torsdag
@@ -65,9 +67,9 @@ window.SkoleData = {
                     { subject: 'Pause', teacher: '', start: '09:20', end: '09:30', type: 'break', color: 'var(--color-break)' },
                     { subject: 'Dansk', teacher: 'Karen + Lars', start: '09:30', end: '10:00', color: 'var(--color-subject-1)' },
                     { subject: 'Brunch', teacher: '', start: '10:00', end: '10:30', type: 'break', color: 'var(--color-break)' },
-                    { subject: 'Lifeskills', teacher: '', start: '10:30', end: '11:20', color: 'var(--color-subject-11)' },
+                    { subject: 'Valgfag', teacher: '', start: '10:30', end: '11:20', color: 'var(--color-subject-7)' },
                     { subject: 'Pause', teacher: '', start: '11:20', end: '11:30', type: 'break', color: 'var(--color-break)' },
-                    { subject: 'Lifeskills', teacher: '', start: '11:30', end: '12:00', color: 'var(--color-subject-11)' }
+                    { subject: 'Valgfag', teacher: '', start: '11:30', end: '12:00', color: 'var(--color-subject-7)' }
                 ]
             }
         ],

@@ -38,6 +38,8 @@
             opacity: 0;
             visibility: hidden;
             pointer-events: none;
+            display: none !important;
+            /* NUKE IT to prevent ghosting */
         }
 
         .loader-spinner {
@@ -224,24 +226,32 @@
             </div>
         </div>
 
+
+
         <!-- VIEW: DASHBOARD -->
         <!-- Header (Fixed Outside Dashboard) -->
         <header id="main-header">
-            <div class="header-right">
-                <button id="menu-btn" class="theme-btn" title="Menu & Værktøjer">
-                    <div class="menu-icon-bento">
-                        <div class="bento-dot"></div>
-                        <div class="bento-dot"></div>
-                        <div class="bento-dot"></div>
-                        <div class="bento-dot"></div>
-                        <div class="bento-dot"></div>
-                        <div class="bento-dot"></div>
-                        <div class="bento-dot"></div>
-                        <div class="bento-dot"></div>
-                        <div class="bento-dot"></div>
-                    </div>
-                </button>
-            </div>
+            <div class="header-left">
+                <!-- Weather Widget -->
+                <div id="weather-widget" class="weather-widget">
+                    <span class="weather-icon">☁️</span>
+                    <span class="weather-temp">--°</span>
+                </div>
+                <div class="header-right">
+                    <button id="menu-btn" class="theme-btn" title="Menu & Værktøjer">
+                        <div class="menu-icon-bento">
+                            <div class="bento-dot"></div>
+                            <div class="bento-dot"></div>
+                            <div class="bento-dot"></div>
+                            <div class="bento-dot"></div>
+                            <div class="bento-dot"></div>
+                            <div class="bento-dot"></div>
+                            <div class="bento-dot"></div>
+                            <div class="bento-dot"></div>
+                            <div class="bento-dot"></div>
+                        </div>
+                    </button>
+                </div>
         </header>
 
         <!-- Floating Action Button (Fixed Outside Dashboard) -->
@@ -345,15 +355,11 @@
                 </button>
             </header>
 
-            <div class="center-card"
-                style="width: 90%; max-width: 450px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; padding: 30px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); animation: slideUp 0.5s ease;">
-                <h2 style="color: var(--accent); text-align: center; margin-bottom: 5px; font-size: 1.8rem;">🔗 Live
-                    Link Drop</h2>
-                <p style="font-size: 0.9rem; color: var(--text-secondary); text-align: center; margin-bottom: 25px;">Del
-                    links lynhurtigt med klassen</p>
+            <div class="livelink-card">
+                <h2 class="livelink-title">🔗 Live Link Drop</h2>
+                <p class="livelink-subtitle">Del links lynhurtigt med klassen</p>
 
-                <div class="drop-zone" id="drop-zone-standalone"
-                    style="background: rgba(0,0,0,0.2); padding: 25px; border-radius: 16px; border: 1px dashed rgba(255,255,255,0.1); margin-bottom: 25px;">
+                <div class="livelink-dropzone" id="drop-zone-standalone">
                     <div class="empty-state">
                         <p style="font-size: 1rem; opacity: 0.7; text-align: center;">Venter på link...</p>
                     </div>
@@ -368,15 +374,15 @@
                 <div class="actions" id="action-buttons-standalone"
                     style="display: flex; gap: 10px; margin-bottom: 25px;">
                     <button id="copy-btn-standalone" class="btn secondary hidden"
-                        style="flex: 1; padding: 12px;">Kopier</button>
+                        style="flex: 1; padding: 12px; border: 1px solid rgba(255,255,255,0.1);">Kopier</button>
                     <button id="open-btn-standalone" class="btn secondary hidden"
-                        style="flex: 1; padding: 12px;">Åbn</button>
+                        style="flex: 1; padding: 12px; border: 1px solid rgba(255,255,255,0.1);">Åbn</button>
                 </div>
 
                 <form id="send-form-standalone" class="send-area" style="display: flex; gap: 10px;">
                     <input type="text" id="link-input-standalone" placeholder="Indsæt link..." autocomplete="off"
-                        style="flex: 1; padding: 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: white; font-size: 1rem;">
-                    <button type="submit" class="btn primary" style="padding: 14px 24px; font-size: 1rem;">SEND</button>
+                        class="glass-input" style="flex: 1; text-align: left; padding: 14px;">
+                    <button type="submit" class="btn primary" style="padding: 14px 24px; font-size: 1rem;">Send</button>
                 </form>
             </div>
         </div>
@@ -384,9 +390,9 @@
         <!-- Logic -->
         <script src="data.js"></script>
         <script src="wordle_data.js"></script>
-        <script src="arcade_engine.js?v=115"></script>
-
-        <script src="app.js?v=8"></script>
+        <script src="arcade_engine.js"></script>
+        <script src="weather_pills.js"></script>
+        <script src="app.js"></script>
 
         <!-- VIEW: ARCADE (Full Screen Game Hub) -->
         <div id="view-arcade" class="arcade-view hidden">
@@ -1012,6 +1018,14 @@
                 </div>
             </div>
         </div>
+    </div>
+    </div>
+    </div>
+
+    <!-- GLOBAL TOAST NOTIFICATION -->
+    <div id="arcade-toast" class="toast-notification hidden">
+        <span id="toast-icon">✅</span>
+        <span id="toast-message">Besked</span>
     </div>
 </body>
 

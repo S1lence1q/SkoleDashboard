@@ -4,6 +4,11 @@ let days = null;
 let students = null;
 let teachers = null;
 
+// --- DEBUG CONSOLE REMOVED ---
+// ---------------------------------
+
+// Firebase & Live Link State
+
 // Firebase & Live Link State
 var firebaseConfig = {
     apiKey: "AIzaSyC0sd12LFqemdm2jgNJ_TpbdEZb4azmHso",
@@ -23,13 +28,12 @@ var liveLinkState = {
 };
 
 // DOM Elements
-const clockEl = document.getElementById('clock');
 const dateEl = document.getElementById('date');
-const statusLabelEl = document.getElementById('status-label');
-const currentSubjectEl = document.getElementById('current-subject');
-const nextInfoEl = document.getElementById('next-info');
-const countdownEl = document.getElementById('countdown');
-const scheduleListEl = document.getElementById('schedule-list');
+let statusLabelEl = document.getElementById('status-label');
+let currentSubjectEl = document.getElementById('current-subject');
+let nextInfoEl = document.getElementById('next-info');
+let countdownEl = document.getElementById('countdown');
+let scheduleListEl = document.getElementById('schedule-list');
 const classSelector = document.getElementById('class-selector');
 const themeBtn = document.getElementById('theme-btn');
 
@@ -95,16 +99,23 @@ function init() {
     initLiveLink();
 
     // Apple-Level Polish
-    // initScrollObserver(); // Moved to delayed launch sequence
 
+    // Initial Time Update
     updateTime();
-    setInterval(updateTime, 1000); // Update every second
+
+    // Start Clock Interval
+    setInterval(updateTime, 1000);
+
+    // Initial Render
     renderSchedule();
 
-    // God Mode
-    // God Mode init removed (now on-click)
+    // Fetch Weather (New)
+    if (window.fetchWeather) window.fetchWeather();
 }
 
+/**
+ * Handle Theme Toggle
+ */
 // --- FOCUS TIMER LOGIC (REMOVED) ---
 
 // --- CALCULATOR LOGIC (REMOVED) ---
@@ -310,7 +321,7 @@ function sendLiveLink(input) {
     if (!input) return;
 
     var isUrl = /^(http|https):\/\/[^ "]+$/.test(input);
-    if (!isUrl && /^[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+/.test(input) && !input.includes(' ')) {
+    if (!isUrl && input.includes('.') && !input.includes(' ') && input.split('.').pop().length >= 2) {
         input = 'https://' + input;
         isUrl = true;
     }
@@ -364,7 +375,10 @@ function displayLiveLink(data) {
 
     if (isUrl) {
         ui.currentLink.href = content;
-        ui.currentLink.textContent = new URL(content).hostname + "/...";
+        // Display nice label (Strip https:// and truncate)
+        let label = content.replace(/^https?:\/\//, '');
+        if (label.length > 25) label = label.substring(0, 22) + "...";
+        ui.currentLink.textContent = label;
         ui.currentLink.style.pointerEvents = "auto";
         ui.openBtn.classList.remove('hidden');
     } else {
@@ -376,8 +390,38 @@ function displayLiveLink(data) {
 
     ui.copyBtn.classList.remove('hidden');
 
-    const time = new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    // 24-hour format (Military time) with colon separator
+    const d = new Date(data.timestamp);
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    const time = hh + ":" + mm;
     ui.timestamp.textContent = (isUrl ? "Link" : "Tekst") + " fra " + time;
+}
+
+// Toast System
+let toastTimeout; // State to prevent race conditions
+window.showToast = function (msg, icon = '✅') {
+    const toast = document.getElementById('arcade-toast');
+    const msgEl = document.getElementById('toast-message');
+    const iconEl = document.getElementById('toast-icon');
+
+    if (!toast) return;
+
+    // Clear previous timer to stop premature closing
+    if (toastTimeout) clearTimeout(toastTimeout);
+
+    msgEl.textContent = msg;
+    iconEl.textContent = icon;
+
+    toast.classList.remove('hidden');
+    void toast.offsetWidth; // Trigger Reflow
+    toast.classList.add('show');
+
+    // Hide after 2s (Snappier)
+    toastTimeout = setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.classList.add('hidden'), 400);
+    }, 2000);
 }
 
 function setupLiveLinkUI() {
@@ -389,7 +433,21 @@ function setupLiveLinkUI() {
         form.addEventListener('submit', (e) => {
             e.preventDefault();
             const input = getEl('link-input');
-            sendLiveLink(input.value.trim());
+            const val = input.value.trim();
+            if (val) {
+                sendLiveLink(val);
+                input.value = ''; // Clear input
+
+                // Smart Message (Matching logic with sendLiveLink)
+                const parts = val.split('.');
+                const looksLikeUrl = parts.length > 1 && parts[parts.length - 1].length >= 2 && !val.includes(' ') || val.startsWith('http');
+
+                if (looksLikeUrl) {
+                    window.showToast("Link Sendt!", "🚀");
+                } else {
+                    window.showToast("Besked Sendt!", "💬");
+                }
+            }
         });
     }
 
@@ -399,10 +457,7 @@ function setupLiveLinkUI() {
             const linkEl = getEl('current-link');
             const val = linkEl.href ? linkEl.href : linkEl.textContent;
             navigator.clipboard.writeText(val);
-            const toast = document.getElementById('toast');
-            toast.classList.remove('hidden');
-            toast.style.display = 'block';
-            setTimeout(() => toast.style.display = 'none', 2000);
+            window.showToast("Kopieret!", "📋");
         });
     }
 
@@ -410,7 +465,10 @@ function setupLiveLinkUI() {
     if (openBtn) {
         openBtn.addEventListener('click', () => {
             const linkEl = getEl('current-link');
-            if (linkEl.href) window.open(linkEl.href, '_blank');
+            if (linkEl.href) {
+                window.open(linkEl.href, '_blank');
+                window.showToast("Åbner Link...", "🌍");
+            }
         });
     }
 }
@@ -624,110 +682,131 @@ function updateTime() {
 /**
  * Update the main status card (Current subject, countdown)
  */
+
 function updateStatus(now) {
-    if (!currentState.scheduleToday) {
-        // Weekend or no schedule
-        statusLabelEl.textContent = "Fri";
-        currentSubjectEl.textContent = "Ingen skole";
-        nextInfoEl.textContent = "Nyd fridagen!";
-        countdownEl.textContent = "";
-        return;
-    }
+    // SECURITY: Re-select DOM if missing (Self-healing)
+    if (!statusLabelEl) statusLabelEl = document.getElementById('status-label');
+    if (!currentSubjectEl) currentSubjectEl = document.getElementById('current-subject');
+    if (!nextInfoEl) nextInfoEl = document.getElementById('next-info');
+    if (!countdownEl) countdownEl = document.getElementById('countdown');
 
-    const currentTimeValue = now.getHours() * 60 + now.getMinutes();
-    const lessons = currentState.scheduleToday.lessons;
-    let currentLesson = null;
-    let nextLesson = null;
+    try {
+        console.log("UpdateStatus run...");
+        // console.log("DOM Elements:", { statusLabelEl, currentSubjectEl, nextInfoEl, countdownEl });
+        if (!currentState.scheduleToday) {
+            console.log("No scheduleToday -> Setting Fri");
+            statusLabelEl.textContent = "Fri";
+            currentSubjectEl.textContent = "Ingen skole";
+            nextInfoEl.textContent = "Nyd fridagen!";
+            countdownEl.textContent = "";
+            return;
+        }
 
-    // Find where we are in the schedule
-    for (let i = 0; i < lessons.length; i++) {
-        const lesson = lessons[i];
-        const startVal = timeStringToMinutes(lesson.start);
-        const endVal = timeStringToMinutes(lesson.end);
+        const currentTimeValue = now.getHours() * 60 + now.getMinutes();
+        const lessons = currentState.scheduleToday.lessons;
+        let currentLesson = null;
+        let nextLesson = null;
 
-        if (currentTimeValue >= startVal && currentTimeValue < endVal) {
-            currentLesson = lesson;
-            // Next is just the next one in the list, if exists
-            if (i + 1 < lessons.length) {
-                nextLesson = lessons[i + 1];
+        // Find where we are in the schedule
+        for (let i = 0; i < lessons.length; i++) {
+            const lesson = lessons[i];
+            const startVal = timeStringToMinutes(lesson.start);
+            const endVal = timeStringToMinutes(lesson.end);
+
+            if (currentTimeValue >= startVal && currentTimeValue < endVal) {
+                currentLesson = lesson;
+                if (i + 1 < lessons.length) {
+                    nextLesson = lessons[i + 1];
+                }
+                break;
             }
-            break;
+
+            if (currentTimeValue < startVal) {
+                nextLesson = lesson;
+                break;
+            }
         }
 
-        if (currentTimeValue < startVal) {
-            // We are before this calculation, so this is the "next" event (e.g. morning before school)
-            nextLesson = lesson;
-            break;
-        }
-    }
+        console.log(`Cur: ${currentLesson ? currentLesson.subject : 'None'}, Next: ${nextLesson ? nextLesson.subject : 'None'}`);
 
-    // Update UI based on finding
-    if (currentLesson) {
-        statusLabelEl.textContent = "Lige nu";
-        currentSubjectEl.textContent = currentLesson.subject;
-        currentSubjectEl.style.color = currentLesson.color;
+        // Update UI based on finding
+        if (currentLesson) {
+            console.log("Updating UI: Current Lesson");
+            statusLabelEl.textContent = "Lige nu";
+            currentSubjectEl.textContent = currentLesson.subject;
 
-        // Calculate Remaining Time
-        const endVal = timeStringToMinutes(currentLesson.end);
-        const diffMinutes = endVal - currentTimeValue;
+            currentSubjectEl.style.color = currentLesson.color;
 
-        // For seconds precision, we need to be more granular than just minutes
-        // Let's do a full timestamp calc for the specific Time
-        const endTimeDate = new Date(now);
-        const [endH, endM] = currentLesson.end.split(':');
-        endTimeDate.setHours(endH, endM, 0, 0);
+            // Calculate Remaining Time
+            const endVal = timeStringToMinutes(currentLesson.end);
+            const diffMinutes = endVal - currentTimeValue;
 
-        const diffSeconds = Math.floor((endTimeDate - now) / 1000);
-        countdownEl.textContent = formatCountdown(diffSeconds);
+            // For seconds precision, we need to be more granular than just minutes
+            // Let's do a full timestamp calc for the specific Time
+            const endTimeDate = new Date(now);
+            const [endH, endM] = currentLesson.end.split(':');
+            endTimeDate.setHours(endH, endM, 0, 0);
 
-        if (nextLesson) {
-            nextInfoEl.textContent = `Næste: ${nextLesson.subject} (${nextLesson.start})`;
+            const diffSeconds = Math.floor((endTimeDate - now) / 1000);
+            countdownEl.textContent = formatCountdown(diffSeconds);
+
+            if (nextLesson) {
+                nextInfoEl.textContent = `Næste: ${nextLesson.subject} (${nextLesson.start})`;
+            } else {
+                nextInfoEl.textContent = "Dagen er snart slut";
+            }
+
+            // --- PROGRESS RING CALCULATION ---
+            const startTimeDate = new Date(now);
+            const [startH, startM] = currentLesson.start.split(':');
+            startTimeDate.setHours(startH, startM, 0, 0);
+
+            const totalDuration = endTimeDate - startTimeDate;
+            const elapsed = now - startTimeDate;
+
+            // constrain percent between 0 and 100
+            let percent = (elapsed / totalDuration) * 100;
+
+        } else if (nextLesson) {
+            // Before school or in a gap
+
+            // GREETING OVERRIDE FIX
+            // If it's morning (before 10) and we are waiting for something, say Good Morning
+            const hour = now.getHours();
+            if (hour < 10) {
+                statusLabelEl.textContent = "Godmorgen 🌅";
+            } else {
+                statusLabelEl.textContent = "Næste";
+            }
+
+            currentSubjectEl.textContent = nextLesson.subject;
+            currentSubjectEl.style.color = nextLesson.color; // Use next lesson color
+
+            const startTimeDate = new Date(now);
+            const [startH, startM] = nextLesson.start.split(':');
+            startTimeDate.setHours(startH, startM, 0, 0);
+
+            const diffSeconds = Math.floor((startTimeDate - now) / 1000);
+            countdownEl.textContent = formatCountdown(diffSeconds);
+
+            nextInfoEl.textContent = `Starter kl. ${nextLesson.start}`;
+
         } else {
-            nextInfoEl.textContent = "Dagen er snart slut";
+            // After school
+            statusLabelEl.textContent = "Status";
+            currentSubjectEl.textContent = "Fri";
+            currentSubjectEl.style.color = "var(--text-primary)";
+            nextInfoEl.textContent = "Vi ses i morgen!";
+            countdownEl.textContent = "";
         }
 
-        // --- PROGRESS RING CALCULATION ---
-        const startTimeDate = new Date(now);
-        const [startH, startM] = currentLesson.start.split(':');
-        startTimeDate.setHours(startH, startM, 0, 0);
+        // Highlight active item in list
+        highlightActiveItem(currentLesson);
 
-        const totalDuration = endTimeDate - startTimeDate;
-        const elapsed = now - startTimeDate;
-
-        // constrain percent between 0 and 100
-        let percent = (elapsed / totalDuration) * 100;
-        if (nextLesson) {
-            nextInfoEl.textContent = `Næste: ${nextLesson.subject} (${nextLesson.start})`;
-        } else {
-            nextInfoEl.textContent = "Dagen er snart slut";
-        }
-
-    } else if (nextLesson) {
-        // Before school or in a gap that isn't explicitly a break (though our data maps breaks)
-        statusLabelEl.textContent = "Næste";
-        currentSubjectEl.textContent = nextLesson.subject;
-        currentSubjectEl.style.color = nextLesson.color; // Use next lesson color
-
-        const startTimeDate = new Date(now);
-        const [startH, startM] = nextLesson.start.split(':');
-        startTimeDate.setHours(startH, startM, 0, 0);
-
-        const diffSeconds = Math.floor((startTimeDate - now) / 1000);
-        countdownEl.textContent = formatCountdown(diffSeconds);
-
-        nextInfoEl.textContent = `Starter kl. ${nextLesson.start}`;
-
-    } else {
-        // After school
-        statusLabelEl.textContent = "Status";
-        currentSubjectEl.textContent = "Fri";
-        currentSubjectEl.style.color = "var(--text-primary)";
-        nextInfoEl.textContent = "Vi ses i morgen!";
-        countdownEl.textContent = "";
+    } catch (e) {
+        console.error("UpdateStatus Crash:", e);
+        if (currentSubjectEl) currentSubjectEl.textContent = "Fejl: " + e.message;
     }
-
-    // Highlight active item in list
-    highlightActiveItem(currentLesson);
 }
 
 /**
@@ -740,16 +819,60 @@ function updateStatus(now) {
  * Select a day to view in the schedule
  */
 window.selectDay = function (index) {
-    currentState.selectedDayIndex = index;
-    renderSchedule();
+    // Prevent spamming
+    if (currentState.selectedDayIndex === index) return;
+
+    // 0. INSTANT BUTTON FEEDBACK
+    // Toggle active state immediately for snappy feel
+    document.querySelectorAll('.day-btn').forEach(btn => btn.classList.remove('active'));
+    const newBtn = document.getElementById(`day-${index}`);
+    if (newBtn) newBtn.classList.add('active');
+
+    // 1. Animate Out (Smooth Fade/Slide)
+    if (scheduleListEl) {
+        scheduleListEl.style.transition = "opacity 0.2s ease, transform 0.2s ease";
+        scheduleListEl.style.opacity = "0";
+        scheduleListEl.style.transform = "translateY(10px)"; // Slide down slightly on exit
+
+        setTimeout(() => {
+            // 2. Update State & Render
+            currentState.selectedDayIndex = index;
+            renderSchedule();
+
+            // 3. Animate In (Rise Up)
+            // Force Reflow
+            void scheduleListEl.offsetWidth;
+
+            scheduleListEl.style.transition = "opacity 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)";
+            scheduleListEl.style.transform = "translateY(0)";
+            scheduleListEl.style.opacity = "1";
+        }, 220); // Wait for exit
+    } else {
+        currentState.selectedDayIndex = index;
+        renderSchedule();
+    }
 };
 
 /**
  * Render the schedule list (Premium Layout)
  */
 function renderSchedule() {
-    if (!scheduleListEl) return;
-    scheduleListEl.innerHTML = '';
+    // SECURITY: Re-select DOM if missing (Self-healing)
+    if (!scheduleListEl) {
+        console.log("⚠️ scheduleListEl missing, attempting recovery...");
+        scheduleListEl = document.getElementById('schedule-list');
+
+        if (!scheduleListEl) {
+            console.log("⚠️ ID lookup failed, trying class...");
+            scheduleListEl = document.querySelector('.schedule-list-vertical');
+        }
+    }
+
+    if (!scheduleListEl) {
+        console.error("🚨 CRITICAL: Could not find schedule-list element via ID or Class!");
+        if (typeof logToScreen === 'function') logToScreen("🚨 FEJL: Kan ikke finde skema-listen i HTML!", "red");
+        return;
+    }
 
     // Determine which day to show
     const now = new Date();
@@ -771,13 +894,25 @@ function renderSchedule() {
         }
     }
 
-    // Update day buttons
-    document.querySelectorAll('.day-btn').forEach(btn => {
-        btn.classList.remove('active');
-        if (btn.id === `day-${displayIndex}`) btn.classList.add('active');
-    });
+    // NOTE: Buttons are updated immediately in selectDay, 
+    // but we double-check here just in case renderSchedule is called from elsewhere (e.g. time update)
+    const activeBtn = document.getElementById(`day-${displayIndex}`);
+    if (activeBtn && !activeBtn.classList.contains('active')) {
+        document.querySelectorAll('.day-btn').forEach(btn => btn.classList.remove('active'));
+        activeBtn.classList.add('active');
+    }
+
+    // Wipe List for new content
+    scheduleListEl.innerHTML = '';
+
+    console.log("Rendering Day:", displayIndex, "Items:", scheduleToRender ? scheduleToRender.lessons.length : 0);
+
+    // SIMPLE VISIBILITY FORCE (Debug Mode)
+    scheduleListEl.style.opacity = "1";
+    scheduleListEl.style.transform = "translateY(0)";
 
     if (!scheduleToRender) {
+        console.log("No schedule to render!");
         scheduleListEl.innerHTML = '<div class="schedule-card"><span class="card-subject" style="text-align:center; padding:0;">Ingen timer denne dag 😴</span></div>';
         return;
     }
@@ -786,6 +921,27 @@ function renderSchedule() {
         const item = document.createElement('div');
         item.className = 'schedule-card';
         if (lesson.type === 'break') item.className += ' break-item';
+
+        // PRE-CALCULATE TIME STATE (Fixes "Flash" glitch)
+        // We determine if the lesson is in the past IMMEDIATELY
+        const currentTimeValue = now.getHours() * 60 + now.getMinutes();
+        const endVal = timeStringToMinutes(lesson.end);
+
+        let isPast = false;
+        if (displayIndex < todayIndex) {
+            // Day is in the past (e.g. Monday when it's Tuesday)
+            // (Assuming standard Mon-Fri week logic)
+            isPast = true;
+        } else if (displayIndex === todayIndex) {
+            // Today: Check time
+            if (currentTimeValue >= endVal) {
+                isPast = true;
+            }
+        }
+
+        if (isPast) {
+            item.classList.add('past');
+        }
 
         item.dataset.start = lesson.start;
         item.dataset.end = lesson.end;
@@ -833,6 +989,15 @@ function renderSchedule() {
 }
 
 function highlightActiveItem(currentLesson) {
+    if (!scheduleListEl) return;
+
+    // GUARD: Only perform live updates if viewing TODAY
+    const now = new Date();
+    const todayIndex = now.getDay();
+    const displayIndex = currentState.selectedDayIndex !== undefined ? currentState.selectedDayIndex : todayIndex;
+
+    if (displayIndex !== todayIndex) return;
+
     const items = scheduleListEl.querySelectorAll('.schedule-card');
     items.forEach(item => {
         item.classList.remove('current', 'past');
@@ -1229,35 +1394,93 @@ window.newQuote = function () {
 }
 
 // --- 9. Extras Overlay (Menu) ---
+// --- 9. Extras Overlay (Menu) ---
 const menuBtn = document.getElementById('menu-btn');
 const closeExtrasBtn = document.getElementById('close-extras-btn');
 const extrasOverlay = document.getElementById('extras-overlay');
 
-if (menuBtn && extrasOverlay) {
-    menuBtn.addEventListener('click', () => {
-        extrasOverlay.classList.remove('hidden');
+// Dedicated Menu Animations (Golden Style)
+window.openExtrasMenu = function () {
+    if (!extrasOverlay) return;
+
+    const dashboard = document.getElementById('view-dashboard');
+
+    // 1. Scale Dashboard Down (Depth Effect)
+    if (dashboard && !dashboard.classList.contains('hidden')) {
+        dashboard.style.transition = "transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1)";
+        dashboard.style.transform = "scale(0.96)";
+        dashboard.style.opacity = "0.6"; // Dim slightly
+    }
+
+    // 2. Prepare Overlay
+    extrasOverlay.classList.remove('hidden');
+    extrasOverlay.getAnimations().forEach(a => a.cancel());
+    extrasOverlay.style.opacity = "0";
+    extrasOverlay.style.transform = "scale(0.98)";
+
+    // 3. Animate In (Golden)
+    const anim = extrasOverlay.animate([
+        { opacity: 0, transform: 'scale(1.05)' }, // Start slightly zoomed in for pop
+        { opacity: 1, transform: 'scale(1)' }
+    ], {
+        duration: 350,
+        easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
+        fill: 'forwards'
+    });
+
+    anim.onfinish = () => {
+        extrasOverlay.style.opacity = "1";
+        extrasOverlay.style.transform = "scale(1)";
 
         // Show God Mode Tools if active
         const gmMenu = document.getElementById('menu-god-mode');
-        if (gmMenu) {
-            if (window.Arcade && window.Arcade.godMode) {
-                gmMenu.classList.remove('hidden');
-            } else {
-                gmMenu.classList.add('hidden');
-            }
+        if (gmMenu && window.Arcade && window.Arcade.godMode) {
+            gmMenu.classList.remove('hidden');
         }
-    });
+    };
 }
 
-if (closeExtrasBtn && extrasOverlay) {
-    closeExtrasBtn.addEventListener('click', () => {
-        extrasOverlay.classList.add('hidden');
+window.closeExtrasMenu = function () {
+    if (!extrasOverlay) return;
+
+    const dashboard = document.getElementById('view-dashboard');
+
+    // 1. Scale Dashboard Back
+    if (dashboard && !dashboard.classList.contains('hidden')) {
+        dashboard.style.transform = "scale(1)";
+        dashboard.style.opacity = "1";
+    }
+
+    // 2. Animate Overlay Out
+    const anim = extrasOverlay.animate([
+        { opacity: 1, transform: 'scale(1)' },
+        { opacity: 0, transform: 'scale(0.98)' }
+    ], {
+        duration: 250,
+        easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+        fill: 'forwards'
     });
 
-    // Close on click outside content
+    anim.onfinish = () => {
+        extrasOverlay.classList.add('hidden');
+        extrasOverlay.style.opacity = "";
+        extrasOverlay.style.transform = "";
+    };
+}
+
+if (menuBtn) {
+    menuBtn.addEventListener('click', window.openExtrasMenu);
+}
+
+if (closeExtrasBtn) {
+    closeExtrasBtn.addEventListener('click', window.closeExtrasMenu);
+}
+
+// Close on click outside
+if (extrasOverlay) {
     extrasOverlay.addEventListener('click', (e) => {
         if (e.target === extrasOverlay) {
-            extrasOverlay.classList.add('hidden');
+            window.closeExtrasMenu();
         }
     });
 }
@@ -1419,10 +1642,69 @@ window.handleArcadeBack = function () {
 window.openArcade = function () {
     const extras = document.getElementById('extras-overlay');
     const header = document.getElementById('main-header');
-    if (extras) extras.classList.add('hidden');
+
+    // Check if we are coming from the Menu
+    const isMenuOpen = extras && !extras.classList.contains('hidden');
+
     if (header) header.classList.add('hidden');
 
-    runGoldenTransition('view-dashboard', 'view-arcade');
+    if (isMenuOpen) {
+        // SPECIAL TRANSITION: SMOOTH REVEAL
+        // 1. Hide Dashboard IMMEDIATELY so "FRI" text is gone.
+        // We rely on the body background color to fill the void.
+        const dashboard = document.getElementById('view-dashboard');
+        dashboard.classList.add('hidden');
+
+        const arcade = document.getElementById('view-arcade');
+
+        // 2. Setup Arcade UNDER Menu but VISIBLE
+        arcade.classList.remove('hidden');
+        arcade.style.zIndex = "1500"; // Below Menu (2000), Above Body
+        arcade.getAnimations().forEach(a => a.cancel());
+        arcade.style.opacity = "0"; // Start invisible
+        arcade.style.transform = "scale(0.96)"; // Slight zoom in effect
+
+        // 3. Animate Arcade IN (Background)
+        const arcadeAnim = arcade.animate([
+            { opacity: 0, transform: 'scale(0.96)' },
+            { opacity: 1, transform: 'scale(1)' }
+        ], {
+            duration: 400,
+            easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
+            fill: 'forwards'
+        });
+
+        // 4. Animate Menu OUT (Foreground)
+        // We use the exact same curve so they cross-fade perfectly
+        const menuAnim = extras.animate([
+            { opacity: 1, transform: 'scale(1)' },
+            { opacity: 0, transform: 'scale(1.05)' } // Zoom out towards user
+        ], {
+            duration: 400,
+            easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
+            fill: 'forwards'
+        });
+
+        // 5. Cleanup
+        arcadeAnim.onfinish = () => {
+            // Reset Arcade to normal state
+            arcade.style.zIndex = "";
+            arcade.style.opacity = "1";
+            arcade.style.transform = "scale(1)";
+
+            // Hide Menu completely
+            extras.classList.add('hidden');
+            extras.style.opacity = "";
+            extras.style.transform = "";
+
+            if (window.Arcade) window.Arcade.init();
+        };
+
+    } else {
+        // Standard Global Transition (Dashboard -> Arcade)
+        if (extras) extras.classList.add('hidden');
+        runGoldenTransition('view-dashboard', 'view-arcade');
+    }
 }
 
 window.closeArcade = function () {
@@ -2961,3 +3243,12 @@ window.resetTime = function () {
     if (slider) slider.value = currentFloat;
     if (label) label.textContent = "Live";
 }
+
+// Initialize Application
+document.addEventListener('DOMContentLoaded', () => {
+    // Only init if not already running (double-safety)
+    if (!window.hasInitialized) {
+        window.hasInitialized = true;
+        init();
+    }
+});
