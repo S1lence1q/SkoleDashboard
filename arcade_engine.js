@@ -158,10 +158,16 @@ window.Arcade = {    // Global Settings
             this.play(200, 'sawtooth', 0.3);
             setTimeout(() => this.play(150, 'sawtooth', 0.3), 200);
         },
-        // Wordle Sounds
-        type() { this.play(800, 'triangle', 0.05); }, // Crisp Click
-        confirm() { this.play(150, 'square', 0.1); }, // Thud
-        flip() { this.play(400, 'sine', 0.15); }, // Whoosh
+        // Wordle Sounds - Refined for "Premium" feel
+        type() {
+            this.play(400, 'sine', 0.05);    // Soft Thud
+            this.play(1200, 'triangle', 0.03); // Crisp Click
+        },
+        confirm() {
+            this.play(180, 'sine', 0.1);
+            this.play(220, 'sine', 0.08);
+        },
+        flip() { this.play(450, 'sine', 0.1); }, // Snappy Whoosh
         wordleWin() {
             // C Major Chord
             this.play(523.25, 'sine', 0.2); // C5

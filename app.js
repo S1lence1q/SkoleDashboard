@@ -98,6 +98,15 @@ function init() {
     // Init Live Link Drop
     initLiveLink();
 
+    // Background Effects Toggle Init
+    const bgToggle = document.getElementById('bg-effects-canvas-toggle') || document.getElementById('bg-effects-toggle');
+    if (bgToggle) {
+        bgToggle.checked = localStorage.getItem('bg_effects_enabled') !== 'false';
+        bgToggle.addEventListener('change', (e) => {
+            if (window.BackgroundEffects) window.BackgroundEffects.toggle(e.target.checked);
+        });
+    }
+
     // Apple-Level Polish
 
     // Initial Time Update
@@ -147,6 +156,9 @@ function initTheme() {
         document.body.classList.add(themeName);
 
         localStorage.setItem('skole_theme', themeName);
+
+        // Update Background Effects
+        if (window.BackgroundEffects) window.BackgroundEffects.setTheme(themeName);
 
         // Visual Update
         const dots = document.querySelectorAll('.theme-dot');

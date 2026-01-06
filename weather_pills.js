@@ -58,6 +58,11 @@ async function fetchWeather() {
         widget.classList.add('visible');
         widget.title = `Vejret i Viborg: ${temp}°C`;
 
+        // Update Background Effects
+        if (window.BackgroundEffects) {
+            window.BackgroundEffects.setWeather(code, isDay);
+        }
+
     } catch (e) {
         console.error("Weather fetch failed:", e);
         // Hide widget on error
