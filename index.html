@@ -188,7 +188,7 @@
                         <div id="sec-notes" class="sec-content hidden"></div>
                     </div>
                 </div>
-            </div>
+            </div> <!-- End extras-overlay -->
 
             <!-- SECRET SNAKE GAME OVERLAY -->
             <div id="game-overlay" class="game-overlay hidden">
@@ -204,7 +204,6 @@
 
 
             <!-- VIEW: DASHBOARD -->
-            <!-- Header (Fixed Outside Dashboard) -->
             <header id="main-header">
                 <div class="header-left">
                     <!-- Weather Widget -->
@@ -212,12 +211,13 @@
                         <span class="weather-icon">☁️</span>
                         <span class="weather-temp">--°</span>
                     </div>
-                    <div class="header-right">
-                        <!-- Settings Button (Overview) -->
-                        <button onclick="toggleSettings()" class="header-settings-btn" title="Indstillinger">
-                            <img src="settings-icon.png" alt="Settings" class="settings-icon-png">
-                        </button>
-                    </div>
+                </div>
+                <div class="header-right">
+                    <!-- Settings Button (Overview) -->
+                    <button onclick="toggleSettings()" class="header-settings-btn" title="Indstillinger">
+                        <img src="settings-icon.png" alt="Settings" class="settings-icon-png">
+                    </button>
+                </div>
             </header>
 
             <!-- Floating Action Buttons (Bottom Right) -->
@@ -974,74 +974,70 @@
                         <div id="leaderboard-content" class="leaderboard-list">
                             <!-- JS renders scores here -->
                         </div>
-                    </div>
+                    </div> <!-- End arcade-leaderboard -->
+                </div> <!-- End app-container -->
+
+                <!-- GLOBAL TOAST NOTIFICATION -->
+                <div id="arcade-toast" class="toast-notification hidden">
+                    <span id="toast-icon">✅</span>
+                    <span id="toast-message">Besked</span>
                 </div>
-            </div>
-        </div>
-    </div>
-    </div>
 
-    <!-- GLOBAL TOAST NOTIFICATION -->
-    <div id="arcade-toast" class="toast-notification hidden">
-        <span id="toast-icon">✅</span>
-        <span id="toast-message">Besked</span>
-    </div>
+                <script>
+                    function toggleSettings() {
+                        const overlay = document.getElementById('extras-overlay');
+                        const panel = overlay ? overlay.querySelector('.settings-panel') : null;
+                        const settingsBtn = document.querySelector('.header-settings-btn');
 
-    <script>
-        function toggleSettings() {
-            const overlay = document.getElementById('extras-overlay');
-            const panel = overlay ? overlay.querySelector('.settings-panel') : null;
-            const settingsBtn = document.querySelector('.header-settings-btn');
+                        if (!overlay) return;
 
-            if (!overlay) return;
+                        const isHidden = overlay.classList.contains('hidden');
 
-            const isHidden = overlay.classList.contains('hidden');
+                        if (!isHidden) {
+                            // CLOSING (Unified Logic)
+                            if (panel) panel.classList.add('fade-out-anim');
+                            overlay.style.opacity = '0';
 
-            if (!isHidden) {
-                // CLOSING (Unified Logic)
-                if (panel) panel.classList.add('fade-out-anim');
-                overlay.style.opacity = '0';
+                            setTimeout(() => {
+                                overlay.classList.add('hidden');
+                                overlay.style.opacity = '';
+                                overlay.style.transform = '';
+                                if (panel) panel.classList.remove('fade-out-anim');
 
-                setTimeout(() => {
-                    overlay.classList.add('hidden');
-                    overlay.style.opacity = '';
-                    overlay.style.transform = '';
-                    if (panel) panel.classList.remove('fade-out-anim');
+                                // Restore Settings Button
+                                if (settingsBtn) {
+                                    settingsBtn.style.opacity = '1';
+                                    settingsBtn.style.pointerEvents = '';
+                                }
+                            }, 250);
 
-                    // Restore Settings Button
-                    if (settingsBtn) {
-                        settingsBtn.style.opacity = '1';
-                        settingsBtn.style.pointerEvents = '';
+                        } else {
+                            // OPENING (Unified Logic)
+                            overlay.classList.remove('hidden');
+
+                            if (settingsBtn) {
+                                settingsBtn.style.opacity = '0.3';
+                                settingsBtn.style.pointerEvents = 'none';
+                            }
+                        }
                     }
-                }, 250);
 
-            } else {
-                // OPENING (Unified Logic)
-                overlay.classList.remove('hidden');
+                    // Close when clicking outside content (Handled by inline onclick on overlay)
 
-                if (settingsBtn) {
-                    settingsBtn.style.opacity = '0.3';
-                    settingsBtn.style.pointerEvents = 'none';
-                }
-            }
-        }
-
-        // Close when clicking outside content (Handled by inline onclick on overlay)
-
-        // Global Keyboard Shortcuts
-        document.addEventListener('keydown', (e) => {
-            // Live Link: Ctrl+L or Cmd+L
-            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'l') {
-                e.preventDefault(); // Prevent browser address bar focus
-                const liveLinkView = document.getElementById('view-livelink');
-                if (liveLinkView && liveLinkView.classList.contains('hidden')) {
-                    showLiveLink();
-                } else if (liveLinkView) {
-                    showDashboard();
-                }
-            }
-        });
-    </script>
+                    // Global Keyboard Shortcuts
+                    document.addEventListener('keydown', (e) => {
+                        // Live Link: Ctrl+L or Cmd+L
+                        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'l') {
+                            e.preventDefault(); // Prevent browser address bar focus
+                            const liveLinkView = document.getElementById('view-livelink');
+                            if (liveLinkView && liveLinkView.classList.contains('hidden')) {
+                                showLiveLink();
+                            } else if (liveLinkView) {
+                                showDashboard();
+                            }
+                        }
+                    });
+                </script>
 </body>
 
 </html>
