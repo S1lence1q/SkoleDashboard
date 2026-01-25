@@ -2320,12 +2320,13 @@ window.refreshArcadeSettingsUI = function () {
 }
 
 window.toggleArcadeSettings = function () {
-    const p = document.getElementById('arcade-settings');
-    const isHidden = p.classList.contains('hidden');
+    const overlay = document.getElementById('arcade-settings-overlay');
+    if (!overlay) return;
+    const isHidden = overlay.classList.contains('hidden');
 
     if (isHidden) {
         // Open Settings
-        p.classList.remove('hidden');
+        overlay.classList.remove('hidden');
         window.refreshArcadeSettingsUI(); // Use helper
 
         // PAUSE GAMES
@@ -2337,24 +2338,24 @@ window.toggleArcadeSettings = function () {
         }
 
     } else {
-        // Closing handled by closeSettings()
         closeSettings();
     }
 }
 
 window.closeSettings = function () {
-    const p = document.getElementById('arcade-settings');
+    const overlay = document.getElementById('arcade-settings-overlay');
+    const panel = document.getElementById('arcade-settings');
 
-    // Animation Logic
-    if (p && !p.classList.contains('hidden')) {
-        p.classList.add('fade-out-anim');
+    if (overlay && !overlay.classList.contains('hidden')) {
+        // Trigger exit animations
+        if (panel) panel.classList.add('fade-out-anim');
+        overlay.style.opacity = '0'; // Ease out the backdrop
+
         setTimeout(() => {
-            p.classList.add('hidden');
-            p.classList.remove('fade-out-anim');
-        }, 200);
-    } else if (p) {
-        // Already hidden, just ensure state
-        p.classList.add('hidden');
+            overlay.classList.add('hidden');
+            overlay.style.opacity = ''; // Reset for next time
+            if (panel) panel.classList.remove('fade-out-anim');
+        }, 250);
     }
 
     // UNPAUSE GAMES
