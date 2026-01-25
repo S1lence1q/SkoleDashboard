@@ -135,15 +135,11 @@ function init() {
 function initTheme() {
     // --- NEW DYNAMIC THEME ENGINE ---
     const themeConfig = {
-        'theme-midnight': '#0ea5e9',
-        'theme-royal': '#fbbf24',
-        'theme-neon': '#e879f9',
-        'theme-emerald': '#10b981',
-        'theme-frost': '#f0f9ff',
-        'theme-crimson': '#ef4444',
-        'theme-matrix': '#00ff00',
-        'theme-sunset': '#ff00ff',
-        'theme-ocean': '#00bcd4'
+        'theme-midnight': '#0ea5e9', // Deep Space Blue
+        'theme-royal': '#fbbf24',    // Gold
+        'theme-emerald': '#10b981',  // Green
+        'theme-crimson': '#ef4444',  // Red
+        'theme-frost': '#f0f9ff',    // White/Ice
     };
 
     window.setTheme = function (themeName) {
@@ -152,6 +148,7 @@ function initTheme() {
 
         // Apply Class
         // Clear all known themes first
+        // Note: We only remove keys present in the config to avoid messing with other classes
         Object.keys(themeConfig).forEach(t => document.body.classList.remove(t));
         document.body.classList.add(themeName);
 
@@ -178,16 +175,16 @@ function initTheme() {
     }
 
     window.renderOwnedThemes = function () {
-        const container = document.querySelector('.theme-row');
-        if (!container || !window.Arcade) return;
+        // Updated to match index.html class
+        const container = document.querySelector('.theme-row-compact');
+        if (!container) return;
 
-        // Inventory check
-        const inventory = window.Arcade.state.inventory || [];
-        const ownedThemes = ['theme-midnight', ...inventory.filter(id => id.startsWith('theme-') && id !== 'theme-midnight')];
+        // DATA - USER REQUEST: ALL NICE THEMES AVAILABLE. NO SHOP.
+        const availableThemes = ['theme-midnight', 'theme-royal', 'theme-crimson', 'theme-emerald', 'theme-frost'];
 
         container.innerHTML = ''; // Clear static
 
-        ownedThemes.forEach(themeId => {
+        availableThemes.forEach(themeId => {
             // Check if valid theme in config (prevent unknown ID errors)
             if (!themeConfig[themeId]) return;
 
@@ -201,8 +198,11 @@ function initTheme() {
             container.appendChild(btn);
         });
 
-        // Restore active selection
-        const saved = localStorage.getItem('skole_theme') || 'theme-midnight';
+        // Restore active selection or default to midnight
+        let saved = localStorage.getItem('skole_theme') || 'theme-midnight';
+        // If saved theme no longer exists (e.g. we deleted it), revert to midnight
+        if (!themeConfig[saved]) saved = 'theme-midnight';
+
         window.setTheme(saved);
     }
 
@@ -266,7 +266,7 @@ function initScrollObserver() {
             }
         });
     }, {
-        threshold: 0.2 // Trigger when 20% visible
+        threshold: 0.1 // Trigger earlier for smoother reveal
     });
 
     sections.forEach(section => {
@@ -520,38 +520,7 @@ window.showLiveLink = function () {
     };
 }
 
-window.showDashboard = function () {
-    const dashboard = document.getElementById('view-dashboard');
-    const liveLink = document.getElementById('view-livelink');
-
-    // 1. Prepare Shield
-    liveLink.classList.remove('hidden');
-    liveLink.style.opacity = "1";
-    liveLink.style.transition = "none";
-
-    // 2. Prepare Dashboard (Target)
-    dashboard.classList.remove('hidden');
-    dashboard.getAnimations().forEach(anim => anim.cancel());
-    dashboard.style.opacity = "0";
-    dashboard.style.transform = "scale(0.98)";
-
-    // 3. Golden Animation In (Dashboard)
-    const anim = dashboard.animate([
-        { opacity: 0, transform: 'scale(0.98)' },
-        { opacity: 1, transform: 'scale(1)' }
-    ], {
-        duration: 350,
-        easing: 'cubic-bezier(0.4, 0, 0.2, 1)'
-    });
-
-    anim.onfinish = () => {
-        dashboard.style.opacity = "1";
-        dashboard.style.transform = "scale(1)";
-        liveLink.classList.add('hidden');
-        liveLink.style.opacity = "";
-        liveLink.style.transform = "";
-    };
-}
+// Duplicate showDashboard removed 
 
 function checkLock() {
     const lockScreen = document.getElementById('lock-screen');
@@ -1467,6 +1436,8 @@ window.closeExtrasMenu = function () {
     };
 }
 
+// Listeners Disabled - Handled by toggleSettings() in index.html
+/*
 if (menuBtn) {
     menuBtn.addEventListener('click', window.openExtrasMenu);
 }
@@ -1483,6 +1454,7 @@ if (extrasOverlay) {
         }
     });
 }
+*/
 
 // Override startLoveMatch with Animation
 window.startLoveMatch = function () {
@@ -1708,6 +1680,13 @@ window.openArcade = function () {
 
 window.closeArcade = function () {
     window.showDashboard();
+
+    // Restore Settings Button visibility (fix for disappearing button bug)
+    const settingsBtn = document.querySelector('.header-settings-btn');
+    if (settingsBtn) {
+        settingsBtn.style.opacity = '1';
+        settingsBtn.style.pointerEvents = '';
+    }
 }
 
 
@@ -1876,6 +1855,7 @@ window.startWordleSolo = function () {
                 window.fireConfetti();
                 document.getElementById('wordle-msg').textContent = "SEJR! FLOT KLARET!";
             } else {
+                if (window.fireSadRain) window.fireSadRain();
                 document.getElementById('wordle-msg').textContent = "GAME OVER";
             }
             document.getElementById('wordle-game-over').classList.remove('hidden');
@@ -1883,7 +1863,6 @@ window.startWordleSolo = function () {
         window.Arcade.Wordle.start(null, false);
     }
 }
-
 window.showDuelLobby = function () {
     // Called from Settings
     document.getElementById('wordle-duel-lobby').classList.remove('hidden');
@@ -2016,18 +1995,10 @@ function startDuelGame(word, code, role, mode = 'race') {
         document.getElementById('solo-hud-display')?.classList.add('hidden');
         document.getElementById('duel-room-code-hud').textContent = code;
 
-        // Status Elements (Now Exist)
-        const myStatus = document.getElementById('duel-my-status');
-        // if (myStatus) myStatus.textContent = "Række 1";
-
-        // Initial status (only for Race mode)
-        if (mode !== 'turn') {
-            document.getElementById('duel-opp-status').textContent = "Spiller...";
-        }
+        const oppStatusEl = document.getElementById('duel-opp-status');
 
         if (window.Arcade && window.Arcade.Wordle) {
             window.Arcade.Wordle.onProgress = (row) => {
-                // document.getElementById('duel-my-status').textContent = "Række " + (row);
                 if (liveLinkState && liveLinkState.db) {
                     liveLinkState.db.ref(`wordle_duels/${code}/${role}`).update({ row: row });
                 }
@@ -2037,12 +2008,11 @@ function startDuelGame(word, code, role, mode = 'race') {
                 if (liveLinkState.db) {
                     const winnerStatus = won ? (isRemote ? 'lost' : 'won') : 'lost';
                     if (winnerStatus === 'won') {
-                        lastWinnerRole = role; // I won locally
+                        lastWinnerRole = role;
                     } else if (winnerStatus === 'lost' && won) {
-                        lastWinnerRole = role === 'host' ? 'guest' : 'host'; // Opponent won
+                        lastWinnerRole = role === 'host' ? 'guest' : 'host';
                     }
 
-                    // Update personal status in Firebase
                     liveLinkState.db.ref(`wordle_duels/${code}/${role}`).update({
                         status: winnerStatus,
                         row: row
@@ -2062,12 +2032,10 @@ function startDuelGame(word, code, role, mode = 'race') {
                             if (window.fireSadRain) window.fireSadRain();
                         }
                     } else {
-                        // Race Mode Finish
                         title = "DU VANDT! 🏆";
                         window.fireConfetti();
                     }
                 } else {
-                    // Loss (Race or Solo)
                     title = "DU TABTE... 💀";
                     if (window.fireSadRain) window.fireSadRain();
                 }
@@ -2077,51 +2045,34 @@ function startDuelGame(word, code, role, mode = 'race') {
                 return { title: title, msg: finalMsg };
             };
 
-            // EXPLICIT START
             window.Arcade.Wordle.start(word, true);
             window.Arcade.Wordle.wordleMode = mode;
             window.Arcade.Wordle.gameActive = true;
 
-            // --- SHARED BOARD LOGIC (CO-OP / TURN-BASED: GUESS SYNC) ---
             const guessesRef = liveLinkState.db.ref(`wordle_duels/${code}/guesses`);
             const roomRef = liveLinkState.db.ref(`wordle_duels/${code}`);
             guessesRef.off();
 
-            // 1. Send Local Guess
             window.Arcade.Wordle.onGuess = (word) => {
+                guessesRef.push({
+                    word: word,
+                    sender: role,
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                });
                 if (mode === 'turn') {
-                    // Push to shared history
-                    guessesRef.push({
-                        word: word,
-                        sender: role,
-                        timestamp: firebase.database.ServerValue.TIMESTAMP
-                    });
-                    // Flip Turn
                     const nextTurn = role === 'host' ? 'guest' : 'host';
                     roomRef.update({ turn: nextTurn });
-                } else {
-                    // Race mode: just broadcast for summary?
-                    guessesRef.push({
-                        word: word,
-                        sender: role,
-                        timestamp: firebase.database.ServerValue.TIMESTAMP
-                    });
                 }
             };
 
-            // 2. Receive Remote Guess
             guessesRef.on('child_added', snapshot => {
                 const data = snapshot.val();
-                // Filter out old guesses from previous games on same code
                 if (data && data.sender !== role && (data.timestamp > gameStartTimestamp)) {
-                    console.log("Remote Guess received:", data.word);
                     window.Arcade.Wordle.playRemoteGuess(data.word);
                 }
             });
 
-            // 3. Turn-Based: Listen for Turn Changes
             const syncTurnUI = (turn) => {
-                const oppStatusEl = document.getElementById('duel-opp-status');
                 if (turn === role) {
                     window.Arcade.Wordle.isReadOnly = false;
                     if (oppStatusEl) {
@@ -2142,65 +2093,43 @@ function startDuelGame(word, code, role, mode = 'race') {
                     syncTurnUI(snap.val());
                 });
             }
-            // ----------------------------------
 
             const opponentRole = role === 'host' ? 'guest' : 'host';
             liveLinkState.db.ref(`wordle_duels/${code}/${opponentRole}`).on('value', snapshot => {
                 const data = snapshot.val();
-                if (!data) return;
+                if (!data || mode === 'turn') return;
 
-                const oppStatusEl = document.getElementById('duel-opp-status');
-
-                if (data.status === 'playing') {
-                    // oppStatusEl.textContent = `Række ${data.row + 1}`;
-                    // oppStatusEl.style.color = '#fb7185';
-                } else if (data.status === 'won') {
+                if (data.status === 'won') {
                     oppStatusEl.textContent = "HAR VUNDET! 🏆";
                     oppStatusEl.style.color = '#4ade80';
                 } else if (data.status === 'lost') {
                     oppStatusEl.textContent = "Er død (Tabt)";
-                } else if (data.status === 'waiting') {
-                    // Keep the 'Waiting' message for host
-                    if (role !== 'host') oppStatusEl.textContent = "Venter...";
-                    if (role !== 'host') oppStatusEl.textContent = "Venter...";
+                } else if (data.status === 'playing') {
+                    oppStatusEl.textContent = "Spiller...";
                 }
             });
 
-            // 3. LISTEN FOR RESTART (New Word)
             liveLinkState.db.ref(`wordle_duels/${code}/word`).on('value', snapshot => {
                 const newWord = snapshot.val();
                 if (newWord && newWord !== word) {
-                    // Detect New Game
-                    console.log("Host restarted game. New word:", newWord);
-                    word = newWord; // Update local scope
+                    word = newWord;
                     window.Arcade.Wordle.start(newWord, true);
-                    window.Arcade.Wordle.wordleMode = mode; // RE-SET MODE
-
-                    // FORCE Turn Sync if in Turn-Based mode
+                    window.Arcade.Wordle.wordleMode = mode;
                     if (mode === 'turn') {
-                        liveLinkState.db.ref(`wordle_duels/${code}/turn`).once('value', snap => {
-                            syncTurnUI(snap.val());
-                        });
+                        liveLinkState.db.ref(`wordle_duels/${code}/turn`).once('value', snap => syncTurnUI(snap.val()));
                     }
-
-                    // Reset UI Text
                     document.getElementById('wordle-msg').textContent = "GODT GÅET!";
                     document.getElementById('wordle-game-over').classList.add('hidden');
-
-                    // Force remove global game over for remote peers
                     const globalGO = document.getElementById('global-game-over');
                     if (globalGO) globalGO.remove();
-
                     if (mode !== 'turn') {
-                        document.getElementById('duel-opp-status').textContent = "Spiller...";
-                        document.getElementById('duel-opp-status').style.color = 'rgba(255,255,255,0.7)';
+                        oppStatusEl.textContent = "Spiller...";
+                        oppStatusEl.style.color = 'rgba(255,255,255,0.7)';
                     }
                 }
             });
-
         }
     } catch (e) {
-        alert("CRASH REPORT: " + e.message);
         console.error(e);
     }
 }
@@ -2603,7 +2532,7 @@ window.triggerGodMode = function () {
         }
 
         // UNLOCK GOD MODE UI
-        const wrapper = document.getElementById('settings-advanced');
+        const wrapper = document.getElementById('menu-god-mode');
         const trigger = document.getElementById('countdown');
         const subjectTrigger = document.getElementById('current-subject');
 
@@ -3129,12 +3058,12 @@ window.fireConfetti = function () {
     canvas.style.height = '100vh';
     canvas.style.pointerEvents = 'none';
     canvas.style.zIndex = '1000000';
-    canvas.style.display = 'block';
-    // OVERRIDE GLOBAL CANVAS STYLES
     canvas.style.background = 'transparent';
     canvas.style.boxShadow = 'none';
     canvas.style.border = 'none';
     canvas.style.borderRadius = '0';
+    canvas.style.maxWidth = 'none';
+    canvas.style.maxHeight = 'none';
     canvas.style.margin = '0';
     canvas.style.padding = '0';
     document.body.appendChild(canvas);
@@ -3215,6 +3144,13 @@ window.fireSadRain = function () {
     canvas.style.pointerEvents = 'none';
     canvas.style.zIndex = '1000000';
     canvas.style.background = 'transparent';
+    canvas.style.maxWidth = 'none';
+    canvas.style.maxHeight = 'none';
+    canvas.style.boxShadow = 'none';
+    canvas.style.border = 'none';
+    canvas.style.borderRadius = '0';
+    canvas.style.margin = '0';
+    canvas.style.padding = '0';
     document.body.appendChild(canvas);
 
     const ctx = canvas.getContext('2d');

@@ -158,20 +158,7 @@ const BackgroundEffects = {
                 this.ctx.fill();
             }
 
-            // Subtle "Light Shafts" for sun (Draw only a few)
-            if (p.isSun && Math.random() > 0.998) {
-                const gradient = this.ctx.createLinearGradient(p.x, 0, p.x + 50, this.canvas.height);
-                gradient.addColorStop(0, 'rgba(255, 230, 150, 0.03)');
-                gradient.addColorStop(0.5, 'rgba(255, 230, 150, 0.01)');
-                gradient.addColorStop(1, 'rgba(255, 230, 150, 0)');
-                this.ctx.fillStyle = gradient;
-                this.ctx.beginPath();
-                this.ctx.moveTo(p.x - 100, 0);
-                this.ctx.lineTo(p.x + 100, 0);
-                this.ctx.lineTo(p.x + 400, this.canvas.height);
-                this.ctx.lineTo(p.x + 100, this.canvas.height);
-                this.ctx.fill();
-            }
+            // Light shafts removed to prevent top-edge artifact
         });
     },
 

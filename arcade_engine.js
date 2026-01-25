@@ -2624,9 +2624,3 @@ window.closeShop = () => {
 window.editPlayerName = window.openProfileHub; // Legacy mapping
 
 
-// VERSION CHECK (Safe)
-document.addEventListener('DOMContentLoaded', () => {
-    const vTag = document.getElementById('version-display');
-    if (vTag) vTag.textContent = "v55";
-    console.log("Version v55 Loaded");
-});

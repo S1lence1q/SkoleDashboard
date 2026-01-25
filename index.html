@@ -82,179 +82,115 @@
             </div>
         </div>
 
-        <!-- EXTRAS OVERLAY (Utility Panel) -->
         <div id="extras-overlay" class="extras-overlay hidden">
             <!-- Close Button (Fixed relative to screen/overlay for easy access) -->
-            <button id="close-extras-btn" class="close-btn-floating" title="Luk Menu">✕</button>
+            <button id="close-settings-btn" class="close-btn-floating" title="Luk Menu" onclick="toggleSettings()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
 
-            <div class="utility-panel">
+            <div class="utility-panel settings-only">
+                <h3 class="panel-header" style="text-align: center; margin-bottom: 20px;">Indstillinger</h3>
 
-                <!-- ZONE 1: CONTEXT (Class + Theme) -->
-                <div class="panel-section context-bar">
-                    <div class="context-group">
-                        <span class="context-label">Klasse</span>
-                        <select id="class-selector" class="minimal-select">
+                <!-- 1. Class Selector (Prominent) -->
+                <div class="settings-section">
+                    <label class="settings-label-large">Vælg Klasse</label>
+                    <div class="select-wrapper">
+                        <select id="class-selector" class="glass-select-large">
                             <option value="valhalla">Valhalla</option>
                             <option value="udgaard">Udgård</option>
                             <option value="asgaard">Asgård</option>
                         </select>
-                    </div>
-                    <div class="divider-vertical-small"></div>
-                    <div class="context-group">
-                        <span class="context-label">Tema & Baggrund</span>
-                        <div class="theme-row" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-                            <!-- Premium Themes (Refined Colors) -->
-                            <button class="theme-dot" data-theme="theme-midnight" style="background: #0ea5e9;"
-                                title="Deep Space"></button>
-                            <!-- Unlocked themes will be injected here by JS -->
-                        </div>
-                        <div class="divider-vertical-small" style="height: 20px; margin: 0 5px;"></div>
-                        <div class="context-group">
-                            <label class="context-label"
-                                style="display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none;">
-                                <input type="checkbox" id="bg-effects-toggle" checked
-                                    style="accent-color: var(--accent);">
-                                <span>Dynamisk Baggrund</span>
-                            </label>
-                        </div>
+                        <span class="select-arrow">▼</span>
                     </div>
                 </div>
 
-                <!-- ZONE 2: RESOURCES & TOOLS (Clean Grid) -->
-                <div class="panel-section tools-grid">
-                    <!-- Resources -->
-                    <a href="https://abc.ordbogen.com/" target="_blank" class="resource-btn mini">
-                        <span class="res-icon">📖</span> Ordbog
-                    </a>
-                    <a href="https://viborgskoler15-my.sharepoint.com/personal/mikk767f_viborgskoler_dk/_layouts/15/Doc.aspx?sourcedoc={430f4aef-960a-4f3f-85ed-12473b3c199b}&action=view&wd=target%28%40Undervisning%2F%40Valhalla%2FDansk.one%7C9bb91ed7-1a94-4739-a5cb-89547a8e604e%2FNovelle%20-%20Den%20blomstrende%20have%7C94f38ed4-d164-4a02-bec2-7a78dc760ad0%2F%29&wdorigin=NavigationUrl"
-                        target="_blank" class="resource-btn mini">
-                        <span class="res-icon">📓</span> OneNote
-                    </a>
+                <!-- 2. Arcade Entry (New Home) -->
+                <button onclick="openArcade()" class="settings-arcade-btn">
+                    <span class="arcade-icon">🕹️</span>
+                    <div class="arcade-text">
+                        <span class="arcade-title">Spillehal</span>
+                        <span class="arcade-subtitle">Spil Snake, Pong & mere</span>
+                    </div>
+                    <span class="arcade-arrow">→</span>
+                </button>
 
-                    <!-- Tools -->
-                    <button class="resource-btn mini" onclick="toggleSecondary('classmates')">
-                        <span class="res-icon">👥</span> Klassen
-                    </button>
-                    <!-- HERO BUTTON -->
-                    <button class="resource-btn hero-btn" onclick="openArcade()">
-                        <span class="res-icon">🕹️</span> Spillehal
-                    </button>
+                <div class="panel-divider"></div>
+
+                <!-- 3. Themes -->
+                <div class="settings-section">
+                    <label class="settings-label-small">Tema</label>
+                    <div class="theme-row-compact">
+                        <button class="theme-dot" data-theme="theme-midnight" style="background: #0ea5e9;"
+                            title="Deep Space"></button>
+                        <!-- Themes injected by JS -->
+                    </div>
                 </div>
 
-                <!-- GOD MODE MENU TOOLS (Hidden by default) -->
-                <div id="menu-god-mode" class="panel-section hidden"
-                    style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                        <span
-                            style="font-size: 0.75rem; color: #fbbf24; text-transform: uppercase; font-weight:700; letter-spacing: 1px;">
-                            ⚡ God Mode
-                        </span>
-                        <button onclick="resetTime()"
-                            style="background:none; border:none; color:rgba(255,255,255,0.5); font-size:0.8rem; cursor:pointer; transition: color 0.2s;"
-                            title="Nulstil tid" onmouseover="this.style.color='white'"
-                            onmouseout="this.style.color='rgba(255,255,255,0.5)'">
-                            Nulstil ↺
-                        </button>
-                    </div>
+                <!-- 4. Footer: Dynamic Background (Subtle) -->
+                <div class="settings-footer">
+                    <label class="toggle-row-subtle">
+                        <span class="subtle-text">Dynamisk Baggrund</span>
+                        <input type="checkbox" id="bg-effects-toggle" checked>
+                    </label>
+                </div>
 
-                    <div class="god-controls"
-                        style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 12px; border: 1px solid rgba(255,215,0,0.15);">
-                        <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:0.9rem;">
-                            <span style="color:#ddd;">Tidsrejse</span>
+                <!-- GOD MODE (Hidden) -->
+                <div id="menu-god-mode" class="hidden"
+                    style="margin-top: 20px; text-align: center; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;">
+                    <p
+                        style="font-size: 0.7rem; color: #fbbf24; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">
+                        ⚡ God Mode Active</p>
+
+                    <button onclick="resetTime()"
+                        style="background:none; border:1px solid rgba(255,255,255,0.1); padding: 5px 10px; border-radius: 99px; color: #fbbf24; font-size: 0.75rem; margin-bottom: 15px;">
+                        ⚡ God Mode Reset
+                    </button>
+
+                    <div class="setting-group"
+                        style="border-top: 1px solid rgba(255,255,255,0.1); margin-top: 15px; padding-top: 15px;">
+                        <label style="color: #fbbf24;">⏳ Tidsmaskine</label>
+                        <div style="display: flex; align-items: center; gap: 10px; margin-top: 5px;">
+                            <input type="range" id="time-travel-slider" min="8" max="16" step="0.25"
+                                style="flex-grow: 1;" oninput="simulateTime(this.value)">
                             <span id="sim-time-display"
-                                style="color:#fbbf24; font-family:monospace; font-weight:bold;">Live</span>
+                                style="font-family: monospace; font-size: 0.9rem; min-width: 45px; text-align: right;">Live</span>
                         </div>
-                        <input type="range" id="time-travel-slider" min="0" max="24" step="0.1"
-                            style="width: 100%; height: 6px; border-radius: 3px; accent-color: #fbbf24; cursor: pointer; display:block;"
-                            oninput="simulateTime(this.value)">
                     </div>
 
-                    <div class="god-controls"
-                        style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 12px; border: 1px solid rgba(255,215,0,0.15); margin-top: 10px;">
-                        <div
-                            style="margin-bottom:8px; font-size:0.75rem; color:#aaa; text-transform: uppercase; letter-spacing: 0.5px;">
-                            Baggrunds-test</div>
-                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;">
-                            <button class="resource-btn mini" style="padding: 4px; font-size: 0.7rem;"
-                                onclick="if(window.BackgroundEffects) window.BackgroundEffects.setWeather(0, true, true)">☀️
-                                Sol</button>
-                            <button class="resource-btn mini" style="padding: 4px; font-size: 0.7rem;"
-                                onclick="if(window.BackgroundEffects) window.BackgroundEffects.setWeather(61, true, true)">🌧️
-                                Regn</button>
-                            <button class="resource-btn mini" style="padding: 4px; font-size: 0.7rem;"
-                                onclick="if(window.BackgroundEffects) window.BackgroundEffects.setWeather(71, true, true)">❄️
-                                Sne</button>
-                            <button class="resource-btn mini" style="padding: 4px; font-size: 0.7rem;"
-                                onclick="if(window.BackgroundEffects) window.BackgroundEffects.setWeather(3, true, true)">☁️
-                                Skyet</button>
-                            <button class="resource-btn mini" style="padding: 4px; font-size: 0.7rem;"
-                                onclick="if(window.BackgroundEffects) window.BackgroundEffects.setTheme('matrix', true)">📟
-                                Matrix</button>
-                            <button class="resource-btn mini" style="padding: 4px; font-size: 0.7rem;"
-                                onclick="if(window.BackgroundEffects) { window.BackgroundEffects.isDay = !window.BackgroundEffects.isDay; window.BackgroundEffects.createParticles(); }">🌓
-                                Dag/Nat</button>
-                            <button class="resource-btn mini"
-                                style="padding: 4px; font-size: 0.7rem; border-color: rgba(255,0,0,0.3);"
-                                onclick="if(window.BackgroundEffects) window.BackgroundEffects.resetForce()">🔄
-                                Reset</button>
+                    <!-- SNAKE ADVANCED -->
+                    <div id="adv-snake" class="hidden">
+                        <div class="setting-group">
+                            <label>Hurtighed (ms)</label>
+                            <input type="number" id="set-snake-speed" placeholder="100" style="width: 60px;"
+                                onchange="updateArcadeSetting('speed', this.value)">
+                        </div>
+                        <div class="setting-group">
+                            <label>Vægge dræber?</label>
+                            <input type="checkbox" id="set-snake-walls" checked
+                                onchange="updateArcadeSetting('walls', this.checked)">
+                        </div>
+                    </div>
+
+                    <!-- BREAKOUT ADVANCED -->
+                    <div id="adv-breakout" class="hidden">
+                        <div class="setting-group">
+                            <label>Start Liv</label>
+                            <input type="number" id="set-breakout-lives" placeholder="3" style="width: 60px;"
+                                onchange="updateArcadeSetting('breakoutLives', this.value)">
                         </div>
                     </div>
                 </div>
 
-                <!-- ZONE 3: SECONDARY VIEW (Hidden content areas) -->
-                <div id="secondary-view" class="secondary-view hidden">
-
-
-
-                    <!-- Classmates -->
-                    <div id="sec-classmates" class="sec-content hidden">
-                        <h4
-                            style="margin-bottom: 10px; color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">
-                            Klassekammerater</h4>
-                        <input type="text" id="student-search" class="search-input compact" placeholder="Søg...">
-                        <div id="student-list" class="student-list compact"></div>
-                    </div>
-
-                    <!-- Fun Zone -->
-                    <div id="sec-fun" class="sec-content hidden">
-                        <div class="fun-buttons">
-                            <button class="fun-btn" onclick="startRoulette()">🎰 Roulette</button>
-                            <button class="fun-btn" onclick="startLoveMatch()">💘 Love Match</button>
-                            <button class="fun-btn" onclick="openGame()">🐍 Snake</button>
-                        </div>
-                        <div id="fun-display" class="fun-display hidden"></div>
-                        <!-- Quotes moved here -->
-                        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
-                            <p id="quote-text"
-                                style="font-style: italic; color: var(--text-secondary); font-size: 0.9rem;">Tryk for
-                                visdom...</p>
-                            <button class="fun-btn small" onclick="newQuote()" style="margin-top: 5px;">Ny
-                                Visdom</button>
-                        </div>
-                    </div>
-
-                    <!-- Notes -->
-                    <div id="sec-notes" class="sec-content hidden">
-                        <textarea id="scratchpad" class="notes-area" placeholder="Dine noter..."
-                            style="min-height: 200px;"></textarea>
-                    </div>
-
+                <!-- HIDDEN SECONDARY VIEWS CONTAINER (Preserved to prevent JS errors) -->
+                <div id="secondary-view" class="hidden">
+                    <div id="sec-classmates" class="sec-content hidden"></div>
+                    <div id="sec-fun" class="sec-content hidden"></div>
+                    <div id="sec-notes" class="sec-content hidden"></div>
                 </div>
-                <!-- Debug Tools (Hidden) -->
-                <div class="debug-hidden">
-                    <p style="font-size: 0.7rem; color: #aaa; margin-bottom: 5px;">TIDSREJSE (Test)</p>
-                    <div style="display: flex; gap: 5px; justify-content: center; flex-wrap: wrap;">
-                        <button onclick="setTimeTravel(8, 15)">08:15</button>
-                        <button onclick="setTimeTravel(9, 30)">09:30</button>
-                        <button onclick="setTimeTravel(10, 30)">10:30</button>
-                        <button onclick="setTimeTravel(10, 30)">10:30</button>
-                        <button onclick="resetTimeTravel()" style="color: #ef4444;">Reset</button>
-                        <button
-                            onclick="if(window.Arcade){ window.Arcade.state.coins += 1000; localStorage.setItem('arcade_coins', window.Arcade.state.coins); if(window.updateCoinDisplay) window.updateCoinDisplay(); alert('Kaching! +1000 🪙'); }"
-                            style="color: #fbbf24; border: 1px solid #fbbf24;">💰 +1000</button>
-                    </div>
-                </div>
-
             </div>
         </div>
 
@@ -281,26 +217,18 @@
                     <span class="weather-temp">--°</span>
                 </div>
                 <div class="header-right">
-                    <button id="menu-btn" class="theme-btn" title="Menu & Værktøjer">
-                        <div class="menu-icon-bento">
-                            <div class="bento-dot"></div>
-                            <div class="bento-dot"></div>
-                            <div class="bento-dot"></div>
-                            <div class="bento-dot"></div>
-                            <div class="bento-dot"></div>
-                            <div class="bento-dot"></div>
-                            <div class="bento-dot"></div>
-                            <div class="bento-dot"></div>
-                            <div class="bento-dot"></div>
-                        </div>
+                    <!-- Settings Button (Overview) -->
+                    <button onclick="toggleSettings()" class="header-settings-btn" title="Indstillinger">
+                        <img src="settings-icon.png" alt="Settings" class="settings-icon-png">
                     </button>
                 </div>
         </header>
 
-        <!-- Floating Action Button (Fixed Outside Dashboard) -->
-        <button class="fab-btn" onclick="showLiveLink()" title="Live Link Drop">
-            🔗
-        </button>
+        <!-- Floating Action Buttons (Bottom Right) -->
+        <!-- Floating Action Buttons (Bottom Right) -->
+        <div class="fab-container">
+            <!-- No FABs visible - Keyboard Shortcuts Active -->
+        </div>
 
         <!-- VIEW: DASHBOARD -->
         <div id="view-dashboard">
@@ -349,7 +277,7 @@
 
                         <!-- DAY SELECTOR -->
                         <div class="day-selector"
-                            style="display: flex; gap: 10px; overflow-x: auto; padding: 10px 5px; margin-bottom: 2rem; scrollbar-width: none; -ms-overflow-style: none;">
+                            style="display: flex; gap: 10px; overflow-x: auto; padding: 20px 20px; margin-bottom: 1rem; scrollbar-width: none; -ms-overflow-style: none;">
                             <button class="day-btn" onclick="selectDay(1)" id="day-1">Man</button>
                             <button class="day-btn" onclick="selectDay(2)" id="day-2">Tir</button>
                             <button class="day-btn" onclick="selectDay(3)" id="day-3">Ons</button>
@@ -376,26 +304,15 @@
 
             <!-- Custom Header for Live Link -->
             <header
-                style="position: absolute; top: 0; left: 0; right: 0; padding: 20px; display: flex; justify-content: space-between;">
-                <button onclick="handleArcadeBack()"
-                    style="background: rgba(255,255,255,0.1); border: none; color: white; padding: 10px 15px; border-radius: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 5px;">
-                    <span>‹</span> Tilbage
+                style="position: absolute; top: 0; left: 0; right: 0; padding: 20px; display: flex; justify-content: space-between; z-index: 10;">
+                <button onclick="handleArcadeBack()" class="arcade-nav-btn glass-btn-text">
+                    ‹ Tilbage
                 </button>
 
-                <button onclick="document.getElementById('extras-overlay').classList.remove('hidden')" class="theme-btn"
-                    title="Menu">
-                    <div class="menu-icon-bento">
-                        <div class="bento-dot"></div>
-                        <div class="bento-dot"></div>
-                        <div class="bento-dot"></div>
-                        <div class="bento-dot"></div>
-                        <div class="bento-dot"></div>
-                        <div class="bento-dot"></div>
-                        <div class="bento-dot"></div>
-                        <div class="bento-dot"></div>
-                        <div class="bento-dot"></div>
-                    </div>
+                <button onclick="toggleSettings()" class="header-settings-btn" title="Indstillinger">
+                    <img src="settings-icon.png" alt="Settings" class="settings-icon-png">
                 </button>
+            </header>
             </header>
 
             <div class="livelink-card">
@@ -410,22 +327,35 @@
                         <a href="#" target="_blank" id="current-link-standalone" class="gradient-text"
                             style="display: block; text-align: center; margin-bottom: 10px; word-break: break-all; font-size: 1.2rem; font-weight: 700;"></a>
                         <div class="meta-info" id="timestamp-standalone"
-                            style="font-size: 0.8rem; color: var(--text-muted); text-align: center;"></div>
+                            style="font-size: 0.8rem; color: rgba(255, 255, 255, 0.5); text-align: center;"></div>
                     </div>
                 </div>
 
-                <div class="actions" id="action-buttons-standalone"
-                    style="display: flex; gap: 10px; margin-bottom: 25px;">
-                    <button id="copy-btn-standalone" class="btn secondary hidden"
-                        style="flex: 1; padding: 12px; border: 1px solid rgba(255,255,255,0.1);">Kopier</button>
-                    <button id="open-btn-standalone" class="btn secondary hidden"
-                        style="flex: 1; padding: 12px; border: 1px solid rgba(255,255,255,0.1);">Åbn</button>
+                <!-- NEW: Action Grid (Copy/Open) -->
+                <div class="action-grid" id="action-buttons-standalone">
+                    <button id="copy-btn-standalone" class="action-card hidden">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                        <span>Kopier</span>
+                    </button>
+                    <button id="open-btn-standalone" class="action-card hidden">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                            <polyline points="15 3 21 3 21 9"></polyline>
+                            <line x1="10" y1="14" x2="21" y2="3"></line>
+                        </svg>
+                        <span>Åbn</span>
+                    </button>
                 </div>
 
-                <form id="send-form-standalone" class="send-area" style="display: flex; gap: 10px;">
-                    <input type="text" id="link-input-standalone" placeholder="Indsæt link..." autocomplete="off"
-                        class="glass-input" style="flex: 1; text-align: left; padding: 14px;">
-                    <button type="submit" class="btn primary" style="padding: 14px 24px; font-size: 1rem;">Send</button>
+                <!-- NEW: Split Form (Separate Input & Button) -->
+                <form id="send-form-standalone" class="split-form" autocomplete="off">
+                    <input type="text" id="link-input-standalone" placeholder="Indsæt link..." class="split-input">
+                    <button type="submit" class="split-btn">Send</button>
                 </form>
             </div>
         </div>
@@ -452,7 +382,6 @@
                 <!-- Center: Title (Absolutely Centered) -->
                 <div class="arcade-title-wrapper">
                     <div class="arcade-title">🕹️ THE ARCADE</div>
-                    <div id="version-display" style="font-size: 0.7rem; color: #666; margin-top: 2px;">v?</div>
                 </div>
 
                 <!-- Right: Identity Pill Only -->
@@ -687,138 +616,139 @@
                     </div>
                 </div>
                 <!-- Old Lives Display Removed -->
-            </div>
+                <!-- END OF INITIAL CONTENT (Now continuing with more stages inside) -->
+                <div id="stage-wordle" class="game-stage hidden">
 
-            <!-- Settings Panel -->
-            <div id="stage-wordle" class="game-stage hidden">
-
-                <!-- WORDLE MENU OVERLAY (Solo vs Duel) -->
-                <div id="wordle-menu-overlay" class="game-overlay-msg">
-                    <div class="duel-card" style="align-items: center; text-align: center;">
-                        <h1 class="duel-title">WORDLE</h1>
-                        <div style="display: flex; gap: 15px; width: 100%;">
-                            <button onclick="startWordleSolo()" class="btn secondary" style="flex: 1; padding: 15px;">
-                                👤 Single Player
-                            </button>
-                            <button onclick="showDuelLobby()" class="btn primary" style="flex: 1; padding: 15px;">
-                                ⚔️ Duel Ven
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-
-
-
-
-                <div class="game-hud" style="justify-content: center;">
-                    <!-- SOLO HUD (Streak) -->
-                    <div id="solo-hud-display" class="hud-glass-panel">
-                        <div class="hud-room-label">
-                            <span style="opacity:0.7">🔥</span> STREAK
-                        </div>
-                        <div class="hud-room-code" id="wordle-current-streak">0</div>
-                    </div>
-
-                    <!-- PREMIUM HUD (Duel) -->
-                    <div id="duel-hud-display" class="hud-glass-panel hidden">
-                        <div class="hud-room-label">
-                            <span style="opacity:0.7">🔑</span> RUM
-                        </div>
-                        <div class="hud-room-code" id="duel-room-code-hud">--</div>
-
-                        <div style="width: 1px; height: 20px; background: rgba(255,255,255,0.1); margin: 0 5px;">
-                        </div>
-
-                        <div class="hud-vs-badge">
-                            <span id="duel-opp-status">Venter...</span>
-                        </div>
-                        <!-- Hidden helper to avoid crash -->
-                        <span id="duel-my-status" style="display:none;"></span>
-                    </div>
-
-                    <button class="settings-btn" onclick="toggleArcadeSettings()"
-                        style="position: absolute; right: 20px;">⚙️</button>
-                </div>
-
-                <div class="game-viewport" style="background: transparent; border: none; box-shadow: none;">
-                    <div id="wordle-board"></div>
-                </div>
-
-                <div id="wordle-keyboard"></div>
-
-                <!-- Game Over Overlay -->
-                <div id="wordle-game-over" class="game-overlay-msg hidden">
-                    <h2 id="wordle-msg">GODT GÅET!</h2>
-                    <div style="font-size: 3rem; margin: 10px 0;" id="wordle-result-word">WORDL</div>
-                    <div style="display: flex; gap: 15px; margin-top: 10px;">
-                        <button onclick="restartWordle()" class="btn primary" style="min-width: 120px;">Nyt
-                            Ord</button>
-                        <button onclick="closeWordle()" class="btn secondary" style="min-width: 120px;">Afslut</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Active Game Stage (Pong) -->
-            <div id="stage-pong" class="game-stage hidden">
-                <div class="game-hud" style="max-width: 600px; margin: 0 auto; width: 100%;">
-                    <div class="score-board"
-                        style="width: 100%; display: flex; justify-content: space-between; padding: 0 10px;">
-                        <span>DIG: <span id="pong-score-player">0</span></span>
-                        <span>CPU: <span id="pong-score-cpu">0</span></span>
-                    </div>
-                    <button class="settings-btn" onclick="toggleArcadeSettings()">⚙️</button>
-                </div>
-
-                <div class="game-viewport">
-                    <!-- FIX: Wrap in game-canvas-wrapper for proper overlay clipping -->
-                    <div class="game-canvas-wrapper" style="width: 600px; height: 400px; position: relative;">
-                        <canvas id="pong-canvas" width="600" height="400"></canvas>
-
-                        <!-- Game Over Overlay -->
-                        <div id="pong-game-over" class="game-overlay-msg hidden">
-                            <h2 id="pong-msg">SEJR!</h2>
-                            <div style="display: flex; gap: 15px; margin-top: 10px;">
-                                <button onclick="restartPong()" class="btn primary" style="min-width: 120px;">Spil
-                                    Igen</button>
-                                <button onclick="closePong()" class="btn secondary"
-                                    style="min-width: 120px;">Afslut</button>
+                    <!-- WORDLE MENU OVERLAY (Solo vs Duel) -->
+                    <div id="wordle-menu-overlay" class="game-overlay-msg">
+                        <div class="duel-card" style="align-items: center; text-align: center;">
+                            <h1 class="duel-title">WORDLE</h1>
+                            <div style="display: flex; gap: 15px; width: 100%;">
+                                <button onclick="startWordleSolo()" class="btn secondary"
+                                    style="flex: 1; padding: 15px;">
+                                    👤 Single Player
+                                </button>
+                                <button onclick="showDuelLobby()" class="btn primary" style="flex: 1; padding: 15px;">
+                                    ⚔️ Duel Ven
+                                </button>
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            <!-- Active Game Stage (Space Defence) -->
-            <div id="stage-space" class="game-stage hidden">
-                <div class="game-hud" style="justify-content: space-between; padding: 0 10px;">
-                    <div class="score-board" style="display: flex; gap: 20px;">
-                        <span>SCORE: <span id="space-score">0</span></span>
-                        <span>LIV: <span id="space-lives" style="color: #ef4444;">❤️❤️❤️</span></span>
+
+
+
+
+                    <div class="game-hud" style="justify-content: center;">
+                        <!-- SOLO HUD (Streak) -->
+                        <div id="solo-hud-display" class="hud-glass-panel">
+                            <div class="hud-room-label">
+                                <span style="opacity:0.7">🔥</span> STREAK
+                            </div>
+                            <div class="hud-room-code" id="wordle-current-streak">0</div>
+                        </div>
+
+                        <!-- PREMIUM HUD (Duel) -->
+                        <div id="duel-hud-display" class="hud-glass-panel hidden">
+                            <div class="hud-room-label">
+                                <span style="opacity:0.7">🔑</span> RUM
+                            </div>
+                            <div class="hud-room-code" id="duel-room-code-hud">--</div>
+
+                            <div style="width: 1px; height: 20px; background: rgba(255,255,255,0.1); margin: 0 5px;">
+                            </div>
+
+                            <div class="hud-vs-badge">
+                                <span id="duel-opp-status">Venter...</span>
+                            </div>
+                            <!-- Hidden helper to avoid crash -->
+                            <span id="duel-my-status" style="display:none;"></span>
+                        </div>
+
+                        <button class="settings-btn" onclick="toggleArcadeSettings()"
+                            style="position: absolute; right: 20px;">⚙️</button>
                     </div>
-                    <button class="settings-btn" onclick="toggleArcadeSettings()">⚙️</button>
-                </div>
 
-                <div class="game-viewport">
-                    <canvas id="space-canvas" width="500" height="600"></canvas>
+                    <div class="game-viewport" style="background: transparent; border: none; box-shadow: none;">
+                        <div id="wordle-board"></div>
+                    </div>
+
+                    <div id="wordle-keyboard"></div>
 
                     <!-- Game Over Overlay -->
-                    <div id="space-game-over" class="game-overlay-msg hidden">
-                        <h2>GAME OVER</h2>
+                    <div id="wordle-game-over" class="game-overlay-msg hidden">
+                        <h2 id="wordle-msg">GODT GÅET!</h2>
+                        <div style="font-size: 3rem; margin: 10px 0;" id="wordle-result-word">WORDL</div>
                         <div style="display: flex; gap: 15px; margin-top: 10px;">
-                            <button onclick="restartSpace()" class="btn primary" style="min-width: 120px;">Prøv
-                                Igen</button>
-                            <button onclick="closeSpace()" class="btn secondary"
+                            <button onclick="restartWordle()" class="btn primary" style="min-width: 120px;">Nyt
+                                Ord</button>
+                            <button onclick="closeWordle()" class="btn secondary"
                                 style="min-width: 120px;">Afslut</button>
                         </div>
                     </div>
                 </div>
 
-                <!-- Mobile Controls (Optional, usually onscreen but can be below) -->
-                <div id="space-mobile-controls" class="mobile-controls hidden">
-                    <button id="btn-space-left" class="control-btn">⬅️</button>
-                    <button id="btn-space-fire" class="control-btn fire-btn">🔥</button>
-                    <button id="btn-space-right" class="control-btn">➡️</button>
+                <!-- Active Game Stage (Pong) -->
+                <div id="stage-pong" class="game-stage hidden">
+                    <div class="game-hud" style="max-width: 600px; margin: 0 auto; width: 100%;">
+                        <div class="score-board"
+                            style="width: 100%; display: flex; justify-content: space-between; padding: 0 10px;">
+                            <span>DIG: <span id="pong-score-player">0</span></span>
+                            <span>CPU: <span id="pong-score-cpu">0</span></span>
+                        </div>
+                        <button class="settings-btn" onclick="toggleArcadeSettings()">⚙️</button>
+                    </div>
+
+                    <div class="game-viewport">
+                        <!-- FIX: Wrap in game-canvas-wrapper for proper overlay clipping -->
+                        <div class="game-canvas-wrapper" style="width: 600px; height: 400px; position: relative;">
+                            <canvas id="pong-canvas" width="600" height="400"></canvas>
+
+                            <!-- Game Over Overlay -->
+                            <div id="pong-game-over" class="game-overlay-msg hidden">
+                                <h2 id="pong-msg">SEJR!</h2>
+                                <div style="display: flex; gap: 15px; margin-top: 10px;">
+                                    <button onclick="restartPong()" class="btn primary" style="min-width: 120px;">Spil
+                                        Igen</button>
+                                    <button onclick="closePong()" class="btn secondary"
+                                        style="min-width: 120px;">Afslut</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Active Game Stage (Space Defence) -->
+                <div id="stage-space" class="game-stage hidden">
+                    <div class="game-hud" style="justify-content: space-between; padding: 0 10px;">
+                        <div class="score-board" style="display: flex; gap: 20px;">
+                            <span>SCORE: <span id="space-score">0</span></span>
+                            <span>LIV: <span id="space-lives" style="color: #ef4444;">❤️❤️❤️</span></span>
+                        </div>
+                        <button class="settings-btn" onclick="toggleArcadeSettings()">⚙️</button>
+                    </div>
+
+                    <div class="game-viewport">
+                        <canvas id="space-canvas" width="500" height="600"></canvas>
+
+                        <!-- Game Over Overlay -->
+                        <div id="space-game-over" class="game-overlay-msg hidden">
+                            <h2>GAME OVER</h2>
+                            <div style="display: flex; gap: 15px; margin-top: 10px;">
+                                <button onclick="restartSpace()" class="btn primary" style="min-width: 120px;">Prøv
+                                    Igen</button>
+                                <button onclick="closeSpace()" class="btn secondary"
+                                    style="min-width: 120px;">Afslut</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mobile Controls (Optional, usually onscreen but can be below) -->
+                    <div id="space-mobile-controls" class="mobile-controls hidden">
+                        <button id="btn-space-left" class="control-btn">⬅️</button>
+                        <button id="btn-space-fire" class="control-btn fire-btn">🔥</button>
+                        <button id="btn-space-right" class="control-btn">➡️</button>
+                    </div>
                 </div>
             </div>
 
@@ -943,82 +873,6 @@
                     </div>
                 </div>
 
-                <!-- ADVANCED SETTINGS (Hidden until God Mode) -->
-                <div id="settings-advanced" class="hidden"
-                    style="margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;">
-                    <p
-                        style="font-size: 0.7rem; color: #fbbf24; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">
-                        ⚡ God Mode Active</p>
-
-
-                    <!-- SNAKE ADVANCED -->
-                    <div id="adv-snake" class="hidden">
-                        <div class="setting-group">
-                            <label>Hurtighed (ms)</label>
-                            <input type="number" id="set-snake-speed" placeholder="100" style="width: 60px;"
-                                onchange="updateArcadeSetting('speed', this.value)">
-                        </div>
-                        <div class="setting-group">
-                            <label>Vægge dræber?</label>
-                            <input type="checkbox" id="set-snake-walls" checked
-                                onchange="updateArcadeSetting('walls', this.checked)">
-                        </div>
-                        <div class="setting-group">
-                            <label>Theme</label>
-                            <select id="set-snake-theme" onchange="updateArcadeSetting('theme', this.value)">
-                                <option value="classic">Classic</option>
-                                <option value="neon">Neon</option>
-                                <option value="retro">Retro</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- BREAKOUT ADVANCED -->
-                    <div id="adv-breakout" class="hidden">
-                        <div class="setting-group">
-                            <label>Power-up Chance (%)</label>
-                            <input type="number" id="set-breakout-chance" placeholder="20" style="width: 60px;"
-                                onchange="updateArcadeSetting('breakoutChance', this.value)">
-                        </div>
-                        <div class="setting-group">
-                            <label>Multi-ball Mode</label>
-                            <select id="set-breakout-multiball"
-                                onchange="updateArcadeSetting('breakoutMultiball', this.value)">
-                                <option value="standard">Standard</option>
-                                <option value="kaos">KAOS</option>
-                            </select>
-                        </div>
-                        <div class="setting-group">
-                            <label>Start Liv</label>
-                            <input type="number" id="set-breakout-lives" placeholder="3" style="width: 60px;"
-                                onchange="updateArcadeSetting('breakoutLives', this.value)">
-                        </div>
-                        <div class="setting-group">
-                            <label>Bat Bredde</label>
-                            <input type="number" id="set-breakout-paddle" placeholder="100" style="width: 60px;"
-                                onchange="updateArcadeSetting('breakoutPaddle', this.value)">
-                        </div>
-                    </div>
-
-                    <!-- PONG ADVANCED -->
-                    <div id="adv-pong" class="hidden">
-                        <div class="setting-group">
-                            <label>Vinder Score</label>
-                            <input type="number" id="set-pong-score" placeholder="5" style="width: 60px;"
-                                onchange="updateArcadeSetting('pongWinScore', this.value)">
-                        </div>
-                        <div class="setting-group">
-                            <label>Dit Bat</label>
-                            <input type="number" id="set-pong-player-paddle" placeholder="100" style="width: 60px;"
-                                onchange="updateArcadeSetting('pongPlayerPaddle', this.value)">
-                        </div>
-                        <div class="setting-group">
-                            <label>CPU Bat</label>
-                            <input type="number" id="set-pong-cpu-paddle" placeholder="60" style="width: 60px;"
-                                onchange="updateArcadeSetting('pongCpuPaddle', this.value)">
-                        </div>
-                    </div>
-                </div>
 
                 <!-- ACTIONS -->
                 <div class="settings-actions">
@@ -1079,6 +933,95 @@
         <span id="toast-icon">✅</span>
         <span id="toast-message">Besked</span>
     </div>
+
+    <script>
+        function toggleSettings() {
+            const overlay = document.getElementById('extras-overlay');
+            const settingsBtn = document.querySelector('.header-settings-btn'); // Target the button
+
+            if (!overlay) return;
+
+            // Check if currently visible (not hidden)
+            const isVisible = !overlay.classList.contains('hidden');
+
+            // CANCEL any running animations to avoid conflicts
+            overlay.getAnimations().forEach(anim => anim.cancel());
+
+            if (isVisible) {
+                // CLOSING ANIMATION (Golden Standard)
+                const anim = overlay.animate([
+                    { opacity: 1, transform: 'scale(1)' },
+                    { opacity: 0, transform: 'scale(0.98)' }
+                ], {
+                    duration: 280,
+                    easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+                    fill: 'forwards'
+                });
+
+                anim.onfinish = () => {
+                    overlay.classList.add('hidden');
+                    overlay.style.opacity = '';
+                    overlay.style.transform = '';
+
+                    // Restore Settings Button
+                    if (settingsBtn) {
+                        settingsBtn.style.opacity = '1';
+                        settingsBtn.style.pointerEvents = '';
+                    }
+                };
+
+            } else {
+                // OPENING ANIMATION (Golden Standard)
+                overlay.classList.remove('hidden');
+
+                // Hide Settings Button (instant or faded)
+                if (settingsBtn) {
+                    settingsBtn.style.transition = 'opacity 0.2s';
+                    settingsBtn.style.opacity = '0';
+                    settingsBtn.style.pointerEvents = 'none';
+                }
+
+                // Reset starting state
+                overlay.style.opacity = '0';
+                overlay.style.transform = 'scale(0.98)';
+
+                overlay.animate([
+                    { opacity: 0, transform: 'scale(0.98)' },
+                    { opacity: 1, transform: 'scale(1)' }
+                ], {
+                    duration: 350,
+                    easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
+                    fill: 'forwards'
+                });
+            }
+        }
+
+        // Close when clicking outside content (Updated reference)
+        document.getElementById('extras-overlay').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) {
+                toggleSettings();
+            }
+        });
+
+        // Ensure close button works
+        document.getElementById('close-extras-btn')?.addEventListener('click', () => {
+            document.getElementById('extras-overlay').classList.add('hidden');
+        });
+
+        // Global Keyboard Shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Live Link: Ctrl+L or Cmd+L
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'l') {
+                e.preventDefault(); // Prevent browser address bar focus
+                const liveLinkView = document.getElementById('view-livelink');
+                if (liveLinkView && liveLinkView.classList.contains('hidden')) {
+                    showLiveLink();
+                } else if (liveLinkView) {
+                    showDashboard();
+                }
+            }
+        });
+    </script>
 </body>
 
 </html>
