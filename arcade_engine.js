@@ -2623,4 +2623,317 @@ window.closeShop = () => {
 
 window.editPlayerName = window.openProfileHub; // Legacy mapping
 
+// --- MINES (MINEFELTET) 💣💎 ---
+Arcade.Mines = {
+    active: false,
+    bet: 100,
+    mineCount: 3,
+    gridSize: 25,
+    mines: [],
+    revealed: [],
+    gemsFound: 0,
+    currentMultiplier: 1.00,
+
+    init() {
+        const slider = document.getElementById('mines-count-slider');
+        if (slider) {
+            slider.addEventListener('input', (e) => {
+                if (this.active) return; // Lock during game
+                this.mineCount = parseInt(e.target.value);
+                document.getElementById('mines-count-display').textContent = this.mineCount;
+                this.updateInfo();
+            });
+        }
+        const input = document.getElementById('mines-bet-input');
+        if (input) {
+            input.addEventListener('change', (e) => this.setBet(e.target.value));
+        }
+        this.renderGrid(); // Initial empty grid
+        this.updateInfo();
+    },
+
+    setBet(val) {
+        if (this.active) return; // Locked
+
+        let newBet = this.bet;
+        if (val === 'half') newBet = Math.floor(this.bet / 2);
+        else if (val === 'double') newBet = this.bet * 2;
+        else if (val === 'max') newBet = Arcade.state.coins;
+        else newBet = parseInt(val);
+
+        // Validation
+        if (isNaN(newBet) || newBet < 1) newBet = 1;
+        // Optional: Max bet limit?
+        if (newBet > 1000000) newBet = 1000000;
+
+        this.bet = newBet;
+        const el = document.getElementById('mines-bet-input');
+        if (el) el.value = this.bet;
+        // this.updateInfo(); // Info is hidden in setup state
+    },
+
+    // Helper to toggle sidebar states
+    setUIState(state) {
+        const setup = document.getElementById('mines-state-setup');
+        const playing = document.getElementById('mines-state-playing');
+
+        if (state === 'playing') {
+            if (setup) setup.style.display = 'none';
+            if (playing) playing.style.display = 'flex';
+        } else {
+            if (setup) setup.style.display = 'flex';
+            if (playing) playing.style.display = 'none';
+        }
+    },
+
+    action() {
+        if (this.active) {
+            this.cashOut();
+        } else {
+            this.startGame();
+        }
+    },
+
+    startGame() {
+        if (Arcade.state.coins < this.bet) {
+            if (window.showArcadeToast) window.showArcadeToast("Ikke nok mønter! 💸", "bad");
+            else alert("Ikke nok mønter!");
+            return;
+        }
+
+        // Deduct Bet
+        Arcade.state.coins -= this.bet;
+        localStorage.setItem('arcade_coins', Arcade.state.coins);
+        if (window.updateCoinDisplay) window.updateCoinDisplay();
+        this.updateUIHeader(); // Local helper
+
+        // Reset State
+        this.active = true;
+        this.gemsFound = 0;
+        this.revealed = [];
+        this.currentMultiplier = 1.00;
+
+        // Generate Mines
+        this.mines = [];
+        while (this.mines.length < this.mineCount) {
+            const r = Math.floor(Math.random() * 25);
+            if (!this.mines.includes(r)) this.mines.push(r);
+        }
+
+        // Lock UI & Toggle Views
+        this.setUIState('playing');
+
+        this.renderGrid();
+        this.updateInfo();
+
+        if (Arcade.Audio) Arcade.Audio.play(600, 'sine', 0.2); // Start sound
+    },
+
+    clickTile(index) {
+        if (!this.active) return;
+        if (this.revealed.includes(index)) return;
+
+        // FIRST CLICK SAFETY: Never lose on the first click
+        if (this.gemsFound === 0 && this.mines.includes(index)) {
+            // 1. Remove mine from this spot
+            const mineIndex = this.mines.indexOf(index);
+            this.mines.splice(mineIndex, 1);
+
+            // 2. Find a new safe spot
+            let newSpot = -1;
+            while (newSpot === -1) {
+                const r = Math.floor(Math.random() * 25);
+                // Must not be the clicked tile and must not already be a mine
+                if (r !== index && !this.mines.includes(r)) {
+                    newSpot = r;
+                }
+            }
+            this.mines.push(newSpot);
+            // Now proceed as if it was a safe click
+        }
+
+        const tile = document.getElementById(`mine-tile-${index}`);
+        this.revealed.push(index);
+
+        if (this.mines.includes(index)) {
+            // 💥 BOOM
+            tile.classList.add('revealed', 'mine');
+            tile.innerHTML = '💣';
+            this.gameOver(false, index);
+        } else {
+            // 💎 GEM
+            tile.classList.add('revealed', 'gem');
+            tile.innerHTML = '💎';
+            this.gemsFound++;
+
+            // Audio
+            if (Arcade.Audio) {
+                // Ascending pitch based on streaks
+                const base = 400 + (this.gemsFound * 50);
+                Arcade.Audio.play(base, 'triangle', 0.1);
+            }
+
+            // Calc Multiplier
+            this.currentMultiplier = this.calculateNextMultiplier();
+            this.updateInfo();
+
+            // Auto Win if all gems found
+            if (this.gemsFound === (25 - this.mineCount)) {
+                this.cashOut();
+            }
+        }
+    },
+
+    cashOut() {
+        if (!this.active) return;
+
+        const winAmount = Math.floor(this.bet * this.currentMultiplier);
+
+        // Add Winnings
+        Arcade.state.coins += winAmount;
+        localStorage.setItem('arcade_coins', Arcade.state.coins);
+        if (window.updateCoinDisplay) window.updateCoinDisplay();
+        this.updateUIHeader();
+
+        if (window.showArcadeToast) window.showArcadeToast(`GEVINST: ${winAmount} 🪙`, "god");
+        if (Arcade.Audio) Arcade.Audio.wordleWin(); // Victory sound
+
+        // Update Button text for moment
+        const btn = document.getElementById('mines-cashout-btn');
+        if (btn) {
+            btn.textContent = `VANDT ${winAmount} 🪙`;
+            btn.style.background = "#10b981";
+            btn.classList.remove('cashout-mode');
+        }
+
+        this.gameOver(true);
+    },
+
+    gameOver(win, hitIndex = -1) {
+        this.active = false;
+
+        // Reveal All
+        for (let i = 0; i < 25; i++) {
+            const tile = document.getElementById(`mine-tile-${i}`);
+            if (this.mines.includes(i)) {
+                tile.classList.add('revealed', 'mine');
+                tile.innerHTML = '💣';
+                if (!win && i === hitIndex) {
+                    tile.style.background = '#f43f5e'; // Highlight the killer mine
+                    tile.style.transform = 'scale(1.1)';
+                } else {
+                    tile.style.opacity = '0.5'; // Refunded/Hidden mines dimmed
+                }
+            } else {
+                tile.classList.add('revealed'); // Just dim the rest
+                if (!this.revealed.includes(i)) tile.style.opacity = '0.3';
+            }
+        }
+
+        if (!win && Arcade.Audio) Arcade.Audio.die();
+
+        // FEEDBACK & RESET
+        const btn = document.getElementById('mines-cashout-btn');
+        if (btn && !win) {
+            btn.textContent = "TABTE";
+            btn.style.background = "#ef4444";
+            btn.classList.remove('cashout-mode');
+        }
+
+        // Delay returning to menu
+        setTimeout(() => {
+            this.setUIState('setup');
+
+            // Reset Cashout Btn for next time
+            if (btn) {
+                btn.textContent = "UDBETAL";
+                btn.style.background = "#fbbf24";
+                btn.classList.add('cashout-mode');
+            }
+        }, 1500);
+    },
+
+    // Math
+    calculateNextMultiplier() {
+        // Current Profit Formula
+        // Classic Mines logic: Each step is 1/Prob * (1-Edge)
+        // Prob = (Tiles - Mines - Found) / (Tiles - Found)
+        // Here we just re-calculate total mult from 0 based on gems found
+
+        let multiplier = 1.0;
+        const totalTiles = 25;
+        const mines = this.mineCount;
+        const houseEdge = 1.0; // 0% Edge (Fair Game)
+
+        for (let i = 0; i < this.gemsFound; i++) {
+            const remainingTiles = totalTiles - i;
+            const remainingSafe = totalTiles - mines - i;
+            const stepMult = remainingTiles / remainingSafe;
+            multiplier *= stepMult;
+        }
+
+        return multiplier * houseEdge;
+    },
+
+    getNextStepProfit() {
+        // Predict what happens if we find one more gem
+        let simulatedMult = 1.0;
+        const totalTiles = 25;
+        const mines = this.mineCount;
+        const houseEdge = 1.0; // 0% Edge
+
+        // Calculate for CURRENT + 1
+        for (let i = 0; i < this.gemsFound + 1; i++) {
+            const remainingTiles = totalTiles - i;
+            const remainingSafe = totalTiles - mines - i;
+            const stepMult = remainingTiles / remainingSafe;
+            simulatedMult *= stepMult;
+        }
+
+        const nextTotal = Math.floor(this.bet * (simulatedMult * houseEdge));
+        const currentTotal = Math.floor(this.bet * this.currentMultiplier);
+        return nextTotal - currentTotal;
+    },
+
+    renderGrid() {
+        const grid = document.getElementById('mines-grid');
+        if (!grid) return;
+        grid.innerHTML = '';
+
+        for (let i = 0; i < 25; i++) {
+            const tile = document.createElement('div');
+            tile.id = `mine-tile-${i}`;
+            tile.className = 'mine-tile';
+            tile.onclick = () => this.clickTile(i);
+            grid.appendChild(tile);
+        }
+    },
+
+    updateInfo() {
+        // Multiplier Display
+        const multDisplay = document.getElementById('mines-current-multiplier');
+        if (multDisplay) multDisplay.textContent = this.currentMultiplier.toFixed(2) + 'x';
+
+        // Next Profit Display
+        const nextDisplay = document.getElementById('mines-next-profit');
+        if (nextDisplay) {
+            const nextProfit = this.getNextStepProfit();
+            nextDisplay.textContent = `+${nextProfit}`;
+        }
+
+        // Button Text Update if active
+        if (this.active) {
+            const btn = document.getElementById('mines-action-btn');
+            const currentWin = Math.floor(this.bet * this.currentMultiplier);
+            btn.textContent = `UDBETAL ${currentWin} 🪙`;
+        }
+    },
+
+    updateUIHeader() {
+        const d = document.getElementById('mines-coin-display');
+        if (d) d.textContent = Arcade.state.coins;
+    }
+};
+
+
 

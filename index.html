@@ -6,7 +6,71 @@
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Skole-Dashboard</title>
-    <link rel="stylesheet" href="style.css?v=117">
+    <link rel="stylesheet" href="style.css?v=200">
+    <style>
+        /* CRITICAL INLINE LOCK STYLES (Cache Busting) */
+        .status-badge {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-15deg);
+            background: #dc2626 !important;
+            /* Proper Dark Red */
+            color: white !important;
+            padding: 10px 20px;
+            font-weight: 900;
+            font-size: 1.2rem;
+            letter-spacing: 1px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+            white-space: nowrap;
+            border: 3px solid white;
+            z-index: 100;
+            pointer-events: none;
+            text-shadow: 0 2px 0 rgba(0, 0, 0, 0.5);
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* FIX: Apply grayscale to CONTENT only, not the container (so badge stays red) */
+        .game-card.locked>.game-thumb,
+        .game-card.locked>.game-meta {
+            filter: grayscale(0.9) brightness(0.6);
+            transition: filter 0.3s ease;
+        }
+
+        .game-card.locked:hover>.game-thumb,
+        .game-card.locked:hover>.game-meta {
+            filter: grayscale(0.8) brightness(0.7);
+        }
+
+        /* FIX: Allow badge to overhang (Sticker effect) */
+        .game-card.locked {
+            overflow: visible !important;
+            position: relative;
+        }
+
+        @keyframes lockedShake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(-5px) rotate(-2deg);
+            }
+
+            75% {
+                transform: translateX(5px) rotate(2deg);
+            }
+        }
+
+        .shake-anim {
+            animation: lockedShake 0.4s ease-in-out;
+        }
+    </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -17,6 +81,115 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics-compat.js"></script>
+    <style>
+        /* --- MINES MINIGAME (Direct Injection) --- */
+        #stage-mines {
+            background: #0f1115;
+        }
+
+        .mines-container {
+            padding-top: 40px;
+        }
+
+        /* Sidebar: Flat, Glass, Minimal */
+        .mines-sidebar {
+            background: rgba(20, 20, 25, 0.6) !important;
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2) !important;
+        }
+
+        .mines-sidebar input[type="number"] {
+            background: rgba(0, 0, 0, 0.2) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            box-shadow: none !important;
+        }
+
+        .mines-sidebar input:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            border-color: transparent !important;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        input[type=range] {
+            opacity: 0.8;
+        }
+
+        /* Tiles: Explicit Visibility & Clean Look */
+        .mine-tile {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+            transition: transform 0.1s ease, background 0.1s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        .mine-tile:hover {
+            background: rgba(255, 255, 255, 0.12);
+            transform: scale(1.02);
+        }
+
+        .mine-tile:active {
+            transform: none !important;
+        }
+
+        .mine-tile.revealed {
+            background: rgba(0, 0, 0, 0.3);
+            cursor: default;
+            transform: none;
+            pointer-events: none;
+        }
+
+        .mine-tile.revealed.gem {
+            background: rgba(16, 185, 129, 0.15);
+            color: #fff;
+            animation: revealFade 0.4s ease-out forwards;
+        }
+
+        .mine-tile.revealed.mine {
+            background: rgba(244, 63, 94, 0.15);
+            animation: revealFade 0.4s ease-out forwards, mineShake 0.4s ease-in-out;
+        }
+
+        @keyframes revealFade {
+            0% {
+                opacity: 0;
+                transform: scale(1);
+                /* Explicitly NO scale */
+            }
+
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .mines-action-btn.cashout-mode {
+            animation: pulseSoft 2s infinite;
+        }
+
+        @keyframes pulseSoft {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.85;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+    </style>
 </head>
 
 <body class="theme-midnight">
@@ -188,856 +361,1003 @@
                         <div id="sec-notes" class="sec-content hidden"></div>
                     </div>
                 </div>
-            </div> <!-- End extras-overlay -->
+            </div> <!-- End settings-panel -->
+        </div> <!-- End extras-overlay -->
 
-            <!-- SECRET SNAKE GAME OVERLAY -->
-            <div id="game-overlay" class="game-overlay hidden">
-                <div class="game-container">
-                    <canvas id="snake-game" width="400" height="400"></canvas>
-                    <div class="game-info">
-                        <span>Score: <span id="game-score">0</span></span>
-                        <span class="close-hint">Klik udenfor for at lukke</span>
-                    </div>
+        <!-- SECRET SNAKE GAME OVERLAY -->
+        <div id="game-overlay" class="game-overlay hidden">
+            <div class="game-container">
+                <canvas id="snake-game" width="400" height="400"></canvas>
+                <div class="game-info">
+                    <span>Score: <span id="game-score">0</span></span>
+                    <span class="close-hint">Klik udenfor for at lukke</span>
                 </div>
+            </div>
+        </div>
+
+
+
+        <!-- VIEW: DASHBOARD -->
+        <header id="main-header">
+            <div class="header-left">
+                <!-- Weather Widget -->
+                <div id="weather-widget" class="weather-widget">
+                    <span class="weather-icon">☁️</span>
+                    <span class="weather-temp">--°</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <!-- Settings Button (Overview) -->
+                <button onclick="toggleSettings()" class="header-settings-btn" title="Indstillinger">
+                    <img src="settings-icon.png" alt="Settings" class="settings-icon-png">
+                </button>
+            </div>
+        </header>
+
+        <!-- Floating Action Buttons (Bottom Right) -->
+        <!-- Floating Action Buttons (Bottom Right) -->
+        <div class="fab-container">
+            <!-- No FABs visible - Keyboard Shortcuts Active -->
+        </div>
+
+        <!-- VIEW: DASHBOARD -->
+        <div id="view-dashboard">
+
+
+            <!-- VERTICAL STORYBOARD LAYOUT -->
+            <div class="storyboard-container">
+
+                <!-- SECTION 1: HERO (Current Status) -->
+                <section id="hero" class="story-section hero-section">
+                    <main class="status-card" id="status-card">
+                        <div class="status-label" id="status-label">Lige nu</div>
+                        <div class="timer-content">
+                            <div class="current-subject" id="current-subject" onclick="triggerGodMode()"
+                                style="cursor: pointer;">Loading...</div>
+                            <div class="next-info" id="next-info"></div>
+                            <div class="countdown-timer" id="countdown" onclick="triggerGodMode()"
+                                style="cursor: pointer;" title="Hidden Secrets?">00:00</div>
+                        </div>
+
+                        <!-- SMART SUBJECT WIDGET -->
+                        <div id="subject-widget" class="subject-widget hidden">
+                            <div class="topic-control">
+                                <button class="topic-arrow" onclick="changeTopic(-1)">‹</button>
+                                <div class="topic-info">
+                                    <span class="topic-label" id="widget-subject">Dansk</span>
+                                    <span class="topic-title" id="widget-topic">Identitet</span>
+                                </div>
+                                <button class="topic-arrow" onclick="changeTopic(1)">›</button>
+                            </div>
+                            <a href="#" id="widget-btn" target="_blank" class="widget-action-btn">
+                                <span class="btn-icon">📓</span> <span id="widget-btn-text">Åbn OneNote</span>
+                            </a>
+                        </div>
+                    </main>
+                    <div class="scroll-hint">↓ Scroll for at se skema</div>
+                </section>
+
+                <!-- SECTION 2: SCHEDULE -->
+                <section id="schedule" class="story-section">
+                    <div class="content-wrapper">
+                        <h2 class="section-title"
+                            style="text-align: center; margin-bottom: 1rem; font-size: 2rem; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                            📅 <span id="schedule-title">Skema</span>
+                        </h2>
+
+                        <!-- DAY SELECTOR -->
+                        <div class="day-selector"
+                            style="display: flex; gap: 10px; overflow-x: auto; padding: 20px 20px; margin-bottom: 1rem; scrollbar-width: none; -ms-overflow-style: none;">
+                            <button class="day-btn" onclick="selectDay(1)" id="day-1">Man</button>
+                            <button class="day-btn" onclick="selectDay(2)" id="day-2">Tir</button>
+                            <button class="day-btn" onclick="selectDay(3)" id="day-3">Ons</button>
+                            <button class="day-btn" onclick="selectDay(4)" id="day-4">Tor</button>
+                            <button class="day-btn" onclick="selectDay(5)" id="day-5">Fre</button>
+                        </div>
+                        <div id="schedule-list" class="schedule-list-vertical">
+                            <!-- Schedule items injected here -->
+                        </div>
+                    </div>
+                </section>
+
+
+
             </div>
 
 
+        </div> <!-- End view-dashboard -->
 
-            <!-- VIEW: DASHBOARD -->
-            <header id="main-header">
-                <div class="header-left">
-                    <!-- Weather Widget -->
-                    <div id="weather-widget" class="weather-widget">
-                        <span class="weather-icon">☁️</span>
-                        <span class="weather-temp">--°</span>
+
+
+        <!-- VIEW: LIVE LINK (Standalone) -->
+        <div id="view-livelink" class="hidden livelink-view">
+
+            <!-- Custom Header for Live Link -->
+            <header
+                style="position: absolute; top: 0; left: 0; right: 0; padding: 20px; display: flex; justify-content: space-between; z-index: 10;">
+                <button onclick="handleArcadeBack()" class="arcade-nav-btn glass-btn-text">
+                    ‹ Tilbage
+                </button>
+
+                <button onclick="toggleSettings()" class="header-settings-btn" title="Indstillinger">
+                    <img src="settings-icon.png" alt="Settings" class="settings-icon-png">
+                </button>
+            </header>
+            </header>
+
+            <div class="livelink-card">
+                <h2 class="livelink-title">🔗 Live Link Drop</h2>
+                <p class="livelink-subtitle">Del links lynhurtigt med klassen</p>
+
+                <div class="livelink-dropzone" id="drop-zone-standalone">
+                    <div class="empty-state">
+                        <p style="font-size: 1rem; opacity: 0.7; text-align: center;">Venter på link...</p>
+                    </div>
+                    <div class="link-content hidden" id="link-content-standalone">
+                        <a href="#" target="_blank" id="current-link-standalone" class="gradient-text"
+                            style="display: block; text-align: center; margin-bottom: 10px; word-break: break-all; font-size: 1.2rem; font-weight: 700;"></a>
+                        <div class="meta-info" id="timestamp-standalone"
+                            style="font-size: 0.8rem; color: rgba(255, 255, 255, 0.5); text-align: center;"></div>
                     </div>
                 </div>
+
+                <!-- NEW: Action Grid (Copy/Open) -->
+                <div class="action-grid" id="action-buttons-standalone">
+                    <button id="copy-btn-standalone" class="action-card hidden">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                        <span>Kopier</span>
+                    </button>
+                    <button id="open-btn-standalone" class="action-card hidden">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                            <polyline points="15 3 21 3 21 9"></polyline>
+                            <line x1="10" y1="14" x2="21" y2="3"></line>
+                        </svg>
+                        <span>Åbn</span>
+                    </button>
+                </div>
+
+                <!-- NEW: Split Form (Separate Input & Button) -->
+                <form id="send-form-standalone" class="split-form" autocomplete="off">
+                    <input type="text" id="link-input-standalone" placeholder="Indsæt link..." class="split-input">
+                    <button type="submit" class="split-btn">Send</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Logic -->
+        <script src="data.js?v=201"></script>
+        <script src="wordle_data.js?v=201"></script>
+        <script src="arcade_engine.js?v=201"></script>
+        <script src="weather_pills.js?v=201"></script>
+        <script src="app.js?v=201"></script>
+
+        <!-- SAFETY REVEAL (If app.js init fails) -->
+        <script>
+            setTimeout(() => {
+                const overlay = document.getElementById('launch-overlay');
+                if (overlay && !overlay.classList.contains('fade-out')) {
+                    console.warn("Safety Reveal: Forcing launch overlay removal.");
+                    overlay.classList.add('fade-out');
+                }
+            }, 3000); // 3 second fallback
+        </script>
+
+        <!-- VIEW: ARCADE (Full Screen Game Hub) -->
+        <div id="view-arcade" class="arcade-view hidden">
+            <header class="arcade-header">
+                <!-- Left: Navigation (Restored Back Button) -->
+                <div class="header-left">
+                    <button onclick="handleArcadeBack()" class="arcade-nav-btn glass-btn-text">
+                        ‹ Tilbage
+                    </button>
+                    <!-- Hidden Input for Logic (Kept here or moved) -->
+                    <input type="text" id="player-name-input" class="hidden-input" maxlength="12">
+                </div>
+
+                <!-- Center: Title (Absolutely Centered) -->
+                <div class="arcade-title-wrapper">
+                    <div class="arcade-title">🕹️ THE ARCADE</div>
+                </div>
+
+                <!-- Right: Identity Pill Only -->
                 <div class="header-right">
-                    <!-- Settings Button (Overview) -->
-                    <button onclick="toggleSettings()" class="header-settings-btn" title="Indstillinger">
-                        <img src="settings-icon.png" alt="Settings" class="settings-icon-png">
+                    <!-- Identity Pill (Opens Profile Hub) -->
+                    <button class="identity-pill" onclick="openProfileHub()" title="Åbn Profil Menu">
+                        <div class="name-section">
+                            <span class="profile-icon">👤</span>
+                            <span id="player-name-display">Gæst</span>
+                            <span class="dropdown-icon"
+                                style="font-size: 0.7rem; opacity: 0.6; margin-left: 4px;">▼</span>
+                        </div>
                     </button>
                 </div>
             </header>
 
-            <!-- Floating Action Buttons (Bottom Right) -->
-            <!-- Floating Action Buttons (Bottom Right) -->
-            <div class="fab-container">
-                <!-- No FABs visible - Keyboard Shortcuts Active -->
-            </div>
+            <!-- UNIFIED PROFILE HUB (Replaces Name Modal) -->
+            <div id="profile-hub" class="modal-overlay hidden">
+                <div class="glass-panel centered-panel" style="max-width: 400px;">
 
-            <!-- VIEW: DASHBOARD -->
-            <div id="view-dashboard">
-
-
-                <!-- VERTICAL STORYBOARD LAYOUT -->
-                <div class="storyboard-container">
-
-                    <!-- SECTION 1: HERO (Current Status) -->
-                    <section id="hero" class="story-section hero-section">
-                        <main class="status-card" id="status-card">
-                            <div class="status-label" id="status-label">Lige nu</div>
-                            <div class="timer-content">
-                                <div class="current-subject" id="current-subject" onclick="triggerGodMode()"
-                                    style="cursor: pointer;">Loading...</div>
-                                <div class="next-info" id="next-info"></div>
-                                <div class="countdown-timer" id="countdown" onclick="triggerGodMode()"
-                                    style="cursor: pointer;" title="Hidden Secrets?">00:00</div>
-                            </div>
-
-                            <!-- SMART SUBJECT WIDGET -->
-                            <div id="subject-widget" class="subject-widget hidden">
-                                <div class="topic-control">
-                                    <button class="topic-arrow" onclick="changeTopic(-1)">‹</button>
-                                    <div class="topic-info">
-                                        <span class="topic-label" id="widget-subject">Dansk</span>
-                                        <span class="topic-title" id="widget-topic">Identitet</span>
-                                    </div>
-                                    <button class="topic-arrow" onclick="changeTopic(1)">›</button>
-                                </div>
-                                <a href="#" id="widget-btn" target="_blank" class="widget-action-btn">
-                                    <span class="btn-icon">📓</span> <span id="widget-btn-text">Åbn OneNote</span>
-                                </a>
-                            </div>
-                        </main>
-                        <div class="scroll-hint">↓ Scroll for at se skema</div>
-                    </section>
-
-                    <!-- SECTION 2: SCHEDULE -->
-                    <section id="schedule" class="story-section">
-                        <div class="content-wrapper">
-                            <h2 class="section-title"
-                                style="text-align: center; margin-bottom: 1rem; font-size: 2rem; display: flex; align-items: center; justify-content: center; gap: 10px;">
-                                📅 <span id="schedule-title">Skema</span>
-                            </h2>
-
-                            <!-- DAY SELECTOR -->
-                            <div class="day-selector"
-                                style="display: flex; gap: 10px; overflow-x: auto; padding: 20px 20px; margin-bottom: 1rem; scrollbar-width: none; -ms-overflow-style: none;">
-                                <button class="day-btn" onclick="selectDay(1)" id="day-1">Man</button>
-                                <button class="day-btn" onclick="selectDay(2)" id="day-2">Tir</button>
-                                <button class="day-btn" onclick="selectDay(3)" id="day-3">Ons</button>
-                                <button class="day-btn" onclick="selectDay(4)" id="day-4">Tor</button>
-                                <button class="day-btn" onclick="selectDay(5)" id="day-5">Fre</button>
-                            </div>
-                            <div id="schedule-list" class="schedule-list-vertical">
-                                <!-- Schedule items injected here -->
-                            </div>
-                        </div>
-                    </section>
-
-
-
-                </div>
-
-
-            </div> <!-- End view-dashboard -->
-
-
-
-            <!-- VIEW: LIVE LINK (Standalone) -->
-            <div id="view-livelink" class="hidden livelink-view">
-
-                <!-- Custom Header for Live Link -->
-                <header
-                    style="position: absolute; top: 0; left: 0; right: 0; padding: 20px; display: flex; justify-content: space-between; z-index: 10;">
-                    <button onclick="handleArcadeBack()" class="arcade-nav-btn glass-btn-text">
-                        ‹ Tilbage
-                    </button>
-
-                    <button onclick="toggleSettings()" class="header-settings-btn" title="Indstillinger">
-                        <img src="settings-icon.png" alt="Settings" class="settings-icon-png">
-                    </button>
-                </header>
-                </header>
-
-                <div class="livelink-card">
-                    <h2 class="livelink-title">🔗 Live Link Drop</h2>
-                    <p class="livelink-subtitle">Del links lynhurtigt med klassen</p>
-
-                    <div class="livelink-dropzone" id="drop-zone-standalone">
-                        <div class="empty-state">
-                            <p style="font-size: 1rem; opacity: 0.7; text-align: center;">Venter på link...</p>
-                        </div>
-                        <div class="link-content hidden" id="link-content-standalone">
-                            <a href="#" target="_blank" id="current-link-standalone" class="gradient-text"
-                                style="display: block; text-align: center; margin-bottom: 10px; word-break: break-all; font-size: 1.2rem; font-weight: 700;"></a>
-                            <div class="meta-info" id="timestamp-standalone"
-                                style="font-size: 0.8rem; color: rgba(255, 255, 255, 0.5); text-align: center;"></div>
-                        </div>
+                    <!-- 1. Identity Section -->
+                    <div class="hub-identity">
+                        <div class="hub-avatar">👤</div>
+                        <input type="text" id="hub-name-input" class="hub-name-input" maxlength="12"
+                            placeholder="Dit Navn" onchange="saveNameFromHub()">
                     </div>
 
-                    <!-- NEW: Action Grid (Copy/Open) -->
-                    <div class="action-grid" id="action-buttons-standalone">
-                        <button id="copy-btn-standalone" class="action-card hidden">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                            </svg>
-                            <span>Kopier</span>
+
+
+                    <!-- 3. Action Grid -->
+                    <div class="hub-grid">
+                        <button onclick="openLeaderboard(); closeProfileHub()" class="hub-btn">
+                            <span class="hub-icon">🏆</span>
+                            <span>Topliste</span>
                         </button>
-                        <button id="open-btn-standalone" class="action-card hidden">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                                <polyline points="15 3 21 3 21 9"></polyline>
-                                <line x1="10" y1="14" x2="21" y2="3"></line>
-                            </svg>
-                            <span>Åbn</span>
+                        <!-- Shop Btn -->
+                        <!-- Shop Btn -->
+                        <button onclick="window.renderShopItemsFinal(); openShop(); closeProfileHub()" class="hub-btn">
+                            <span class="hub-icon">🛒</span>
+                            <span>Shop</span>
                         </button>
                     </div>
 
-                    <!-- NEW: Split Form (Separate Input & Button) -->
-                    <form id="send-form-standalone" class="split-form" autocomplete="off">
-                        <input type="text" id="link-input-standalone" placeholder="Indsæt link..." class="split-input">
-                        <button type="submit" class="split-btn">Send</button>
-                    </form>
+                    <div style="margin-top: 20px;">
+                        <button onclick="closeProfileHub()" class="btn secondary" style="width:100%">Luk</button>
+                    </div>
                 </div>
             </div>
 
-            <!-- Logic -->
-            <script src="data.js"></script>
-            <script src="wordle_data.js"></script>
-            <script src="arcade_engine.js"></script>
-            <script src="weather_pills.js"></script>
-            <script src="app.js"></script>
+            <!-- DUEL STATUS HEADER REMOVED (Replaced by HUD) -->
 
-            <!-- VIEW: ARCADE (Full Screen Game Hub) -->
-            <div id="view-arcade" class="arcade-view hidden">
-                <header class="arcade-header">
-                    <!-- Left: Navigation (Restored Back Button) -->
-                    <div class="header-left">
-                        <button onclick="handleArcadeBack()" class="arcade-nav-btn glass-btn-text">
-                            ‹ Tilbage
+            <div class="arcade-content">
+                <!-- Game Selector -->
+                <div id="arcade-game-selector" class="game-selector">
+                    <div class="game-card" onclick="openSnake()">
+                        <div class="game-thumb snake-thumb">🐍</div>
+                        <div class="game-meta">
+                            <h3>Snake 2.0</h3>
+                            <p id="snake-highscore-display">Rekord: 0</p>
+                        </div>
+                    </div>
+                    <div class="game-card" onclick="openBreakout()">
+                        <div class="game-thumb breakout-thumb">🧱</div>
+                        <div class="game-meta">
+                            <h3>Breakout</h3>
+                            <p id="breakout-highscore-display">Rekord: 0</p>
+                        </div>
+                    </div>
+                    <div class="game-card" onclick="openWordle()">
+                        <div class="game-thumb wordle-thumb">🔤</div>
+                        <div class="game-meta">
+                            <h3>Wordle</h3>
+                            <p id="wordle-highscore-display">Streak: 0</p>
+                        </div>
+                    </div>
+                    <div class="game-card" onclick="openPong()">
+                        <div class="game-thumb pong-thumb">🏓</div>
+                        <div class="game-meta">
+                            <h3>Pong</h3>
+                            <p id="pong-highscore-display">Score: 0</p>
+                        </div>
+                    </div>
+                    <div class="game-card locked" onclick="tryOpenMines(this, event)">
+                        <div class="game-thumb mines-thumb"
+                            style="background: linear-gradient(135deg, #374151, #1f2937); display: flex; align-items: center; justify-content: center; font-size: 3rem;">
+                            💎</div>
+                        <div class="game-meta">
+                            <h3>Minefeltet</h3>
+                            <p style="color: #9ca3af; font-weight: bold;">🔒 Låst</p>
+                        </div>
+                        <div class="status-badge">KOMMER SNART</div>
+                    </div>
+
+                </div>
+
+                <!-- Active Game Stage (Snake) -->
+                <div id="stage-snake" class="game-stage hidden">
+                    <div class="game-hud">
+                        <div class="score-board">Point: <span id="snake-current-score">0</span></div>
+                        <button class="settings-btn" onclick="toggleArcadeSettings()" title="Indstillinger">
+                            <img src="settings-icon.png" alt="Settings" class="settings-icon-png">
                         </button>
-                        <!-- Hidden Input for Logic (Kept here or moved) -->
-                        <input type="text" id="player-name-input" class="hidden-input" maxlength="12">
                     </div>
 
-                    <!-- Center: Title (Absolutely Centered) -->
-                    <div class="arcade-title-wrapper">
-                        <div class="arcade-title">🕹️ THE ARCADE</div>
-                    </div>
-
-                    <!-- Right: Identity Pill Only -->
-                    <div class="header-right">
-                        <!-- Identity Pill (Opens Profile Hub) -->
-                        <button class="identity-pill" onclick="openProfileHub()" title="Åbn Profil Menu">
-                            <div class="name-section">
-                                <span class="profile-icon">👤</span>
-                                <span id="player-name-display">Gæst</span>
-                                <span class="dropdown-icon"
-                                    style="font-size: 0.7rem; opacity: 0.6; margin-left: 4px;">▼</span>
+                    <div class="game-viewport">
+                        <!-- PRE-GAME MENU -->
+                        <div id="snake-start-menu" class="game-overlay-msg"
+                            style="background: rgba(20, 20, 25, 0.96); backdrop-filter: blur(20px);">
+                            <div style="margin-bottom: 20px; text-align: center; margin-top: 40px;">
+                                <div style="font-size: 3rem; margin-bottom: 5px;">🐍</div>
+                                <h2 style="font-size: 1.8rem; font-weight: 600; color: white; letter-spacing: -0.5px;">
+                                    Snake</h2>
+                                <p style="color: rgba(255,255,255,0.5); font-size: 0.85rem;">Vælg spiltype for at
+                                    starte
+                                </p>
                             </div>
-                        </button>
-                    </div>
-                </header>
 
-                <!-- UNIFIED PROFILE HUB (Replaces Name Modal) -->
-                <div id="profile-hub" class="modal-overlay hidden">
-                    <div class="glass-panel centered-panel" style="max-width: 400px;">
+                            <div style="width: 100%; max-width: 300px; margin-bottom: 25px;">
+                                <div class="segmented-control"
+                                    style="width:100%; display:flex; gap:4px; padding: 4px; background: rgba(255,255,255,0.1); border-radius: 12px; margin-bottom: 15px;">
+                                    <button class="segment-btn active" onclick="setSnakeMode('classic', this)"
+                                        style="flex:1; border-radius: 8px; padding: 8px 0;">Klassisk</button>
+                                    <button class="segment-btn" onclick="setSnakeMode('fast', this)"
+                                        style="flex:1; border-radius: 8px; padding: 8px 0;">Hurtig</button>
+                                    <button class="segment-btn" onclick="setSnakeMode('feast', this)"
+                                        style="flex:1; border-radius: 8px; padding: 8px 0;">Buffet</button>
+                                </div>
+                            </div>
 
-                        <!-- 1. Identity Section -->
-                        <div class="hub-identity">
-                            <div class="hub-avatar">👤</div>
-                            <input type="text" id="hub-name-input" class="hub-name-input" maxlength="12"
-                                placeholder="Dit Navn" onchange="saveNameFromHub()">
+                            <button onclick="startSnakeGame()" class="btn primary"
+                                style="font-size: 1.1rem; padding: 14px 40px; border-radius: 99px; background: white; color: black; border: none; font-weight: 600; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">Start
+                                Spil</button>
+                            <button onclick="closeSnake()" class="btn secondary"
+                                style="margin-top: 20px; background:none; border:none; color: rgba(255,255,255,0.4); font-size: 0.9rem;">Luk</button>
                         </div>
 
+                        <canvas id="snake-canvas" width="500" height="500"></canvas>
 
+                        <!-- Game Over Overlay -->
+                        <!-- Game Over Overlay -->
+                        <div id="snake-game-over" class="game-overlay-msg hidden"
+                            style="background: rgba(0,0,0,0.6); backdrop-filter: none;">
+                            <div class="breakout-menu-floater game-over-special" style="transform: none;">
+                                <h2 class="game-over-title">SPILLET ER SLUT</h2>
 
-                        <!-- 3. Action Grid -->
-                        <div class="hub-grid">
-                            <button onclick="openLeaderboard(); closeProfileHub()" class="hub-btn">
-                                <span class="hub-icon">🏆</span>
-                                <span>Topliste</span>
-                            </button>
-                            <!-- Shop Btn -->
-                            <!-- Shop Btn -->
-                            <button onclick="window.renderShopItemsFinal(); openShop(); closeProfileHub()"
-                                class="hub-btn">
-                                <span class="hub-icon">🛒</span>
-                                <span>Shop</span>
-                            </button>
-                        </div>
+                                <div class="game-over-score-container">
+                                    <div class="game-over-label">POINT</div>
+                                    <div id="snake-final-score" class="game-over-score">0</div>
+                                </div>
 
-                        <div style="margin-top: 20px;">
-                            <button onclick="closeProfileHub()" class="btn secondary" style="width:100%">Luk</button>
+                                <div class="menu-stack">
+                                    <button onclick="restartSnake()" class="glass-menu-btn game-over-btn-primary">Prøv
+                                        Igen ↺</button>
+                                    <button onclick="closeSnake()" class="glass-menu-btn game-over-btn-secondary">Afslut
+                                        ✕</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- DUEL STATUS HEADER REMOVED (Replaced by HUD) -->
-
-                <div class="arcade-content">
-                    <!-- Game Selector -->
-                    <div id="arcade-game-selector" class="game-selector">
-                        <div class="game-card" onclick="openSnake()">
-                            <div class="game-thumb snake-thumb">🐍</div>
-                            <div class="game-meta">
-                                <h3>Snake 2.0</h3>
-                                <p id="snake-highscore-display">Rekord: 0</p>
+                <!-- Active Game Stage (Breakout) -->
+                <div id="stage-breakout" class="game-stage hidden">
+                    <div class="game-hud" style="align-items: flex-end;">
+                        <div id="breakout-hud"
+                            style="display: flex; flex-direction: column; gap: 2px; align-items: flex-start;">
+                            <div class="lives-board"
+                                style="display: flex; align-items: center; height: 50px; font-size: 1.8rem; font-weight: 700; color: #ef4444; overflow: visible;">
+                                <span
+                                    style="color: #888; font-size: 1rem; margin-right: 8px; letter-spacing: 1px; line-height: 1;">LIV</span>
+                                <span id="breakout-lives"
+                                    style="display: inline-block; line-height: 1; padding-bottom: 4px;">❤️❤️❤️</span>
                             </div>
+                            <div class="score-board" style="font-size: 1.4rem;">Point: <span
+                                    id="breakout-current-score">0</span></div>
                         </div>
-                        <div class="game-card" onclick="openBreakout()">
-                            <div class="game-thumb breakout-thumb">🧱</div>
-                            <div class="game-meta">
-                                <h3>Breakout</h3>
-                                <p id="breakout-highscore-display">Rekord: 0</p>
-                            </div>
-                        </div>
-                        <div class="game-card" onclick="openWordle()">
-                            <div class="game-thumb wordle-thumb">🔤</div>
-                            <div class="game-meta">
-                                <h3>Wordle</h3>
-                                <p id="wordle-highscore-display">Streak: 0</p>
-                            </div>
-                        </div>
-                        <div class="game-card" onclick="openPong()">
-                            <div class="game-thumb pong-thumb">🏓</div>
-                            <div class="game-meta">
-                                <h3>Pong</h3>
-                                <p id="pong-highscore-display">Score: 0</p>
-                            </div>
-                        </div>
-
+                        <button class="settings-btn" onclick="toggleArcadeSettings()" title="Indstillinger">
+                            <img src="settings-icon.png" alt="Settings" class="settings-icon-png">
+                        </button>
                     </div>
 
-                    <!-- Active Game Stage (Snake) -->
-                    <div id="stage-snake" class="game-stage hidden">
-                        <div class="game-hud">
-                            <div class="score-board">Point: <span id="snake-current-score">0</span></div>
-                            <button class="settings-btn" onclick="toggleArcadeSettings()" title="Indstillinger">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                    stroke-linecap="round" stroke-linejoin="round">
-                                    <circle cx="12" cy="12" r="3"></circle>
-                                    <path
-                                        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
-                                    </path>
-                                </svg>
-                            </button>
-                        </div>
-
-                        <div class="game-viewport">
-                            <!-- PRE-GAME MENU -->
-                            <div id="snake-start-menu" class="game-overlay-msg"
-                                style="background: rgba(20, 20, 25, 0.96); backdrop-filter: blur(20px);">
-                                <div style="margin-bottom: 20px; text-align: center; margin-top: 40px;">
-                                    <div style="font-size: 3rem; margin-bottom: 5px;">🐍</div>
-                                    <h2
-                                        style="font-size: 1.8rem; font-weight: 600; color: white; letter-spacing: -0.5px;">
-                                        Snake</h2>
-                                    <p style="color: rgba(255,255,255,0.5); font-size: 0.85rem;">Vælg spiltype for at
-                                        starte
-                                    </p>
-                                </div>
-
-                                <div style="width: 100%; max-width: 300px; margin-bottom: 25px;">
-                                    <div class="segmented-control"
-                                        style="width:100%; display:flex; gap:4px; padding: 4px; background: rgba(255,255,255,0.1); border-radius: 12px; margin-bottom: 15px;">
-                                        <button class="segment-btn active" onclick="setSnakeMode('classic', this)"
-                                            style="flex:1; border-radius: 8px; padding: 8px 0;">Klassisk</button>
-                                        <button class="segment-btn" onclick="setSnakeMode('fast', this)"
-                                            style="flex:1; border-radius: 8px; padding: 8px 0;">Hurtig</button>
-                                        <button class="segment-btn" onclick="setSnakeMode('feast', this)"
-                                            style="flex:1; border-radius: 8px; padding: 8px 0;">Buffet</button>
-                                    </div>
-                                </div>
-
-                                <button onclick="startSnakeGame()" class="btn primary"
-                                    style="font-size: 1.1rem; padding: 14px 40px; border-radius: 99px; background: white; color: black; border: none; font-weight: 600; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">Start
-                                    Spil</button>
-                                <button onclick="closeSnake()" class="btn secondary"
-                                    style="margin-top: 20px; background:none; border:none; color: rgba(255,255,255,0.4); font-size: 0.9rem;">Luk</button>
-                            </div>
-
-                            <canvas id="snake-canvas" width="500" height="500"></canvas>
+                    <div class="game-viewport">
+                        <div class="game-canvas-wrapper" style="width: 500px; height: 500px;">
+                            <canvas id="breakout-canvas" width="500" height="500"></canvas>
 
                             <!-- Game Over Overlay -->
-                            <!-- Game Over Overlay -->
-                            <div id="snake-game-over" class="game-overlay-msg hidden"
+                            <div id="breakout-game-over" class="game-overlay-msg hidden"
                                 style="background: rgba(0,0,0,0.6); backdrop-filter: none;">
                                 <div class="breakout-menu-floater game-over-special" style="transform: none;">
                                     <h2 class="game-over-title">SPILLET ER SLUT</h2>
 
                                     <div class="game-over-score-container">
-                                        <div class="game-over-label">POINT</div>
-                                        <div id="snake-final-score" class="game-over-score">0</div>
+                                        <div class="game-over-label">DIN SCORE</div>
+                                        <div id="bo-final-score" class="game-over-score">0</div>
                                     </div>
 
                                     <div class="menu-stack">
-                                        <button onclick="restartSnake()"
-                                            class="glass-menu-btn game-over-btn-primary">Prøv
-                                            Igen ↺</button>
-                                        <button onclick="closeSnake()"
-                                            class="glass-menu-btn game-over-btn-secondary">Afslut
-                                            ✕</button>
+                                        <button onclick="restartBreakout()"
+                                            class="glass-menu-btn game-over-btn-primary">
+                                            Prøv Igen ↺
+                                        </button>
+                                        <button onclick="closeBreakout()"
+                                            class="glass-menu-btn game-over-btn-secondary">
+                                            Afslut ✕
+                                        </button>
                                     </div>
+                                </div>
+                            </div>
+
+                            <!-- Level Up Overlay -->
+                            <div id="breakout-level-overlay"
+                                style="position: absolute; top:0; left:0; width:100%; height:100%; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); transition: opacity 0.6s ease; opacity: 0; pointer-events: none; z-index: 10;">
+                                <h2
+                                    style="font-size: 5rem; font-weight: 900; letter-spacing: 2px; margin-bottom: 0; background: linear-gradient(to right, #ffffff, var(--accent)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; text-transform: uppercase;">
+                                    BANE <span id="level-display-num">2</span></h2>
+                            </div>
+
+                            <!-- START SCREEN OVERLAY (New Simple Glass Menu) -->
+                            <div id="breakout-start-overlay" class="start-screen-overlay">
+                                <div class="breakout-menu-floater">
+                                    <h1
+                                        style="font-size: 2.5rem; font-weight: 900; letter-spacing: -1px; margin: 0 0 5px 0; color: white;">
+                                        BREAKOUT</h1>
+                                    <p style="color: rgba(255,255,255,0.6); font-size: 0.95rem; margin-bottom: 20px;">
+                                        Vælg
+                                        sværhedsgrad</p>
+
+                                    <div class="menu-stack">
+                                        <button class="glass-menu-btn easy" onclick="startGameWithDifficulty('easy')">
+                                            Let <span class="lives">5 Liv</span>
+                                        </button>
+
+                                        <button class="glass-menu-btn normal"
+                                            onclick="startGameWithDifficulty('medium')">
+                                            Normal <span class="lives">3 Liv</span>
+                                        </button>
+
+                                        <button class="glass-menu-btn hard" onclick="startGameWithDifficulty('hard')">
+                                            Svær <span class="lives">1 Liv</span>
+                                        </button>
+                                    </div>
+
+                                    <button onclick="closeBreakout()" class="cancel-link">Annuller</button>
                                 </div>
                             </div>
                         </div>
                     </div>
+                </div>
+                <!-- Old Lives Display Removed -->
+                <!-- END OF INITIAL CONTENT (Now continuing with more stages inside) -->
+                <div id="stage-wordle" class="game-stage hidden">
 
-                    <!-- Active Game Stage (Breakout) -->
-                    <div id="stage-breakout" class="game-stage hidden">
-                        <div class="game-hud" style="align-items: flex-end;">
-                            <div id="breakout-hud"
-                                style="display: flex; flex-direction: column; gap: 2px; align-items: flex-start;">
-                                <div class="lives-board"
-                                    style="display: flex; align-items: center; height: 50px; font-size: 1.8rem; font-weight: 700; color: #ef4444; overflow: visible;">
-                                    <span
-                                        style="color: #888; font-size: 1rem; margin-right: 8px; letter-spacing: 1px; line-height: 1;">LIV</span>
-                                    <span id="breakout-lives"
-                                        style="display: inline-block; line-height: 1; padding-bottom: 4px;">❤️❤️❤️</span>
-                                </div>
-                                <div class="score-board" style="font-size: 1.4rem;">Point: <span
-                                        id="breakout-current-score">0</span></div>
+                    <!-- WORDLE MENU OVERLAY (Solo vs Duel) -->
+                    <div id="wordle-menu-overlay" class="game-overlay-msg">
+                        <div class="duel-card" style="align-items: center; text-align: center;">
+                            <h1 class="duel-title">WORDLE</h1>
+                            <div style="display: flex; gap: 15px; width: 100%;">
+                                <button onclick="startWordleSolo()" class="btn secondary"
+                                    style="flex: 1; padding: 15px;">
+                                    👤 Single Player
+                                </button>
+                                <button onclick="showDuelLobby()" class="btn primary" style="flex: 1; padding: 15px;">
+                                    ⚔️ Duel Ven
+                                </button>
                             </div>
-                            <button class="settings-btn" onclick="toggleArcadeSettings()" title="Indstillinger">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                    stroke-linecap="round" stroke-linejoin="round">
-                                    <circle cx="12" cy="12" r="3"></circle>
-                                    <path
-                                        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
-                                    </path>
-                                </svg>
-                            </button>
+                        </div>
+                    </div>
+
+
+
+
+
+                    <div class="game-hud" style="justify-content: center;">
+                        <!-- SOLO HUD (Streak) -->
+                        <div id="solo-hud-display" class="hud-glass-panel">
+                            <div class="hud-room-label">
+                                <span style="opacity:0.7">🔥</span> STREAK
+                            </div>
+                            <div class="hud-room-code" id="wordle-current-streak">0</div>
                         </div>
 
-                        <div class="game-viewport">
-                            <div class="game-canvas-wrapper" style="width: 500px; height: 500px;">
-                                <canvas id="breakout-canvas" width="500" height="500"></canvas>
+                        <!-- PREMIUM HUD (Duel) -->
+                        <div id="duel-hud-display" class="hud-glass-panel hidden">
+                            <div class="hud-room-label">
+                                <span style="opacity:0.7">🔑</span> RUM
+                            </div>
+                            <div class="hud-room-code" id="duel-room-code-hud">--</div>
 
-                                <!-- Game Over Overlay -->
-                                <div id="breakout-game-over" class="game-overlay-msg hidden"
-                                    style="background: rgba(0,0,0,0.6); backdrop-filter: none;">
-                                    <div class="breakout-menu-floater game-over-special" style="transform: none;">
-                                        <h2 class="game-over-title">SPILLET ER SLUT</h2>
+                            <div style="width: 1px; height: 20px; background: rgba(255,255,255,0.1); margin: 0 5px;">
+                            </div>
 
-                                        <div class="game-over-score-container">
-                                            <div class="game-over-label">DIN SCORE</div>
-                                            <div id="bo-final-score" class="game-over-score">0</div>
-                                        </div>
+                            <div class="hud-vs-badge">
+                                <span id="duel-opp-status">Venter...</span>
+                            </div>
+                            <!-- Hidden helper to avoid crash -->
+                            <span id="duel-my-status" style="display:none;"></span>
+                        </div>
 
-                                        <div class="menu-stack">
-                                            <button onclick="restartBreakout()"
-                                                class="glass-menu-btn game-over-btn-primary">
-                                                Prøv Igen ↺
-                                            </button>
-                                            <button onclick="closeBreakout()"
-                                                class="glass-menu-btn game-over-btn-secondary">
-                                                Afslut ✕
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
+                        <button class="settings-btn" onclick="toggleArcadeSettings()" title="Indstillinger"
+                            style="position: absolute; right: 20px;">
+                            <img src="settings-icon.png" alt="Settings" class="settings-icon-png">
+                        </button>
+                    </div>
 
-                                <!-- Level Up Overlay -->
-                                <div id="breakout-level-overlay"
-                                    style="position: absolute; top:0; left:0; width:100%; height:100%; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); transition: opacity 0.6s ease; opacity: 0; pointer-events: none; z-index: 10;">
-                                    <h2
-                                        style="font-size: 5rem; font-weight: 900; letter-spacing: 2px; margin-bottom: 0; background: linear-gradient(to right, #ffffff, var(--accent)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; text-transform: uppercase;">
-                                        BANE <span id="level-display-num">2</span></h2>
-                                </div>
+                    <div class="game-viewport" style="background: transparent; border: none; box-shadow: none;">
+                        <div id="wordle-board"></div>
+                    </div>
 
-                                <!-- START SCREEN OVERLAY (New Simple Glass Menu) -->
-                                <div id="breakout-start-overlay" class="start-screen-overlay">
-                                    <div class="breakout-menu-floater">
-                                        <h1
-                                            style="font-size: 2.5rem; font-weight: 900; letter-spacing: -1px; margin: 0 0 5px 0; color: white;">
-                                            BREAKOUT</h1>
-                                        <p
-                                            style="color: rgba(255,255,255,0.6); font-size: 0.95rem; margin-bottom: 20px;">
-                                            Vælg
-                                            sværhedsgrad</p>
+                    <div id="wordle-keyboard"></div>
 
-                                        <div class="menu-stack">
-                                            <button class="glass-menu-btn easy"
-                                                onclick="startGameWithDifficulty('easy')">
-                                                Let <span class="lives">5 Liv</span>
-                                            </button>
+                    <!-- Game Over Overlay -->
+                    <div id="wordle-game-over" class="game-overlay-msg hidden">
+                        <h2 id="wordle-msg">GODT GÅET!</h2>
+                        <div style="font-size: 3rem; margin: 10px 0;" id="wordle-result-word">WORDL</div>
+                        <div style="display: flex; gap: 15px; margin-top: 10px;">
+                            <button onclick="restartWordle()" class="btn primary" style="min-width: 120px;">Nyt
+                                Ord</button>
+                            <button onclick="closeWordle()" class="btn secondary"
+                                style="min-width: 120px;">Afslut</button>
+                        </div>
+                    </div>
+                </div>
 
-                                            <button class="glass-menu-btn normal"
-                                                onclick="startGameWithDifficulty('medium')">
-                                                Normal <span class="lives">3 Liv</span>
-                                            </button>
+                <!-- Active Game Stage (Pong) -->
+                <div id="stage-pong" class="game-stage hidden">
+                    <div class="game-hud" style="max-width: 600px; margin: 0 auto; width: 100%;">
+                        <div class="score-board"
+                            style="width: 100%; display: flex; justify-content: space-between; padding: 0 10px;">
+                            <span>DIG: <span id="pong-score-player">0</span></span>
+                            <span>CPU: <span id="pong-score-cpu">0</span></span>
+                        </div>
+                        <button class="settings-btn" onclick="toggleArcadeSettings()" title="Indstillinger">
+                            <img src="settings-icon.png" alt="Settings" class="settings-icon-png">
+                        </button>
+                    </div>
 
-                                            <button class="glass-menu-btn hard"
-                                                onclick="startGameWithDifficulty('hard')">
-                                                Svær <span class="lives">1 Liv</span>
-                                            </button>
-                                        </div>
+                    <div class="game-viewport">
+                        <!-- FIX: Wrap in game-canvas-wrapper for proper overlay clipping -->
+                        <div class="game-canvas-wrapper" style="width: 600px; height: 400px; position: relative;">
+                            <canvas id="pong-canvas" width="600" height="400"></canvas>
 
-                                        <button onclick="closeBreakout()" class="cancel-link">Annuller</button>
-                                    </div>
+                            <!-- Game Over Overlay -->
+                            <div id="pong-game-over" class="game-overlay-msg hidden">
+                                <h2 id="pong-msg">SEJR!</h2>
+                                <div style="display: flex; gap: 15px; margin-top: 10px;">
+                                    <button onclick="restartPong()" class="btn primary" style="min-width: 120px;">Spil
+                                        Igen</button>
+                                    <button onclick="closePong()" class="btn secondary"
+                                        style="min-width: 120px;">Afslut</button>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <!-- Old Lives Display Removed -->
-                    <!-- END OF INITIAL CONTENT (Now continuing with more stages inside) -->
-                    <div id="stage-wordle" class="game-stage hidden">
+                </div>
 
-                        <!-- WORDLE MENU OVERLAY (Solo vs Duel) -->
-                        <div id="wordle-menu-overlay" class="game-overlay-msg">
-                            <div class="duel-card" style="align-items: center; text-align: center;">
-                                <h1 class="duel-title">WORDLE</h1>
-                                <div style="display: flex; gap: 15px; width: 100%;">
-                                    <button onclick="startWordleSolo()" class="btn secondary"
-                                        style="flex: 1; padding: 15px;">
-                                        👤 Single Player
-                                    </button>
-                                    <button onclick="showDuelLobby()" class="btn primary"
-                                        style="flex: 1; padding: 15px;">
-                                        ⚔️ Duel Ven
-                                    </button>
-                                </div>
-                            </div>
+                <!-- Active Game Stage (Space Defence) -->
+                <div id="stage-space" class="game-stage hidden">
+                    <div class="game-hud" style="justify-content: space-between; padding: 0 10px;">
+                        <div class="score-board" style="display: flex; gap: 20px;">
+                            <span>SCORE: <span id="space-score">0</span></span>
+                            <span>LIV: <span id="space-lives" style="color: #ef4444;">❤️❤️❤️</span></span>
                         </div>
+                        <button class="settings-btn" onclick="toggleArcadeSettings()" title="Indstillinger">
+                            <img src="settings-icon.png" alt="Settings" class="settings-icon-png">
+                        </button>
+                    </div>
 
-
-
-
-
-                        <div class="game-hud" style="justify-content: center;">
-                            <!-- SOLO HUD (Streak) -->
-                            <div id="solo-hud-display" class="hud-glass-panel">
-                                <div class="hud-room-label">
-                                    <span style="opacity:0.7">🔥</span> STREAK
-                                </div>
-                                <div class="hud-room-code" id="wordle-current-streak">0</div>
-                            </div>
-
-                            <!-- PREMIUM HUD (Duel) -->
-                            <div id="duel-hud-display" class="hud-glass-panel hidden">
-                                <div class="hud-room-label">
-                                    <span style="opacity:0.7">🔑</span> RUM
-                                </div>
-                                <div class="hud-room-code" id="duel-room-code-hud">--</div>
-
-                                <div
-                                    style="width: 1px; height: 20px; background: rgba(255,255,255,0.1); margin: 0 5px;">
-                                </div>
-
-                                <div class="hud-vs-badge">
-                                    <span id="duel-opp-status">Venter...</span>
-                                </div>
-                                <!-- Hidden helper to avoid crash -->
-                                <span id="duel-my-status" style="display:none;"></span>
-                            </div>
-
-                        </div>
-
-                        <div class="game-viewport" style="background: transparent; border: none; box-shadow: none;">
-                            <div id="wordle-board"></div>
-                        </div>
-
-                        <div id="wordle-keyboard"></div>
+                    <div class="game-viewport">
+                        <canvas id="space-canvas" width="500" height="600"></canvas>
 
                         <!-- Game Over Overlay -->
-                        <div id="wordle-game-over" class="game-overlay-msg hidden">
-                            <h2 id="wordle-msg">GODT GÅET!</h2>
-                            <div style="font-size: 3rem; margin: 10px 0;" id="wordle-result-word">WORDL</div>
+                        <div id="space-game-over" class="game-overlay-msg hidden">
+                            <h2>GAME OVER</h2>
                             <div style="display: flex; gap: 15px; margin-top: 10px;">
-                                <button onclick="restartWordle()" class="btn primary" style="min-width: 120px;">Nyt
-                                    Ord</button>
-                                <button onclick="closeWordle()" class="btn secondary"
+                                <button onclick="restartSpace()" class="btn primary" style="min-width: 120px;">Prøv
+                                    Igen</button>
+                                <button onclick="closeSpace()" class="btn secondary"
                                     style="min-width: 120px;">Afslut</button>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Active Game Stage (Pong) -->
-                    <div id="stage-pong" class="game-stage hidden">
-                        <div class="game-hud" style="max-width: 600px; margin: 0 auto; width: 100%;">
-                            <div class="score-board"
-                                style="width: 100%; display: flex; justify-content: space-between; padding: 0 10px;">
-                                <span>DIG: <span id="pong-score-player">0</span></span>
-                                <span>CPU: <span id="pong-score-cpu">0</span></span>
-                            </div>
-                            <button class="settings-btn" onclick="toggleArcadeSettings()" title="Indstillinger">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                    stroke-linecap="round" stroke-linejoin="round">
-                                    <circle cx="12" cy="12" r="3"></circle>
-                                    <path
-                                        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
-                                    </path>
-                                </svg>
-                            </button>
-                        </div>
-
-                        <div class="game-viewport">
-                            <!-- FIX: Wrap in game-canvas-wrapper for proper overlay clipping -->
-                            <div class="game-canvas-wrapper" style="width: 600px; height: 400px; position: relative;">
-                                <canvas id="pong-canvas" width="600" height="400"></canvas>
-
-                                <!-- Game Over Overlay -->
-                                <div id="pong-game-over" class="game-overlay-msg hidden">
-                                    <h2 id="pong-msg">SEJR!</h2>
-                                    <div style="display: flex; gap: 15px; margin-top: 10px;">
-                                        <button onclick="restartPong()" class="btn primary"
-                                            style="min-width: 120px;">Spil
-                                            Igen</button>
-                                        <button onclick="closePong()" class="btn secondary"
-                                            style="min-width: 120px;">Afslut</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Active Game Stage (Space Defence) -->
-                    <div id="stage-space" class="game-stage hidden">
-                        <div class="game-hud" style="justify-content: space-between; padding: 0 10px;">
-                            <div class="score-board" style="display: flex; gap: 20px;">
-                                <span>SCORE: <span id="space-score">0</span></span>
-                                <span>LIV: <span id="space-lives" style="color: #ef4444;">❤️❤️❤️</span></span>
-                            </div>
-                            <button class="settings-btn" onclick="toggleArcadeSettings()" title="Indstillinger">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                    stroke-linecap="round" stroke-linejoin="round">
-                                    <circle cx="12" cy="12" r="3"></circle>
-                                    <path
-                                        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
-                                    </path>
-                                </svg>
-                            </button>
-                        </div>
-
-                        <div class="game-viewport">
-                            <canvas id="space-canvas" width="500" height="600"></canvas>
-
-                            <!-- Game Over Overlay -->
-                            <div id="space-game-over" class="game-overlay-msg hidden">
-                                <h2>GAME OVER</h2>
-                                <div style="display: flex; gap: 15px; margin-top: 10px;">
-                                    <button onclick="restartSpace()" class="btn primary" style="min-width: 120px;">Prøv
-                                        Igen</button>
-                                    <button onclick="closeSpace()" class="btn secondary"
-                                        style="min-width: 120px;">Afslut</button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Mobile Controls (Optional, usually onscreen but can be below) -->
-                        <div id="space-mobile-controls" class="mobile-controls hidden">
-                            <button id="btn-space-left" class="control-btn">⬅️</button>
-                            <button id="btn-space-fire" class="control-btn fire-btn">🔥</button>
-                            <button id="btn-space-right" class="control-btn">➡️</button>
-                        </div>
+                    <!-- Mobile Controls (Optional, usually onscreen but can be below) -->
+                    <div id="space-mobile-controls" class="mobile-controls hidden">
+                        <button id="btn-space-left" class="control-btn">⬅️</button>
+                        <button id="btn-space-fire" class="control-btn fire-btn">🔥</button>
+                        <button id="btn-space-right" class="control-btn">➡️</button>
                     </div>
                 </div>
 
-                <!-- SETTINGS MODAL OVERLAY -->
-                <div id="arcade-settings-overlay" class="modal-overlay hidden"
-                    onclick="if(event.target===this) closeSettings()">
-                    <div id="arcade-settings" class="settings-panel">
-                        <div class="settings-header">
-                            <h3>Indstillinger</h3>
-                            <button onclick="closeSettings()" class="settings-close-x" title="Luk">✕</button>
-                        </div>
+                <!-- MINES 2.0 SPLIT VIEW (FIXED OVERLAY MAX Z-INDEX) -->
 
-                        <div class="settings-body">
-                            <!-- BASIC SETTINGS (Always Visible) -->
-                            <div id="settings-basic">
-                                <!-- Global -->
+            </div>
+
+            <!-- SETTINGS MODAL OVERLAY -->
+            <div id="arcade-settings-overlay" class="modal-overlay hidden"
+                onclick="if(event.target===this) closeSettings()">
+                <div id="arcade-settings" class="settings-panel">
+                    <div class="settings-header">
+                        <h3>Indstillinger</h3>
+                        <button onclick="closeSettings()" class="settings-close-x" title="Luk">✕</button>
+                    </div>
+
+                    <div class="settings-body">
+                        <!-- BASIC SETTINGS (Always Visible) -->
+                        <div id="settings-basic">
+                            <!-- Global -->
+                            <div class="setting-group">
+                                <label>Lydeffekter</label>
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="set-sound-enabled" checked
+                                        onchange="updateArcadeSetting('sound', this.checked)">
+                                    <label for="set-sound-enabled"></label>
+                                </div>
+                            </div>
+
+                            <!-- SNAKE SETTINGS (Visible when Snake is active) -->
+                            <div id="basic-snake" class="hidden">
                                 <div class="setting-group">
-                                    <label>Lydeffekter</label>
-                                    <div class="toggle-switch">
-                                        <input type="checkbox" id="set-sound-enabled" checked
-                                            onchange="updateArcadeSetting('sound', this.checked)">
-                                        <label for="set-sound-enabled"></label>
+                                    <label>Game Mode</label>
+                                    <div class="segmented-control" id="seg-snake-mode">
+                                        <button class="segment-btn active"
+                                            onclick="setSnakeMode('classic', this)">Normal</button>
+                                        <button class="segment-btn" onclick="setSnakeMode('fast', this)">Hurtig
+                                            ⚡</button>
+                                        <button class="segment-btn" onclick="setSnakeMode('feast', this)">Buffet
+                                            🍎</button>
                                     </div>
                                 </div>
+                                <div class="setting-group">
+                                    <label>Farve Tema</label>
+                                    <select id="set-snake-theme" onchange="updateArcadeSetting('theme', this.value)"
+                                        style="width: auto; min-width: 140px; padding:8px; border-radius:8px; background:rgba(255,255,255,0.1); color:white; border:1px solid rgba(255,255,255,0.1);">
+                                        <option value="classic">Klassisk (Grøn/Rød)</option>
+                                        <option value="neon">Neon (Lilla/Cyan)</option>
+                                        <option value="retro">Retro (Sort/Hvid)</option>
+                                    </select>
+                                </div>
+                            </div>
 
-                                <!-- SNAKE SETTINGS (Visible when Snake is active) -->
-                                <div id="basic-snake" class="hidden">
-                                    <div class="setting-group">
-                                        <label>Game Mode</label>
-                                        <div class="segmented-control" id="seg-snake-mode">
-                                            <button class="segment-btn active"
-                                                onclick="setSnakeMode('classic', this)">Normal</button>
-                                            <button class="segment-btn" onclick="setSnakeMode('fast', this)">Hurtig
-                                                ⚡</button>
-                                            <button class="segment-btn" onclick="setSnakeMode('feast', this)">Buffet
-                                                🍎</button>
+                            <!-- BREAKOUT DIFFICULTY -->
+                            <div id="basic-breakout" class="setting-group hidden">
+                                <label>Sværhedsgrad</label>
+                                <div class="segmented-control" id="seg-breakout-diff">
+                                    <button class="segment-btn active"
+                                        onclick="setDifficultyPrompt('breakout', 'easy', this)">Let</button>
+                                    <button class="segment-btn"
+                                        onclick="setDifficultyPrompt('breakout', 'medium', this)">Normal</button>
+                                    <button class="segment-btn"
+                                        onclick="setDifficultyPrompt('breakout', 'hard', this)">Svær</button>
+                                </div>
+                            </div>
+
+                            <!-- PONG DIFFICULTY -->
+                            <div id="basic-pong" class="setting-group hidden">
+                                <label>Sværhedsgrad</label>
+                                <div class="segmented-control" id="seg-pong-diff">
+                                    <button class="segment-btn"
+                                        onclick="setDifficultyPrompt('pong', 'easy', this)">Let</button>
+                                    <button class="segment-btn active"
+                                        onclick="setDifficultyPrompt('pong', 'normal', this)">Normal</button>
+                                    <button class="segment-btn"
+                                        onclick="setDifficultyPrompt('pong', 'hard', this)">Svær</button>
+                                </div>
+                            </div>
+
+                            <!-- SPACE DIFFICULTY -->
+                            <div id="basic-space" class="setting-group hidden">
+                                <label>Sværhedsgrad</label>
+                                <div class="segmented-control" id="seg-space-diff">
+                                    <button class="segment-btn"
+                                        onclick="setDifficultyPrompt('space', 'easy', this)">Let</button>
+                                    <button class="segment-btn active"
+                                        onclick="setDifficultyPrompt('space', 'normal', this)">Normal</button>
+                                    <button class="segment-btn"
+                                        onclick="setDifficultyPrompt('space', 'hard', this)">Svær</button>
+                                </div>
+                            </div>
+
+                            <!-- WORDLE SETTINGS -->
+                            <div id="basic-wordle" class="hidden">
+                                <div class="setting-group" style="display:block; padding-bottom:8px;">
+                                    <label
+                                        style="margin-bottom:8px; display:block; text-align: center;">Multiplayer</label>
+
+                                    <!-- Mode Selector -->
+                                    <div class="segmented-control" id="seg-wordle-mode"
+                                        style="margin-bottom: 20px; scale: 0.9;">
+                                        <button class="segment-btn active" onclick="setWordleMode('race', this)">Fælles
+                                            👥</button>
+                                        <button class="segment-btn" onclick="setWordleMode('turn', this)">Runder
+                                            🔄</button>
+                                    </div>
+
+                                    <!-- Controls Interactive Toolbar -->
+                                    <div
+                                        style="display: flex; gap: 15px; align-items: center; justify-content: center;">
+
+                                        <!-- Start Button (Right Aligned in Left Box) -->
+                                        <div style="flex: 1; display: flex; justify-content: flex-end;">
+                                            <button onclick="createDuelRoom()" class="btn primary"
+                                                style="height: 32px; min-height: 32px; padding: 0 12px; font-size: 0.8rem; border-radius: 6px; flex-shrink: 0; display: flex; align-items: center;">
+                                                + Opret
+                                            </button>
                                         </div>
-                                    </div>
-                                    <div class="setting-group">
-                                        <label>Farve Tema</label>
-                                        <select id="set-snake-theme" onchange="updateArcadeSetting('theme', this.value)"
-                                            style="width: auto; min-width: 140px; padding:8px; border-radius:8px; background:rgba(255,255,255,0.1); color:white; border:1px solid rgba(255,255,255,0.1);">
-                                            <option value="classic">Klassisk (Grøn/Rød)</option>
-                                            <option value="neon">Neon (Lilla/Cyan)</option>
-                                            <option value="retro">Retro (Sort/Hvid)</option>
-                                        </select>
-                                    </div>
-                                </div>
 
-                                <!-- BREAKOUT DIFFICULTY -->
-                                <div id="basic-breakout" class="setting-group hidden">
-                                    <label>Sværhedsgrad</label>
-                                    <div class="segmented-control" id="seg-breakout-diff">
-                                        <button class="segment-btn active"
-                                            onclick="setDifficultyPrompt('breakout', 'easy', this)">Let</button>
-                                        <button class="segment-btn"
-                                            onclick="setDifficultyPrompt('breakout', 'medium', this)">Normal</button>
-                                        <button class="segment-btn"
-                                            onclick="setDifficultyPrompt('breakout', 'hard', this)">Svær</button>
-                                    </div>
-                                </div>
-
-                                <!-- PONG DIFFICULTY -->
-                                <div id="basic-pong" class="setting-group hidden">
-                                    <label>Sværhedsgrad</label>
-                                    <div class="segmented-control" id="seg-pong-diff">
-                                        <button class="segment-btn"
-                                            onclick="setDifficultyPrompt('pong', 'easy', this)">Let</button>
-                                        <button class="segment-btn active"
-                                            onclick="setDifficultyPrompt('pong', 'normal', this)">Normal</button>
-                                        <button class="segment-btn"
-                                            onclick="setDifficultyPrompt('pong', 'hard', this)">Svær</button>
-                                    </div>
-                                </div>
-
-                                <!-- SPACE DIFFICULTY -->
-                                <div id="basic-space" class="setting-group hidden">
-                                    <label>Sværhedsgrad</label>
-                                    <div class="segmented-control" id="seg-space-diff">
-                                        <button class="segment-btn"
-                                            onclick="setDifficultyPrompt('space', 'easy', this)">Let</button>
-                                        <button class="segment-btn active"
-                                            onclick="setDifficultyPrompt('space', 'normal', this)">Normal</button>
-                                        <button class="segment-btn"
-                                            onclick="setDifficultyPrompt('space', 'hard', this)">Svær</button>
-                                    </div>
-                                </div>
-
-                                <!-- WORDLE SETTINGS -->
-                                <div id="basic-wordle" class="hidden">
-                                    <div class="setting-group" style="display:block; padding-bottom:8px;">
-                                        <label style="margin-bottom:8px; display:block; text-align: center;">Multiplayer
-                                            Duel</label>
-
-                                        <!-- Mode Selector -->
-                                        <div class="segmented-control" id="seg-wordle-mode"
-                                            style="margin-bottom: 20px; scale: 0.9;">
-                                            <button class="segment-btn active"
-                                                onclick="setWordleMode('race', this)">Kapløb
-                                                🏎️</button>
-                                            <button class="segment-btn"
-                                                onclick="setWordleMode('turn', this)">Tur-baseret
-                                                🤝</button>
+                                        <!-- Divider -->
+                                        <div style="width: 1px; height: 20px; background: rgba(255,255,255,0.2);">
                                         </div>
 
-                                        <!-- Controls Interactive Toolbar -->
+                                        <!-- Join Section (Left Aligned in Right Box) -->
                                         <div
-                                            style="display: flex; gap: 15px; align-items: center; justify-content: center;">
-
-                                            <!-- Start Button (Right Aligned in Left Box) -->
-                                            <div style="flex: 1; display: flex; justify-content: flex-end;">
-                                                <button onclick="createDuelRoom()" class="btn primary"
-                                                    style="height: 32px; min-height: 32px; padding: 0 12px; font-size: 0.8rem; border-radius: 6px; flex-shrink: 0; display: flex; align-items: center;">
-                                                    + Opret
-                                                </button>
-                                            </div>
-
-                                            <!-- Divider -->
-                                            <div style="width: 1px; height: 20px; background: rgba(255,255,255,0.2);">
-                                            </div>
-
-                                            <!-- Join Section (Left Aligned in Right Box) -->
-                                            <div
-                                                style="flex: 1; display: flex; justify-content: flex-start; gap: 6px; align-items: center;">
-                                                <button onclick="joinDuelRoom()" class="btn secondary"
-                                                    style="height: 32px; min-height: 32px; padding: 0 10px; font-size: 0.8rem; border-radius: 6px; display: flex; align-items: center;">
-                                                    Tilslut
-                                                </button>
-                                                <input type="text" id="duel-code-input"
-                                                    style="height: 32px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 0 6px; color: white; border-radius: 6px; width: 45px; text-align: center; font-family: monospace; font-size: 0.9rem; box-sizing: border-box;"
-                                                    placeholder="000" maxlength="3" inputmode="numeric"
-                                                    onkeydown="if(event.key==='Enter'){ joinDuelRoom(); this.blur(); event.stopPropagation(); }">
-                                            </div>
+                                            style="flex: 1; display: flex; justify-content: flex-start; gap: 6px; align-items: center;">
+                                            <button onclick="joinDuelRoom()" class="btn secondary"
+                                                style="height: 32px; min-height: 32px; padding: 0 10px; font-size: 0.8rem; border-radius: 6px; display: flex; align-items: center;">
+                                                Tilslut
+                                            </button>
+                                            <input type="text" id="duel-code-input"
+                                                style="height: 32px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 0 6px; color: white; border-radius: 6px; width: 45px; text-align: center; font-family: monospace; font-size: 0.9rem; box-sizing: border-box;"
+                                                placeholder="000" maxlength="3" inputmode="numeric"
+                                                onkeydown="if(event.key==='Enter'){ joinDuelRoom(); this.blur(); event.stopPropagation(); }">
                                         </div>
                                     </div>
                                 </div>
                             </div>
+                        </div>
 
-                            <!-- ACTIONS -->
-                            <div class="settings-actions" style="margin-top: 30px;">
-                                <button onclick="restartActiveGame()" class="btn secondary"
-                                    style="width: 100%; margin-bottom: 10px;">Start Forfra ↺</button>
-                                <button onclick="closeSettings()" class="btn"
-                                    style="width: 100%; background: rgba(255,255,255,0.1); color: white;">Luk</button>
-                            </div>
+                        <!-- ACTIONS -->
+                        <div class="settings-actions" style="margin-top: 30px;">
+                            <button onclick="restartActiveGame()" class="btn secondary"
+                                style="width: 100%; margin-bottom: 10px;">Start Forfra ↺</button>
+                            <button onclick="closeSettings()" class="btn"
+                                style="width: 100%; background: rgba(255,255,255,0.1); color: white;">Luk</button>
                         </div>
                     </div>
                 </div>
-                <!-- MODALS -->
-                <!-- SHOP MODAL (FINAL REBUILD) -->
-                <!-- Identical structure to Leaderboard for guaranteed transition support -->
-                <div id="arcade-shop-final" class="modal-overlay hidden">
-                    <div class="modal-content glass-panel" style="max-width: 600px;">
-                        <div class="modal-header"
-                            style="display: flex; align-items: center; justify-content: space-between;">
-                            <button onclick="closeShop(); openProfileHub()"
-                                style="background:none; border:none; color:rgba(255,255,255,0.6); font-size:1rem; cursor:pointer; display:flex; align-items:center; gap:5px;">
-                                ‹ Menu
-                            </button>
-                            <h2 style="margin:0; font-size:1.4rem;">Arcade Shop 🛒</h2>
-                            <button class="close-btn" onclick="closeShop()">×</button>
-                        </div>
-                        <div class="shop-balance" style="padding: 0 20px; margin-bottom: 10px;">
-                            Dine Mønter: <span id="shop-coin-count" style="color: #fbbf24; font-weight: bold;">0</span>
-                            🪙
-                        </div>
-                        <div id="shop-items-final" class="shop-grid"
-                            style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; max-height: 400px; overflow-y: auto;">
-                            <!-- JS renders items here -->
-                        </div>
+            </div>
+            <!-- MODALS -->
+            <!-- SHOP MODAL (FINAL REBUILD) -->
+            <!-- Identical structure to Leaderboard for guaranteed transition support -->
+            <div id="arcade-shop-final" class="modal-overlay hidden">
+                <div class="modal-content glass-panel" style="max-width: 600px;">
+                    <div class="modal-header"
+                        style="display: flex; align-items: center; justify-content: space-between;">
+                        <button onclick="closeShop(); openProfileHub()"
+                            style="background:none; border:none; color:rgba(255,255,255,0.6); font-size:1rem; cursor:pointer; display:flex; align-items:center; gap:5px;">
+                            ‹ Menu
+                        </button>
+                        <h2 style="margin:0; font-size:1.4rem;">Arcade Shop 🛒</h2>
+                        <button class="close-btn" onclick="closeShop()">×</button>
+                    </div>
+                    <div class="shop-balance" style="padding: 0 20px; margin-bottom: 10px;">
+                        Dine Mønter: <span id="shop-coin-count" style="color: #fbbf24; font-weight: bold;">0</span>
+                        🪙
+                    </div>
+                    <div id="shop-items-final" class="shop-grid"
+                        style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; max-height: 400px; overflow-y: auto;">
+                        <!-- JS renders items here -->
                     </div>
                 </div>
+            </div>
 
-                <!-- LEADERBOARD MODAL -->
-                <div id="arcade-leaderboard" class="modal-overlay hidden">
-                    <div class="modal-content glass-panel" style="max-width: 500px;">
-                        <div class="modal-header"
-                            style="display: flex; align-items: center; justify-content: space-between;">
-                            <button onclick="closeLeaderboard(); openProfileHub()"
-                                style="background:none; border:none; color:rgba(255,255,255,0.6); font-size:1rem; cursor:pointer; display:flex; align-items:center; gap:5px;">
-                                ‹ Menu
-                            </button>
-                            <h2 style="margin:0; font-size:1.4rem;">🏆 Hall of Fame</h2>
-                            <button class="close-btn" onclick="closeLeaderboard()">×</button>
-                        </div>
-                        <div id="leaderboard-content" class="leaderboard-list">
-                            <!-- JS renders scores here -->
-                        </div>
-                    </div> <!-- End arcade-leaderboard -->
-                </div> <!-- End app-container -->
+            <!-- LEADERBOARD MODAL -->
+            <div id="arcade-leaderboard" class="modal-overlay hidden">
+                <div class="modal-content glass-panel" style="max-width: 500px;">
+                    <div class="modal-header"
+                        style="display: flex; align-items: center; justify-content: space-between;">
+                        <button onclick="closeLeaderboard(); openProfileHub()"
+                            style="background:none; border:none; color:rgba(255,255,255,0.6); font-size:1rem; cursor:pointer; display:flex; align-items:center; gap:5px;">
+                            ‹ Menu
+                        </button>
+                        <h2 style="margin:0; font-size:1.4rem;">🏆 Hall of Fame</h2>
+                        <button class="close-btn" onclick="closeLeaderboard()">×</button>
+                    </div>
+                    <div id="leaderboard-content" class="leaderboard-list">
+                        <!-- JS renders scores here -->
+                    </div>
+                </div> <!-- End arcade-leaderboard -->
+            </div>
+        </div> <!-- End app-container -->
 
-                <!-- GLOBAL TOAST NOTIFICATION -->
-                <div id="arcade-toast" class="toast-notification hidden">
-                    <span id="toast-icon">✅</span>
-                    <span id="toast-message">Besked</span>
-                </div>
+        <!-- GLOBAL TOAST NOTIFICATION -->
+        <div id="arcade-toast" class="toast-notification hidden">
+            <span id="toast-icon">✅</span>
+            <span id="toast-message">Besked</span>
+        </div>
 
-                <script>
-                    function toggleSettings() {
-                        const overlay = document.getElementById('extras-overlay');
-                        const panel = overlay ? overlay.querySelector('.settings-panel') : null;
-                        const settingsBtn = document.querySelector('.header-settings-btn');
+        <script>
+            function toggleSettings() {
+                const overlay = document.getElementById('extras-overlay');
+                const panel = overlay ? overlay.querySelector('.settings-panel') : null;
+                const settingsBtn = document.querySelector('.header-settings-btn');
 
-                        if (!overlay) return;
+                if (!overlay) return;
 
-                        const isHidden = overlay.classList.contains('hidden');
+                const isHidden = overlay.classList.contains('hidden');
 
-                        if (!isHidden) {
-                            // CLOSING (Unified Logic)
-                            if (panel) panel.classList.add('fade-out-anim');
-                            overlay.style.opacity = '0';
+                // CLOSING
+                if (!isHidden) {
+                    if (panel) {
+                        panel.classList.remove('anim-enter');
+                        panel.classList.add('anim-exit');
+                    }
+                    overlay.style.opacity = '0';
 
-                            setTimeout(() => {
-                                overlay.classList.add('hidden');
-                                overlay.style.opacity = '';
-                                overlay.style.transform = '';
-                                if (panel) panel.classList.remove('fade-out-anim');
+                    setTimeout(() => {
+                        overlay.classList.add('hidden');
+                        overlay.style.opacity = '';
+                        overlay.style.transform = '';
 
-                                // Restore Settings Button
-                                if (settingsBtn) {
-                                    settingsBtn.style.opacity = '1';
-                                    settingsBtn.style.pointerEvents = '';
-                                }
-                            }, 250);
-
-                        } else {
-                            // OPENING (Unified Logic)
-                            overlay.classList.remove('hidden');
-
-                            if (settingsBtn) {
-                                settingsBtn.style.opacity = '0.3';
-                                settingsBtn.style.pointerEvents = 'none';
-                            }
+                        if (panel) {
+                            panel.classList.remove('anim-exit');
+                            // Reset enter animation readiness
                         }
+
+                        // Restore Settings Button
+                        if (settingsBtn) {
+                            settingsBtn.style.opacity = '1';
+                            settingsBtn.style.pointerEvents = '';
+                        }
+                    }, 300); // Wait for exit animation (250ms) + buffer
+
+                } else {
+                    // OPENING
+
+                    // 0. CRITICAL FIX: Cancel any lingering WAAPI animations (like from openArcade)
+                    overlay.getAnimations().forEach(anim => anim.cancel());
+
+                    // 1. Reset Overlay State
+                    overlay.classList.remove('hidden');
+                    overlay.style.opacity = '1';
+                    overlay.style.display = 'flex';
+                    overlay.style.zIndex = '20005';
+                    overlay.style.pointerEvents = 'auto'; // Ensure clickable
+
+                    // 2. Reset Panel Animation (Force Replay)
+                    if (panel) {
+                        panel.classList.remove('anim-exit');
+                        panel.classList.remove('anim-enter');
+
+                        // Force Reflow/Repaint
+                        void panel.offsetWidth;
+
+                        panel.classList.add('anim-enter');
+                        panel.style.opacity = '1'; // Backup if animation fails
+                        panel.style.transform = 'translateY(0) scale(1)'; // Backup position
                     }
 
-                    // Close when clicking outside content (Handled by inline onclick on overlay)
+                    if (settingsBtn) {
+                        settingsBtn.style.opacity = '0.3';
+                        settingsBtn.style.pointerEvents = 'none';
+                    }
+                }
+            }
 
-                    // Global Keyboard Shortcuts
-                    document.addEventListener('keydown', (e) => {
-                        // Live Link: Ctrl+L or Cmd+L
-                        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'l') {
-                            e.preventDefault(); // Prevent browser address bar focus
-                            const liveLinkView = document.getElementById('view-livelink');
-                            if (liveLinkView && liveLinkView.classList.contains('hidden')) {
-                                showLiveLink();
-                            } else if (liveLinkView) {
-                                showDashboard();
-                            }
-                        }
-                    });
-                </script>
+            // Close when clicking outside content (Handled by inline onclick on overlay)
+
+            // Global Keyboard Shortcuts
+            document.addEventListener('keydown', (e) => {
+                // Live Link: Ctrl+L or Cmd+L
+                if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'l') {
+                    e.preventDefault(); // Prevent browser address bar focus
+                    const liveLinkView = document.getElementById('view-livelink');
+                    if (liveLinkView && liveLinkView.classList.contains('hidden')) {
+                        showLiveLink();
+                    } else if (liveLinkView) {
+                        showDashboard();
+                    }
+                }
+            });
+        </script>
+        <!-- MINES 2.0 SPLIT VIEW (RELOCATED TO BODY ROOT) -->
+        <div id="stage-mines-overlay" class="game-stage hidden"
+            style="position: fixed; inset: 0; z-index: 2147483647; width: 100%; height: 100%; max-width: none !important; background: #0f1115; display: flex; flex-direction: row !important; align-items: center; justify-content: center; margin: 0; padding: 20px; box-sizing: border-box; gap: 40px;">
+
+            <!-- LEFT SIDEBAR: CONTROLS & STATS -->
+            <div class="mines-sidebar"
+                style="width: 320px; flex-shrink: 0; background: rgba(20,20,25,0.95); border: 1px solid rgba(255,255,255,0.05); border-radius: 20px; display: flex; flex-direction: column; padding: 24px; z-index: 10; max-height: 90vh; overflow-y: auto; overflow-x: hidden; backdrop-filter: blur(10px);">
+
+                <!-- Header / Wallet -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+                    <button onclick="closeMines()" class="arcade-nav-btn glass-btn-text"
+                        style="font-size: 0.9rem; padding: 8px 12px;">
+                        ‹ Tilbage
+                    </button>
+                    <div class="token-display"
+                        style="background: rgba(0,0,0,0.4); padding: 6px 14px; border-radius: 99px; border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; gap: 8px;">
+                        <span style="color: #fbbf24;">🪙</span>
+                        <span id="mines-coin-display"
+                            style="font-family: 'Monaspace Neon', monospace; font-weight: bold; color: #fff;">0</span>
+                    </div>
+                </div>
+
+                <!-- STATE A: SETUP (Visible by default) -->
+                <div id="mines-state-setup" style="flex: 1; display: flex; flex-direction: column; gap: 24px;">
+                    <!-- Bet Input -->
+                    <div class="control-group">
+                        <label
+                            style="display: block; color: var(--text-secondary); margin-bottom: 10px; font-size: 0.8rem; font-weight: 700; letter-spacing: 1px;">INDSATS
+                            BELØB</label>
+                        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                            <div style="position: relative; flex: 1;">
+                                <input type="number" id="mines-bet-input" value="100" min="10"
+                                    style="width: 100%; background: rgba(0,0,0,0.3); border: 2px solid rgba(255,255,255,0.1); padding: 12px; border-radius: 8px; color: white; font-family: 'Monaspace Neon', monospace; font-size: 1rem; outline: none;">
+                                <span
+                                    style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #fbbf24;">🪙</span>
+                            </div>
+                            <button onclick="Arcade.Mines.setBet('half')"
+                                style="padding: 0 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: var(--text-secondary); cursor: pointer; font-weight: 600;">½</button>
+                            <button onclick="Arcade.Mines.setBet('double')"
+                                style="padding: 0 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: var(--text-secondary); cursor: pointer; font-weight: 600;">2x</button>
+                        </div>
+                    </div>
+
+                    <!-- Mines Slider -->
+                    <div class="control-group">
+                        <label
+                            style="display: block; color: var(--text-secondary); margin-bottom: 10px; font-size: 0.8rem; font-weight: 700; letter-spacing: 1px;">ANTAL
+                            MINER</label>
+                        <div
+                            style="background: rgba(0,0,0,0.3); padding: 16px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
+                            <div
+                                style="display: flex; justify-content: space-between; margin-bottom: 12px; align-items: center;">
+                                <span id="mines-count-display"
+                                    style="color: #fff; font-weight: bold; font-size: 1.2rem;">3</span>
+                                <span style="font-size: 0.9rem; color: var(--text-secondary);">Miner</span>
+                            </div>
+                            <input type="range" id="mines-count-slider" min="1" max="24" value="3"
+                                oninput="document.getElementById('mines-count-display').textContent = this.value"
+                                style="width: 100%; accent-color: #f43f5e; cursor: pointer;">
+                        </div>
+                    </div>
+
+                    <div style="margin-top: auto;">
+                        <button onclick="Arcade.Mines.startGame()"
+                            style="width: 100%; padding: 20px; background: #10b981; border: none; border-radius: 12px; color: white; font-weight: 800; font-size: 1.1rem; cursor: pointer; text-transform: uppercase; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); transition: transform 0.1s;">
+                            START SPIL
+                        </button>
+                    </div>
+                </div>
+
+                <!-- STATE B: PLAYING (Hidden by default) -->
+                <div id="mines-state-playing" style="display: none; flex: 1; flex-direction: column; gap: 24px;">
+                    <!-- Game Info Card -->
+                    <div
+                        style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; padding: 20px; text-align: center;">
+                        <div
+                            style="font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">
+                            Næste Felt</div>
+                        <div id="mines-next-profit"
+                            style="font-size: 1.8rem; font-weight: 800; color: #10b981; margin-bottom: 4px;">
+                            +135</div>
+                        <div style="font-size: 0.9rem; color: rgba(255,255,255,0.5);">Tokens</div>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; padding: 0 10px;">
+                        <div>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary);">Total Gevinst</div>
+                            <div id="mines-current-profit"
+                                style="font-size: 1.1rem; color: #fbbf24; font-weight: bold;">0</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 0.8rem; color: var(--text-secondary);">Multiplier</div>
+                            <div id="mines-current-multiplier"
+                                style="font-size: 1.1rem; color: #fff; font-weight: bold;">1.00x</div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: auto;">
+                        <button id="mines-cashout-btn" onclick="Arcade.Mines.cashOut()"
+                            style="width: 100%; padding: 20px; background: #fbbf24; border: none; border-radius: 12px; color: #000; font-weight: 800; font-size: 1.1rem; cursor: pointer; text-transform: uppercase; box-shadow: 0 4px 15px rgba(251, 191, 36, 0.3); animation: pulseSoft 2s infinite;">
+                            UDBETAL
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- RIGHT AREA: GRID CENTERED -->
+            <div class="mines-board-area"
+                style="flex: 1; height: 100%; display: flex; align-items: center; justify-content: center; position: relative;">
+                <!-- Background Pattern -->
+                <div
+                    style="position: absolute; inset: 0; opacity: 0.1; background-image: radial-gradient(#fff 1px, transparent 1px); background-size: 20px 20px; pointer-events: none;">
+                </div>
+
+                <div class="mines-grid-wrapper" style="position: relative; z-index: 1;">
+                    <div id="mines-grid"
+                        style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; width: 500px; height: 500px; padding: 10px; box-sizing: content-box;">
+                        <!-- Tiles generated by JS -->
+                    </div>
+                </div>
+            </div>
+
+        </div>
 </body>
 
 </html>

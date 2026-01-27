@@ -1,3 +1,26 @@
+// --- GLOBAL ERROR REPORTER (For GitHub Pages Debugging) ---
+window.onerror = function (msg, url, line, col, error) {
+    const errorMsg = `🚨 App Error: ${msg}\nAt: ${url}:${line}:${col}`;
+    console.error(errorMsg, error);
+
+    // Create an on-screen error banner if it doesn't exist
+    let banner = document.getElementById('debug-error-banner');
+    if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'debug-error-banner';
+        banner.style.cssText = 'position:fixed; top:0; left:0; width:100%; background:#ef4444; color:white; padding:15px; z-index:999999; font-family:monospace; font-size:12px; white-space:pre-wrap; box-shadow:0 10px 30px rgba(0,0,0,0.5);';
+        banner.onclick = () => banner.remove();
+        document.body.appendChild(banner);
+    }
+    banner.textContent += errorMsg + '\n\n';
+    return false; // Let browser still log to console
+};
+
+window.onunhandledrejection = function (event) {
+    console.error("🚨 Unhandled Promise Rejection:", event.reason);
+    window.onerror(`Promise Rejection: ${event.reason}`, "Promise", 0, 0);
+};
+
 // Data variables (will be loaded in init)
 let schedules = null;
 let days = null;
@@ -57,8 +80,15 @@ const themes = ['theme-midnight', 'theme-royal', 'theme-crimson', 'theme-emerald
 function init() {
     // Check if data is loaded
     if (!window.SkoleData) {
-        console.error("SkoleData is missing! Make sure data.js is loaded.");
-        if (currentSubjectEl) currentSubjectEl.textContent = "Fejl: Data mangler";
+        const msg = "SkoleData is missing! Make sure data.js is loaded.";
+        console.error(msg);
+        if (currentSubjectEl) currentSubjectEl.textContent = "Data Fejl";
+
+        // Visual fallback for the user
+        const overlay = document.getElementById('launch-overlay');
+        if (overlay) overlay.style.background = '#1e1b4b'; // Dark Purple to signal a "Blue Screen" of sorts
+
+        window.onerror(msg, "data.js", 0, 0);
         return;
     }
 
@@ -208,15 +238,26 @@ function initTheme() {
 
     // Init
     setTimeout(() => {
-        if (window.renderOwnedThemes) window.renderOwnedThemes();
-
-        // Smooth Launch Reveal
+        // 1. Reveal Content First (Critical for UI Visibility)
         const overlay = document.getElementById('launch-overlay');
         if (overlay) overlay.classList.add('fade-out');
 
-        // Trigger Animations
+        // Trigger Animations & Scroll Observer
         document.body.classList.add('animations-active');
-        initScrollObserver();
+        try {
+            initScrollObserver();
+        } catch (e) {
+            console.error("Scroll Observer Error:", e);
+            // Fallback: Force visibility if observer fails
+            document.querySelectorAll('.story-section').forEach(el => el.classList.add('visible'));
+        }
+
+        // 2. Render Themes (Non-Critical - Safe Wrap)
+        try {
+            if (window.renderOwnedThemes) window.renderOwnedThemes();
+        } catch (e) {
+            console.error("Theme Init Error:", e);
+        }
     }, 600); // Wait for Arcade State & Init
 }
 
@@ -1483,6 +1524,43 @@ window.startLoveMatch = function () {
     }, 100);
 }
 
+// --- 10. Mines Lock Logic ---
+window.tryOpenMines = function (el, event) {
+    if (!event) event = window.event;
+
+    // Secret Key: Alt/Option or Shift Key
+    if (event.altKey || event.shiftKey) {
+        // Unlock visualization
+        if (el) {
+            el.classList.remove('locked');
+            const badge = el.querySelector('.status-badge');
+            if (badge) badge.style.display = 'none';
+        }
+
+        // Open Game
+        window.openMines();
+
+        // Optional: Show dev toast
+        if (window.showArcadeToast) {
+            window.showArcadeToast("🔓 Developer Mode Unlocked", "success");
+        }
+    } else {
+        // Standard User Behavior
+        if (window.showArcadeToast) {
+            // Random construction emojis
+            const emojis = ["🚧", "🏗️", "⚒️", "🔧"];
+            const e = emojis[Math.floor(Math.random() * emojis.length)];
+            window.showArcadeToast(`${e} Spillet er under udvikling! Kommer snart.`, "info");
+        }
+
+        // Shake Animation
+        if (el) {
+            el.classList.add('shake-anim');
+            setTimeout(() => el.classList.remove('shake-anim'), 400);
+        }
+    }
+}
+
 // --- ARCADE INTEGRATION ---
 
 // Helper: Smooth Transition
@@ -1510,16 +1588,16 @@ function runGoldenTransition(hideId, showId, onComplete) {
         showEl.classList.remove('hidden');
         showEl.getAnimations().forEach(a => a.cancel());
         showEl.style.opacity = "0";
-        showEl.style.transform = "scale(0.98)";
+        showEl.style.transform = "scale(1.1) translateY(15px)"; // Obvious Zoom + Slide
         showEl.style.transformOrigin = 'center center';
 
-        // ANIMATE IN
+        // ANIMATE IN (Luxurious Landing)
         const inAnim = showEl.animate([
-            { opacity: 0, transform: 'scale(0.98)' },
-            { opacity: 1, transform: 'scale(1)' }
+            { opacity: 0, transform: 'scale(1.1) translateY(15px)' },
+            { opacity: 1, transform: 'scale(1) translateY(0)' }
         ], {
-            duration: 350, // Luxurious entry
-            easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)', // Soft landing
+            duration: 400, // Slightly longer to appreciate the curve
+            easing: 'cubic-bezier(0.16, 1, 0.3, 1)', // Spring
             fill: 'forwards'
         });
 
@@ -1541,20 +1619,45 @@ function runGoldenTransition(hideId, showId, onComplete) {
         hideEl.style.transformOrigin = 'center center';
         hideEl.style.transition = 'none';
 
+        // EXIT: Clean Fade (No scaling to avoid clutter)
+        // CRITICAL FIX: Lock & Fade (Prevent Jump)
+        // 1. Measure WHERE it currently is
+        const rect = hideEl.getBoundingClientRect();
+
+        // 2. Lock it EXACTLY there relative to the viewport
+        hideEl.style.position = 'fixed';
+        hideEl.style.top = rect.top + 'px';
+        hideEl.style.left = rect.left + 'px';
+        hideEl.style.width = rect.width + 'px';
+        hideEl.style.height = rect.height + 'px';
+        hideEl.style.zIndex = '10'; // float on top
+
         const outAnim = hideEl.animate([
-            { opacity: 1, transform: 'scale(1)' },
-            { opacity: 0, transform: 'scale(0.98)' }
+            { opacity: 1 },
+            { opacity: 0 }
         ], {
-            duration: 280, // Snappy exit
-            easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+            duration: 200,
+            easing: 'ease-out',
             fill: 'forwards'
         });
+
+        // TIMING FIX: Slight overlap (80ms) for premium feel.
+        // Immediate was too chaotic, onfinish was too slow.
+        setTimeout(() => {
+            startInAnimation();
+        }, 80);
 
         outAnim.onfinish = () => {
             hideEl.classList.add('hidden');
             hideEl.style.opacity = "";
             hideEl.style.transform = "";
-            startInAnimation(); // Chain to IN
+            // Reset Layout Props
+            hideEl.style.position = "";
+            hideEl.style.top = "";
+            hideEl.style.left = "";
+            hideEl.style.width = "";
+            hideEl.style.height = "";
+            hideEl.style.zIndex = "";
         };
     } else {
         // Nothing to hide? Just show.
@@ -1572,6 +1675,9 @@ window.showDashboard = function () {
     // Handle return from EITHER Arcade OR LiveLink
     const fromArcade = !document.getElementById('view-arcade').classList.contains('hidden');
     const hideId = fromArcade ? 'view-arcade' : 'view-livelink';
+
+    // FORCE UPDATE: Ensure content is ready BEFORE showing (Fix for "late load" feeling)
+    if (window.updateTime) window.updateTime();
 
     runGoldenTransition(hideId, 'view-dashboard', () => {
         // Cleanup if coming from Arcade
@@ -1663,6 +1769,9 @@ window.openArcade = function () {
             arcade.style.opacity = "1";
             arcade.style.transform = "scale(1)";
 
+            // KILL THE GHOST: Cancel the menu animation so it doesn't lock opacity to 0
+            if (menuAnim) menuAnim.cancel();
+
             // Hide Menu completely
             extras.classList.add('hidden');
             extras.style.opacity = "";
@@ -1681,11 +1790,19 @@ window.openArcade = function () {
 window.closeArcade = function () {
     window.showDashboard();
 
-    // Restore Settings Button visibility (fix for disappearing button bug)
+    // FORCE Cleanup Arcade View (in case transition leaves it blocking)
+    const arcade = document.getElementById('view-arcade');
+    if (arcade) {
+        arcade.classList.add('hidden');
+        arcade.style.zIndex = '';
+        arcade.style.display = '';
+    }
+
+    // Restore Settings Button visibility & Interactivity
     const settingsBtn = document.querySelector('.header-settings-btn');
     if (settingsBtn) {
         settingsBtn.style.opacity = '1';
-        settingsBtn.style.pointerEvents = '';
+        settingsBtn.style.pointerEvents = 'auto'; // FIX: Explicitly set auto, not empty string
     }
 }
 
@@ -2348,13 +2465,14 @@ window.closeSettings = function () {
 
     if (overlay && !overlay.classList.contains('hidden')) {
         // Trigger exit animations
-        if (panel) panel.classList.add('fade-out-anim');
+        // FIX: Use 'anim-exit' (No Translate) instead of 'fade-out-anim' (Translate -50%)
+        if (panel) panel.classList.add('anim-exit');
         overlay.style.opacity = '0'; // Ease out the backdrop
 
         setTimeout(() => {
             overlay.classList.add('hidden');
             overlay.style.opacity = ''; // Reset for next time
-            if (panel) panel.classList.remove('fade-out-anim');
+            if (panel) panel.classList.remove('anim-exit');
         }, 250);
     }
 
@@ -3392,4 +3510,53 @@ function getDynamicGreeting(now) {
     if (hour >= 14 && hour < 18) return "God eftermiddag ☕";
     if (hour >= 18 && hour < 24) return "God aften 🌙";
     return "Godnat 🦉";
+}
+
+// Mines Specifics
+window.openMines = function () {
+    console.log("💣 OPENING MINES");
+    window.transitionTo('arcade-game-selector', 'stage-mines-overlay');
+
+    // FORCE DISPLAY FLEX (Bypass .hidden issues)
+    const overlay = document.getElementById('stage-mines-overlay');
+    if (overlay) {
+        overlay.style.display = 'flex';
+        overlay.classList.remove('hidden');
+    }
+
+    // Init Logic
+    if (window.Arcade && window.Arcade.Mines) {
+        window.Arcade.Mines.init();
+        // Reset visual state
+        window.Arcade.Mines.active = false;
+
+        // Reset UI to Setup Mode
+        if (window.Arcade.Mines.setUIState) {
+            window.Arcade.Mines.setUIState('setup');
+        }
+
+        // Trigger a reset of grid styles
+        /* (Old direct manipulation removed in favor of state machine) */
+
+        window.Arcade.Mines.updateInfo();
+
+        // Safety: Re-render after transition to ensure layout
+        setTimeout(() => {
+            window.Arcade.Mines.renderGrid();
+        }, 50);
+    }
+}
+
+window.closeMines = function () {
+    window.transitionTo('stage-mines-overlay', 'arcade-game-selector');
+
+    // FORCE HIDE
+    const overlay = document.getElementById('stage-mines-overlay');
+    if (overlay) {
+        overlay.style.display = 'none';
+        overlay.classList.add('hidden');
+    }
+    if (window.Arcade && window.Arcade.Mines) {
+        window.Arcade.Mines.active = false;
+    }
 }

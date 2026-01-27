@@ -310,10 +310,13 @@ body {
     padding: 0;
 
     /* GLOBAL LOCKDOWN */
-    width: 100vw;
+    width: 100%;
     height: 100vh;
     overflow: hidden;
     overscroll-behavior: none;
+
+    /* PREVENT LAYOUT SHIFTS (Fix for game launch shifts) */
+    scrollbar-gutter: stable;
 
     display: flex;
     flex-direction: column;
@@ -368,7 +371,8 @@ body {
 }
 
 /* Dashboard Scroll Container */
-#view-dashboard {
+#view-dashboard,
+#view-arcade {
     flex: 1;
     /* Take remaining space */
     width: 100%;
@@ -504,24 +508,6 @@ h1,
     background-color: var(--bg-card-highlight);
 }
 
-/* SETTINGS BUTTON (Matches Theme Button) */
-.settings-btn {
-    background-color: var(--bg-card);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: var(--radius-sm);
-    padding: 8px;
-    font-size: 1.2rem;
-    cursor: pointer;
-    transition: transform 0.2s, background 0.2s, border-color 0.2s;
-    color: white;
-    /* Ensure visible icon */
-}
-
-.settings-btn:hover {
-    transform: scale(1.1);
-    /* border-color: var(--accent); */
-    /* background-color: var(--bg-card-highlight); */
-}
 
 
 
@@ -1529,7 +1515,9 @@ button:active {
 .settings-section {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 12px;
+    margin-bottom: 25px;
+    /* Added spacing */
 }
 
 .settings-label-large {
@@ -1651,30 +1639,6 @@ button:active {
     transform: translateX(3px);
 }
 
-/* Custom PNG Icon Mask (Glass/Gradient Look) */
-.settings-icon-mask {
-    width: 22px;
-    height: 22px;
-    background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
-    /* Metallic/Glass Gradient */
-    -webkit-mask-image: url('settings-icon.png');
-    mask-image: url('settings-icon.png');
-    -webkit-mask-size: contain;
-    mask-size: contain;
-    -webkit-mask-repeat: no-repeat;
-    mask-repeat: no-repeat;
-    -webkit-mask-position: center;
-    mask-position: center;
-    transition: background 0.3s ease;
-}
-
-/* Hover: Brighten to pure white glow */
-.header-settings-btn:hover .settings-icon-mask {
-    background: #ffffff;
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-    /* Bloom effect */
-}
-
 /* Custom PNG Icon Styling */
 .settings-icon-png {
     width: 24px;
@@ -1686,12 +1650,15 @@ button:active {
     transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
 }
 
-/* Hover: Rotate & Brighten */
-.header-settings-btn:hover .settings-icon-png {
+/* Hover effect handled by parent */
+.header-settings-btn:hover .settings-icon-png,
+.settings-btn:hover .settings-icon-png {
     transform: rotate(90deg);
     opacity: 1;
     filter: brightness(0) invert(1) drop-shadow(0 0 8px rgba(255, 255, 255, 0.4));
 }
+
+/* Hover: Rotate & Brighten */
 
 /* Footer & Toggles */
 .settings-footer {
@@ -2352,6 +2319,18 @@ body.animations-active .subject-widget {
     border-color: var(--accent);
     color: white;
     box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
+}
+
+.header-settings-btn svg {
+    width: 24px;
+    height: 24px;
+    transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+    transform-origin: center;
+    will-change: transform;
+}
+
+.header-settings-btn:hover svg {
+    transform: rotate(90deg);
 }
 
 .header-settings-btn:active {
@@ -3660,26 +3639,23 @@ canvas {
     border: 1px solid rgba(255, 255, 255, 0.1);
     width: 36px;
     height: 36px;
-    border-radius: 10px;
+    border-radius: 50%;
     display: flex;
     justify-content: center;
     align-items: center;
     cursor: pointer;
     color: white;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
     backdrop-filter: blur(5px);
 }
 
 .settings-btn:hover {
     background: rgba(255, 255, 255, 0.15);
     border-color: rgba(255, 255, 255, 0.3);
-    transform: rotate(90deg);
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
 }
 
-.settings-btn svg {
-    width: 20px;
-    height: 20px;
-}
 
 /* Settings Panel */
 /* Settings Panel */
@@ -3721,10 +3697,13 @@ canvas {
     box-shadow: 0 40px 100px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.05);
     display: flex;
     flex-direction: column;
-    animation: settingsEnter 0.4s cubic-bezier(0.19, 1, 0.22, 1);
 }
 
-.settings-panel.fade-out-anim {
+.settings-panel.anim-enter {
+    animation: settingsEnter 0.35s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+}
+
+.settings-panel.anim-exit {
     animation: settingsExit 0.25s cubic-bezier(0.19, 1, 0.22, 1) forwards;
 }
 
@@ -3796,9 +3775,9 @@ canvas {
 }
 
 .settings-panel h3 {
-    margin-top: 0;
-    margin-bottom: 25px;
-    color: var(--accent);
+    margin: 0;
+    /* Reset margins to let header flex handle it */
+    color: white;
 }
 
 .setting-group {
@@ -4774,7 +4753,7 @@ body.theme-ocean {
     display: flex;
     justify-content: center;
     align-items: center;
-    animation: fadeIn 0.2s ease-out;
+    align-items: center;
 }
 
 .modal-content {
