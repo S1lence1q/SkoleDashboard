@@ -591,7 +591,7 @@ function checkLock() {
         const val = lockInput.value.trim().toLowerCase();
         console.log("Attempting unlock with:", val); // Debug
 
-        if (val === 'julelars') {
+        if (val === 'julelars' || val === 'alliserlav' || val === 'majaerfreaky') {
             sessionStorage.setItem('skole_unlocked', 'true');
 
             // Animate Out
@@ -632,7 +632,7 @@ function checkLock() {
 
     lockInput.addEventListener('input', (e) => {
         const val = e.target.value.trim().toLowerCase();
-        if (val === 'julelars') {
+        if (val === 'julelars' || val === 'alliserlav' || val === 'majaerfreaky') {
             unlock();
         } else {
             if (lockError) lockError.classList.add('hidden');
